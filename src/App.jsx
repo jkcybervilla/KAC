@@ -5,8 +5,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import ProjectDetails from './pages/project/ProjectDetails';
 import ProjectsPage from './pages/project/ProjectsPage';
 import AccountantDashboard from './pages/accountant/AccountantDashboard'; 
-import WorkerRegister from "./pages/WorkerRegistration/WorkerRegister"; // বানান নিশ্চিত করুন
-import AttendanceSheet from './pages/Attendance/AttendanceSheet';
+import WorkerRegisterHub from './pages/WorkerRegistration/WorkerRegisterHub';
+import AttendanceHub from './pages/Attendance/AttendanceHub';
 function App() {
   return (
     <Router>
@@ -16,9 +16,8 @@ function App() {
         <Route path="/accountant" element={<AccountantDashboard />} />
         <Route path="/all-projects" element={<ProjectsPage />} />
         <Route path="/project/:id" element={<ProjectDetails />} />
-        <Route path="/attendance-sheet" element={<AttendanceSheet />} />
-        {/* বাটন থেকে আপনি এই পাথে রিডাইরেক্ট করছেন */}
-        <Route path="/register-worker" element={<WorkerRegister />} />
+        <Route path="/attendance-sheet" element={<AttendanceHub />} />
+        <Route path="/register-worker" element={<WorkerRegisterHub />} />
       </Routes>
     </Router>
   );
