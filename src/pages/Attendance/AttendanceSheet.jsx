@@ -153,7 +153,7 @@ const styles = {
   monthSelector: { backgroundColor: '#0a0a0a', padding: '5px 15px', borderRadius: '8px', border: '1px solid #111', display: 'flex', gap: '10px' },
   select: { background: 'none', border: 'none', color: '#fff', outline: 'none', cursor: 'pointer', fontWeight: 'bold' },
   saveBtn: { backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
-  gridSection: { borderRadius: '12px', overflow: 'hidden', border: '1px solid #111' },
+  gridSection: { borderRadius: '12px', overflow: 'hidden' },
   legend: { marginTop: '15px', display: 'flex', gap: '20px', fontSize: '13px', color: '#777' }
 };
 

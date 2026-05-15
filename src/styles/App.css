@@ -1,4 +1,12 @@
 /* ==========================================================================
+   0. GLOBAL RESET
+   ========================================================================== */
+body {
+  margin: 0;
+  background-color: #050505;
+}
+
+/* ==========================================================================
    1. GLOBAL & CONTAINER STYLES
    ========================================================================== */
 #center {
@@ -198,9 +206,20 @@
 }
 
 /* Remove Outer Borders and Shadows */
-.ag-root-wrapper, 
-.ag-root-wrapper-body {
+.ag-theme-quartz-dark,
+.ag-theme-alpine-dark {
     border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.ag-theme-quartz-dark .ag-root-wrapper,
+.ag-theme-quartz-dark .ag-root-wrapper-body,
+.ag-theme-alpine-dark .ag-root-wrapper,
+.ag-theme-alpine-dark .ag-root-wrapper-body {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
     background-color: #050505 !important;
     border-radius: 12px;
 }
