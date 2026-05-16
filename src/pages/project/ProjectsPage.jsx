@@ -138,16 +138,17 @@ const ProjectsPage = () => {
 
   const columnDefs = useMemo(
     () => [
-      { field: 'SL', headerName: 'SL NO', width: 80, pinned: 'left' },
-      { field: 'PROJECT_NAME', headerName: 'PROJECT NAME', minWidth: 180, flex: 1.5, pinned: 'left' },
-      { field: 'TYPE', headerName: 'TYPE', width: 90 },
-      { field: 'CO_ORDINATOR', headerName: 'CO-ORDINATOR', width: 130 },
-      { field: 'ACCOUNTANT', headerName: 'ACCOUNTANT', width: 130 },
-      { field: 'CURRENT_MANPOWER', headerName: 'CURRENT MANPOWER', width: 150 },
+      { field: 'SL', headerName: 'SL NO', flex: 0.6, minWidth: 70, pinned: 'left' },
+      { field: 'PROJECT_NAME', headerName: 'PROJECT NAME', flex: 1.8, minWidth: 180, pinned: 'left' },
+      { field: 'TYPE', headerName: 'TYPE', flex: 0.7, minWidth: 80 },
+      { field: 'CO_ORDINATOR', headerName: 'CO-ORDINATOR', flex: 1, minWidth: 120 },
+      { field: 'ACCOUNTANT', headerName: 'ACCOUNTANT', flex: 1, minWidth: 120 },
+      { field: 'CURRENT_MANPOWER', headerName: 'CURRENT MANPOWER', flex: 1, minWidth: 130 },
       {
         field: 'ACTIVE_STATUS',
         headerName: 'ACTIVE STATUS',
-        width: 120,
+        flex: 0.9,
+        minWidth: 110,
         cellRenderer: (params) => (
           <span style={params.value === 'ACTIVE' ? s.badgeActive : s.badgeInactive}>
             {params.value || 'INACTIVE'}
@@ -156,7 +157,8 @@ const ProjectsPage = () => {
       },
       {
         headerName: 'ACTION',
-        width: 130,
+        flex: 0.8,
+        minWidth: 110,
         pinned: 'right',
         cellRenderer: (params) => (
           <button type="button" style={s.actionBtn} onClick={() => setPropertiesProject(params.data)}>
@@ -167,15 +169,15 @@ const ProjectsPage = () => {
       {
         headerName: 'MORE DETAILS (expand columns)',
         children: [
-          { field: 'MANPOWER', headerName: 'MANPOWER', width: 110, hide: true },
-          { field: 'LINE_NAME', headerName: 'LINE NAME', width: 120, hide: true },
-          { field: 'DISTRICT', headerName: 'DISTRICT', width: 110, hide: true },
-          { field: 'CLIENT', headerName: 'CLIENT', width: 120, hide: true },
-          { field: 'VENDORS', headerName: 'VENDORS', width: 140, hide: true },
-          { field: 'PO_NUMBER', headerName: 'PO NUMBER', width: 110, hide: true },
-          { field: 'GEM_ID', headerName: 'GEM ID', width: 100, hide: true },
-          { field: 'REGION', headerName: 'REGION', width: 100, hide: true },
-          { field: 'REQ_MANPOWER', headerName: 'REQUIRED MANPOWER', width: 150, hide: true },
+          { field: 'MANPOWER', headerName: 'MANPOWER', flex: 0.8, minWidth: 100, hide: true },
+          { field: 'LINE_NAME', headerName: 'LINE NAME', flex: 0.9, minWidth: 110, hide: true },
+          { field: 'DISTRICT', headerName: 'DISTRICT', flex: 0.8, minWidth: 100, hide: true },
+          { field: 'CLIENT', headerName: 'CLIENT', flex: 0.9, minWidth: 110, hide: true },
+          { field: 'VENDORS', headerName: 'VENDORS', flex: 1, minWidth: 120, hide: true },
+          { field: 'PO_NUMBER', headerName: 'PO NUMBER', flex: 0.8, minWidth: 100, hide: true },
+          { field: 'GEM_ID', headerName: 'GEM ID', flex: 0.75, minWidth: 90, hide: true },
+          { field: 'REGION', headerName: 'REGION', flex: 0.75, minWidth: 90, hide: true },
+          { field: 'REQ_MANPOWER', headerName: 'REQUIRED MANPOWER', flex: 1, minWidth: 130, hide: true },
         ],
       },
     ],
@@ -222,6 +224,25 @@ const ProjectsPage = () => {
           </button>
         </div>
       </header>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+          <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Projects</p>
+          <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#0055ff' }}>{enrichedProjects.length}</p>
+        </div>
+        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+          <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Projects</p>
+          <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#22c55e' }}>{enrichedProjects.filter(p => p.ACTIVE_STATUS === 'ACTIVE').length}</p>
+        </div>
+        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+          <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inactive Projects</p>
+          <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#ef4444' }}>{enrichedProjects.filter(p => p.ACTIVE_STATUS === 'INACTIVE').length}</p>
+        </div>
+        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+          <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Manpower</p>
+          <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#f59e0b' }}>{enrichedProjects.reduce((sum, p) => sum + (p.CURRENT_MANPOWER || 0), 0)}</p>
+        </div>
+      </div>
 
       <div style={s.gridSection}>
         <div className="ag-theme-quartz-dark" style={{ height: '78vh', width: '100%' }}>

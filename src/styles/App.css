@@ -202,7 +202,7 @@ body {
     --ag-row-hover-color: #111111 !important;
     --ag-selected-row-background-color: #1a1a1a !important;
     --ag-foreground-color: #ffffff !important;
-    --ag-header-foreground-color: #666666 !important;
+    --ag-header-foreground-color: #ffffff !important;
 }
 
 /* Remove Outer Borders and Shadows */
@@ -228,6 +228,9 @@ body {
 .ag-header {
     border-bottom: 1px solid #1a1a1a !important;
     background-color: #050505 !important;
+    position: sticky;
+    top: 0;
+    z-index: 5;
 }
 
 .ag-header-cell {

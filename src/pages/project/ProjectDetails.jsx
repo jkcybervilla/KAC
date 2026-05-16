@@ -77,8 +77,43 @@ const ProjectDetails = () => {
       </header>
       
       <div style={styles.header}>
-        <h1 style={styles.projTitle}>{project.PROJECT_NAME}</h1>
-        <span style={styles.typeBadge}>{project.TYPE}</span>
+        <span style={styles.pageLabel}>PROJECT DETAILS</span>
+        <div style={styles.titleRow}>
+          <h1 style={styles.projTitle}>{project.PROJECT_NAME}</h1>
+          <span style={styles.typeBadge}>{project.TYPE}</span>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '28px' }}>
+        <div style={styles.headerCard}>
+          <p style={styles.headerLabel}>Project Type</p>
+          <p style={styles.headerValue}>{project.TYPE}</p>
+        </div>
+        <div style={styles.headerCard}>
+          <p style={styles.headerLabel}>Status</p>
+          <p style={{...styles.headerValue, color: project.ACTIVE_STATUS === 'ACTIVE' ? '#22c55e' : '#ef4444'}}>{project.ACTIVE_STATUS || 'INACTIVE'}</p>
+        </div>
+        <div style={styles.headerCard}>
+          <p style={styles.headerLabel}>Client</p>
+          <p style={styles.headerValue}>{project.CLIENT || 'N/A'}</p>
+        </div>
+        <div style={styles.headerCard}>
+          <p style={styles.headerLabel}>PO Number</p>
+          <p style={styles.headerValue}>{project.PO_NUMBER || 'N/A'}</p>
+        </div>
+        <div style={styles.headerCard}>
+          <p style={styles.headerLabel}>District</p>
+          <p style={styles.headerValue}>{project.DISTRICT || 'N/A'}</p>
+        </div>
+        <div style={styles.headerCard}>
+          <p style={styles.headerLabel}>Manpower Req</p>
+          <p style={styles.headerValue}>{project.REQ_MANPOWER}</p>
+        </div>
+      </div>
+
+      <div style={styles.sectionIntro}>
+        <h2 style={styles.sectionTitle}>Project Overview</h2>
+        <p style={styles.sectionSubtitle}>Quick view of assignment, manpower and attendance status.</p>
       </div>
 
       <div style={styles.grid}>
@@ -124,9 +159,17 @@ const styles = {
   loading: { color: '#fff', textAlign: 'center', marginTop: '20%', fontSize: '14px' },
   backBtn: { background: '#0a0a0a', border: '1px solid #111', color: '#888', padding: '8px 15px', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' },
   delBtn: { background: 'none', border: '1px solid #7f1d1d', color: '#ef4444', padding: '8px 15px', cursor: 'pointer', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' },
-  header: { marginBottom: '40px' },
-  projTitle: { fontSize: '32px', fontWeight: '900', margin: '0 0 10px 0' },
+  header: { marginBottom: '20px' },
+  pageLabel: { display: 'inline-block', marginBottom: '10px', fontSize: '12px', letterSpacing: '1.4px', color: '#818cf8', fontWeight: '700', textTransform: 'uppercase' },
+  titleRow: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
+  projTitle: { fontSize: '32px', fontWeight: '900', margin: '0' },
   typeBadge: { backgroundColor: '#0055ff', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' },
+  headerCard: { backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '8px', padding: '12px 16px' },
+  headerLabel: { margin: '0 0 6px 0', color: '#888', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  headerValue: { margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#0055ff' },
+  sectionIntro: { marginBottom: '30px' },
+  sectionTitle: { margin: '0 0 6px 0', fontSize: '20px', fontWeight: '800' },
+  sectionSubtitle: { margin: 0, color: '#9ca3af', fontSize: '14px' },
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '25px' },
   infoCard: { backgroundColor: '#0a0a0a', padding: '25px', borderRadius: '12px', border: '1px solid #111' },
   statsCard: { backgroundColor: '#0a0a0a', padding: '25px', borderRadius: '12px', border: '1px solid #111' },
