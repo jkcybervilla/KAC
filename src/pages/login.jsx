@@ -26,10 +26,7 @@ const Login = () => {
       const userDoc = await getDoc(doc(db, "users", userIdText));
 
       if (userDoc.exists()) {
-        const role = userDoc.data().role;
-        if (role === 'admin') navigate('/admin');
-        else if (role === 'accountant') navigate('/accountant');
-        else navigate('/coordinator');
+        navigate('/dashboard');
       }
     } catch (error) {
       alert("Verification Failed!");

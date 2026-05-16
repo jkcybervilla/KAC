@@ -47,6 +47,8 @@ const CoordinatorDashboard = () => {
     []
   );
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const logout = () => {
     auth.signOut();
     navigate('/');
@@ -55,17 +57,26 @@ const CoordinatorDashboard = () => {
   if (loading) return <div style={s.loading}>Loading...</div>;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#050505', color: '#fff' }}>
-      <aside style={{ width: 260, borderRight: '1px solid #111', padding: 20 }}>
-        <h2 style={{ fontSize: 16, margin: '0 0 20px' }}>
-          COORDINATOR <span style={{ color: '#f59e0b' }}>VIEW</span>
-        </h2>
+    <div className="coordinator-layout page-container">
+      <div className={menuOpen ? 'slidebar-backdrop open' : 'slidebar-backdrop'} onClick={() => setMenuOpen(false)} />
+      <aside className={menuOpen ? 'page-aside slidebar open' : 'page-aside slidebar'}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h2 style={{ fontSize: 16, margin: 0 }}>
+            COORDINATOR <span style={{ color: '#f59e0b' }}>VIEW</span>
+          </h2>
+          <button className="slidebar-close-btn" type="button" onClick={() => setMenuOpen(false)}>
+            ✕
+          </button>
+        </div>
         <p style={{ fontSize: 11, color: '#666', marginBottom: 16 }}>View only — assigned projects</p>
         {projects.map((p) => (
           <button
             key={p.id}
             type="button"
-            onClick={() => setSelected(p)}
+            onClick={() => {
+              setSelected(p);
+              setMenuOpen(false);
+            }}
             style={{
               ...s.tab,
               width: '100%',
@@ -82,20 +93,25 @@ const CoordinatorDashboard = () => {
         </button>
       </aside>
 
-      <main style={{ flex: 1, padding: 24 }}>
-        <header style={{ ...s.header, marginBottom: 24 }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 22 }}>{selected?.PROJECT_NAME || 'No project'}</h1>
-            <p style={{ margin: '6px 0 0', color: '#888', fontSize: 13 }}>
-              Line: {selected?.LINE_NAME || '—'} | View only access
-            </p>
+      <main className="page-main">
+        <header className="page-header" style={{ marginBottom: 24 }}>
+          <div className="page-header-inner">
+            <button className="slidebar-toggle-btn" type="button" onClick={() => setMenuOpen(true)}>
+              ☰
+            </button>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 22 }}>{selected?.PROJECT_NAME || 'No project'}</h1>
+              <p style={{ margin: '6px 0 0', color: '#888', fontSize: 13 }}>
+                Line: {selected?.LINE_NAME || '—'} | View only access
+              </p>
+            </div>
+            <Bell size={20} color="#666" />
           </div>
-          <Bell size={20} color="#666" />
         </header>
 
         {selected && (
           <div style={{ ...s.modalContent, maxWidth: 'none', marginBottom: 20 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, fontSize: 13 }}>
+            <div className="page-info-grid">
               {[
                 ['TYPE', selected.TYPE],
                 ['CLIENT', selected.CLIENT],
@@ -115,9 +131,11 @@ const CoordinatorDashboard = () => {
           </div>
         )}
 
-        <div style={s.gridSection}>
-          <div className="ag-theme-quartz-dark" style={{ height: '50vh', width: '100%' }}>
-            <AgGridReact rowData={projects} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} />
+        <div className="page-box" style={{ padding: 0 }}>
+          <div style={{ width: '100%', overflowX: 'auto' }}>
+            <div className="ag-theme-quartz-dark" style={{ minHeight: '50vh', width: '100%' }}>
+              <AgGridReact rowData={projects} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} />
+            </div>
           </div>
         </div>
       </main>
