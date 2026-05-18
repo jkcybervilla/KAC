@@ -42,7 +42,7 @@ const CoordinatorDashboard = () => {
 
   const columnDefs = useMemo(
     () => [
-      { field: 'SL', headerName: 'SL', width: 70 },
+      { headerName: 'SL', width: 70, valueGetter: (params) => (params.node ? params.node.rowIndex + 1 : '') },
       { field: 'PROJECT_NAME', headerName: 'PROJECT', flex: 1 },
       { field: 'LINE_NAME', headerName: 'LINE', width: 120 },
       { field: 'TYPE', headerName: 'TYPE', width: 80 },
