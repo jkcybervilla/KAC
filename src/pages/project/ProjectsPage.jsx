@@ -4,7 +4,7 @@ import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
-import { ArrowLeft, Plus, Search, X, Settings2 } from 'lucide-react';
+import { ArrowLeft, Plus, Search, X, Settings2, Edit3 } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import ColumnSettings, { loadSettings } from '../../components/ColumnSettings';
@@ -404,6 +404,7 @@ const ProjectFormModal = ({ formData, setFormData, onClose, onSubmit }) => (
 
 const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
   const [data, setData] = useState({ ...project });
+  const [isEditing, setIsEditing] = useState(false);
 
   const details = [
     ['TYPE', data.TYPE],
@@ -427,7 +428,20 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
       <div style={{ ...s.modalContent, maxWidth: '720px' }}>
         <div style={s.modalHeader}>
           <h3 style={{ margin: 0 }}>PROJECT PROPERTIES — {project.PROJECT_NAME}</h3>
-          <X size={20} style={{ cursor: 'pointer' }} onClick={onClose} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={() => setIsEditing(!isEditing)}
+              style={{
+                background: 'none', border: '1px solid #333', color: '#0055ff',
+                padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold'
+              }}
+            >
+              <Edit3 size={14} /> {isEditing ? 'VIEW' : 'EDIT'}
+            </button>
+            <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={onClose} />
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', fontSize: '13px' }}>
@@ -456,53 +470,57 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
           </button>
         </div>
 
-        <div style={s.inputGrid}>
-          <FormField label="PROJECT TITLE">
-            <input style={s.formInput} value={data.PROJECT_NAME || ''} onChange={(e) => setData({ ...data, PROJECT_NAME: e.target.value })} />
-          </FormField>
-          <FormField label="TYPE">
-            <select style={s.formInput} value={data.TYPE || 'SS'} onChange={(e) => setData({ ...data, TYPE: e.target.value })}>
-              <option value="SS">SS</option>
-              <option value="TL">TL</option>
-            </select>
-          </FormField>
-          <FormField label="CLIENT">
-            <input style={s.formInput} value={data.CLIENT || ''} onChange={(e) => setData({ ...data, CLIENT: e.target.value })} />
-          </FormField>
-          <FormField label="PO NUMBER">
-            <input style={s.formInput} value={data.PO_NUMBER || ''} onChange={(e) => setData({ ...data, PO_NUMBER: e.target.value })} />
-          </FormField>
-          <FormField label="GEM ID">
-            <input style={s.formInput} value={data.GEM_ID || ''} onChange={(e) => setData({ ...data, GEM_ID: e.target.value })} />
-          </FormField>
-          <FormField label="DISTRICT">
-            <input style={s.formInput} value={data.DISTRICT || ''} onChange={(e) => setData({ ...data, DISTRICT: e.target.value })} />
-          </FormField>
-          <FormField label="REGION">
-            <input style={s.formInput} value={data.REGION || ''} onChange={(e) => setData({ ...data, REGION: e.target.value })} />
-          </FormField>
-          <FormField label="LINE NAME">
-            <input style={s.formInput} value={data.LINE_NAME || ''} onChange={(e) => setData({ ...data, LINE_NAME: e.target.value })} />
-          </FormField>
-          <FormField label="REQUIRED MANPOWER">
-            <input
-              type="number"
-              style={s.formInput}
-              value={data.REQ_MANPOWER || ''}
-              onChange={(e) => setData({ ...data, REQ_MANPOWER: e.target.value })}
-            />
-          </FormField>
-          <FormField label="CO-ORDINATOR">
-            <input style={s.formInput} value={data.CO_ORDINATOR || ''} onChange={(e) => setData({ ...data, CO_ORDINATOR: e.target.value })} />
-          </FormField>
-          <FormField label="ACCOUNTANT">
-            <input style={s.formInput} value={data.ACCOUNTANT || ''} onChange={(e) => setData({ ...data, ACCOUNTANT: e.target.value })} />
-          </FormField>
-        </div>
+        {isEditing && (
+          <>
+            <div style={s.inputGrid}>
+              <FormField label="PROJECT TITLE">
+                <input style={s.formInput} value={data.PROJECT_NAME || ''} onChange={(e) => setData({ ...data, PROJECT_NAME: e.target.value })} />
+              </FormField>
+              <FormField label="TYPE">
+                <select style={s.formInput} value={data.TYPE || 'SS'} onChange={(e) => setData({ ...data, TYPE: e.target.value })}>
+                  <option value="SS">SS</option>
+                  <option value="TL">TL</option>
+                </select>
+              </FormField>
+              <FormField label="CLIENT">
+                <input style={s.formInput} value={data.CLIENT || ''} onChange={(e) => setData({ ...data, CLIENT: e.target.value })} />
+              </FormField>
+              <FormField label="PO NUMBER">
+                <input style={s.formInput} value={data.PO_NUMBER || ''} onChange={(e) => setData({ ...data, PO_NUMBER: e.target.value })} />
+              </FormField>
+              <FormField label="GEM ID">
+                <input style={s.formInput} value={data.GEM_ID || ''} onChange={(e) => setData({ ...data, GEM_ID: e.target.value })} />
+              </FormField>
+              <FormField label="DISTRICT">
+                <input style={s.formInput} value={data.DISTRICT || ''} onChange={(e) => setData({ ...data, DISTRICT: e.target.value })} />
+              </FormField>
+              <FormField label="REGION">
+                <input style={s.formInput} value={data.REGION || ''} onChange={(e) => setData({ ...data, REGION: e.target.value })} />
+              </FormField>
+              <FormField label="LINE NAME">
+                <input style={s.formInput} value={data.LINE_NAME || ''} onChange={(e) => setData({ ...data, LINE_NAME: e.target.value })} />
+              </FormField>
+              <FormField label="REQUIRED MANPOWER">
+                <input
+                  type="number"
+                  style={s.formInput}
+                  value={data.REQ_MANPOWER || ''}
+                  onChange={(e) => setData({ ...data, REQ_MANPOWER: e.target.value })}
+                />
+              </FormField>
+              <FormField label="CO-ORDINATOR">
+                <input style={s.formInput} value={data.CO_ORDINATOR || ''} onChange={(e) => setData({ ...data, CO_ORDINATOR: e.target.value })} />
+              </FormField>
+              <FormField label="ACCOUNTANT">
+                <input style={s.formInput} value={data.ACCOUNTANT || ''} onChange={(e) => setData({ ...data, ACCOUNTANT: e.target.value })} />
+              </FormField>
+            </div>
 
-        <button type="button" style={s.submitBtn} onClick={() => onSave(data)}>
-          UPDATE PROJECT
-        </button>
+            <button type="button" style={s.submitBtn} onClick={() => onSave(data)}>
+              UPDATE PROJECT
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
