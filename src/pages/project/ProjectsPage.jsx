@@ -4,9 +4,10 @@ import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
-import { ArrowLeft, Plus, Search, X } from 'lucide-react';
+import { ArrowLeft, Plus, Search, X, Settings2 } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
+import ColumnSettings, { loadSettings } from '../../components/ColumnSettings';
 import { nextSerial } from '../../utils/serial';
 import { getBatchId, countPresent, getDaysInMonth } from '../../utils/attendance';
 
@@ -48,6 +49,10 @@ const ProjectsPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [propertiesProject, setPropertiesProject] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [showSettings, setShowSettings] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState(loadSettings);
+  const [gridApi, setGridApi] = useState(null);
+  const [columnApi, setColumnApi] = useState(null);
   const navigate = useNavigate();
 
   const now = new Date();
@@ -145,19 +150,27 @@ const ProjectsPage = () => {
     }
   };
 
-  const columnDefs = useMemo(
-    () => [
-      { field: 'SL', headerName: 'SL NO', flex: 0.6, minWidth: 70, pinned: 'left' },
-      { field: 'PROJECT_NAME', headerName: 'PROJECT NAME', flex: 1.8, minWidth: 180, pinned: 'left' },
-      { field: 'TYPE', headerName: 'TYPE', flex: 0.7, minWidth: 80 },
-      { field: 'CO_ORDINATOR', headerName: 'CO-ORDINATOR', flex: 1, minWidth: 120 },
-      { field: 'ACCOUNTANT', headerName: 'ACCOUNTANT', flex: 1, minWidth: 120 },
-      { field: 'CURRENT_MANPOWER', headerName: 'CURRENT MANPOWER', flex: 1, minWidth: 130 },
+  const buildColumnDefs = useCallback(
+    (visibility) => [
+      {
+        headerName: 'SL NO',
+        flex: 0.6,
+        minWidth: 70,
+        pinned: 'left',
+        hide: !visibility.sl,
+        valueGetter: (params) => (params.node ? params.node.rowIndex + 1 : ''),
+      },
+      { field: 'PROJECT_NAME', headerName: 'PROJECT NAME', flex: 1.8, minWidth: 180, pinned: 'left', hide: !visibility.projectName },
+      { field: 'TYPE', headerName: 'TYPE', flex: 0.7, minWidth: 80, hide: !visibility.type },
+      { field: 'CO_ORDINATOR', headerName: 'CO-ORDINATOR', flex: 1, minWidth: 120, hide: !visibility.coordinator },
+      { field: 'ACCOUNTANT', headerName: 'ACCOUNTANT', flex: 1, minWidth: 120, hide: !visibility.accountant },
+      { field: 'CURRENT_MANPOWER', headerName: 'CURRENT MANPOWER', flex: 1, minWidth: 130, hide: !visibility.currentManpower },
       {
         field: 'ACTIVE_STATUS',
         headerName: 'ACTIVE STATUS',
         flex: 0.9,
         minWidth: 110,
+        hide: !visibility.activeStatus,
         cellRenderer: (params) => (
           <span style={params.value === 'ACTIVE' ? s.badgeActive : s.badgeInactive}>
             {params.value || 'INACTIVE'}
@@ -176,27 +189,46 @@ const ProjectsPage = () => {
         ),
       },
       {
-        headerName: 'MORE DETAILS (expand columns)',
+        headerName: 'MORE DETAILS',
         children: [
-          { field: 'MANPOWER', headerName: 'MANPOWER', flex: 0.8, minWidth: 100, hide: true },
-          { field: 'LINE_NAME', headerName: 'LINE NAME', flex: 0.9, minWidth: 110, hide: true },
-          { field: 'DISTRICT', headerName: 'DISTRICT', flex: 0.8, minWidth: 100, hide: true },
-          { field: 'CLIENT', headerName: 'CLIENT', flex: 0.9, minWidth: 110, hide: true },
-          { field: 'VENDORS', headerName: 'VENDORS', flex: 1, minWidth: 120, hide: true },
-          { field: 'PO_NUMBER', headerName: 'PO NUMBER', flex: 0.8, minWidth: 100, hide: true },
-          { field: 'GEM_ID', headerName: 'GEM ID', flex: 0.75, minWidth: 90, hide: true },
-          { field: 'REGION', headerName: 'REGION', flex: 0.75, minWidth: 90, hide: true },
-          { field: 'REQ_MANPOWER', headerName: 'REQUIRED MANPOWER', flex: 1, minWidth: 130, hide: true },
+          { field: 'MANPOWER', headerName: 'MANPOWER', flex: 0.8, minWidth: 100, hide: !visibility.manpower },
+          { field: 'LINE_NAME', headerName: 'LINE NAME', flex: 0.9, minWidth: 110, hide: !visibility.lineName },
+          { field: 'DISTRICT', headerName: 'DISTRICT', flex: 0.8, minWidth: 100, hide: !visibility.district },
+          { field: 'CLIENT', headerName: 'CLIENT', flex: 0.9, minWidth: 110, hide: !visibility.client },
+          { field: 'VENDORS', headerName: 'VENDORS', flex: 1, minWidth: 120, hide: !visibility.vendors },
+          { field: 'PO_NUMBER', headerName: 'PO NUMBER', flex: 0.8, minWidth: 100, hide: !visibility.poNumber },
+          { field: 'GEM_ID', headerName: 'GEM ID', flex: 0.75, minWidth: 90, hide: !visibility.gemId },
+          { field: 'REGION', headerName: 'REGION', flex: 0.75, minWidth: 90, hide: !visibility.region },
+          { field: 'REQ_MANPOWER', headerName: 'REQUIRED MANPOWER', flex: 1, minWidth: 130, hide: !visibility.reqManpower },
         ],
       },
     ],
     []
   );
 
+  const columnDefs = useMemo(() => buildColumnDefs(columnVisibility), [buildColumnDefs, columnVisibility]);
+
   const defaultColDef = useMemo(
-    () => ({ resizable: true, filter: true, sortable: true }),
+    () => ({ resizable: true, filter: true, sortable: true, wrapHeaderText: true, autoHeaderHeight: true }),
     []
   );
+
+  const handleGridReady = useCallback((params) => {
+    setGridApi(params.api);
+    setColumnApi(params.columnApi);
+  }, []);
+
+  const autoSizeAllColumns = useCallback(() => {
+    if (!columnApi) return;
+    const allColumnIds = columnApi.getAllDisplayedColumns().map((col) => col.getColId());
+    if (allColumnIds.length) {
+      columnApi.autoSizeColumns(allColumnIds, false);
+    }
+  }, [columnApi]);
+
+  useEffect(() => {
+    autoSizeAllColumns();
+  }, [autoSizeAllColumns, columnDefs, filteredProjects]);
 
   if (loading) return <div style={s.loading}>Loading projects...</div>;
 
@@ -231,6 +263,9 @@ const ProjectsPage = () => {
           <button type="button" onClick={() => setShowCreateModal(true)} style={s.primaryBtn}>
             <Plus size={18} /> CREATE NEW PROJECT
           </button>
+          <button type="button" onClick={() => setShowSettings(true)} style={s.secondaryBtn}>
+            <Settings2 size={16} /> COLUMNS
+          </button>
         </div>
       </header>
 
@@ -262,6 +297,8 @@ const ProjectsPage = () => {
             quickFilterText={searchText}
             animateRows
             theme={darkQuartzTheme}
+            onGridReady={handleGridReady}
+            autoSizeStrategy={{ type: 'fitCellContents' }}
           />
         </div>
       </div>
@@ -290,6 +327,13 @@ const ProjectsPage = () => {
           navigate={navigate}
         />
       )}
+
+      <ColumnSettings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        visibility={columnVisibility}
+        onVisibilityChange={setColumnVisibility}
+      />
     </div>
   );
 };

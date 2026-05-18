@@ -14,6 +14,8 @@ export const pageStyles = {
   tab: { padding: '10px 18px', borderRadius: '8px', border: '1px solid #222', background: '#0a0a0a', color: '#888', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
   tabActive: { padding: '10px 18px', borderRadius: '8px', border: '1px solid #0055ff', background: '#0055ff22', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
   gridSection: { borderRadius: '12px', overflow: 'hidden' },
+  gridHeader: { display: 'flex', justifyContent: 'flex-end', padding: '14px 18px 0 18px', gap: '10px', backgroundColor: '#050505', borderBottom: '1px solid #111' },
+  settingsBtn: { backgroundColor: '#0a0a0a', border: '1px solid #222', color: '#fff', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px' },
   filterRow: { display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' },
   select: { backgroundColor: '#0a0a0a', border: '1px solid #222', color: '#fff', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', outline: 'none' },
   modalOverlay: { position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '20px' },

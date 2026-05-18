@@ -123,8 +123,8 @@ const ProjectDetails = () => {
           <p style={styles.p}><strong>Coordinator:</strong> {project.CO_ORDINATOR || 'N/A'}</p>
           <p style={styles.p}><strong>Accountant:</strong> {project.ACCOUNTANT || 'N/A'}</p>
           <p style={styles.p}><strong>Region:</strong> {project.REGION}</p>
-          <p style={styles.p}><strong>Line Name:</strong> {project.Line}</p>
-          <p style={styles.p}><strong>District:</strong> {project.District}</p>
+          <p style={styles.p}><strong>Line Name:</strong> {project.LINE_NAME || 'N/A'}</p>
+          <p style={styles.p}><strong>District:</strong> {project.DISTRICT || 'N/A'}</p>
           <p style={styles.p}><strong>Status:</strong> <span style={{color: project.DPR_STATUS === 'SUBMITTED' ? '#22c55e' : '#ef4444'}}>{project.DPR_STATUS}</span></p>
         </div>
 
