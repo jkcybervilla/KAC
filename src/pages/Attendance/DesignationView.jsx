@@ -2,14 +2,23 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, countPresent, getDaysInMonth } from '../../utils/attendance';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const DesignationView = () => {
   const [rows, setRows] = useState([]);
@@ -51,8 +60,8 @@ const DesignationView = () => {
         <ExportToolbar rows={rows} columnDefs={columnDefs} title="Designation Summary" filename="designation-summary" />
       </div>
       <div style={s.gridSection}>
-        <div className="ag-theme-quartz-dark" style={{ height: '50vh', width: '100%' }}>
-          <AgGridReact rowData={rows} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} />
+        <div style={{ height: '50vh', width: '100%' }}>
+          <AgGridReact rowData={rows} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} theme={darkQuartzTheme} />
         </div>
       </div>
     </div>

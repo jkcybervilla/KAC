@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
 import { Search } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const RegisteredWorkers = () => {
   const [workers, setWorkers] = useState([]);
@@ -73,13 +82,14 @@ const RegisteredWorkers = () => {
         <ExportToolbar rows={workers} columnDefs={columnDefs} title="Worker Register" filename="worker-register" />
       </div>
       <div style={s.gridSection}>
-        <div className="ag-theme-quartz-dark" style={{ height: '70vh', width: '100%' }}>
+        <div style={{ height: '70vh', width: '100%' }}>
           <AgGridReact
             rowData={workers}
             columnDefs={columnDefs}
             defaultColDef={{ resizable: true, filter: true, sortable: true }}
             quickFilterText={searchText}
             animateRows
+            theme={darkQuartzTheme}
           />
         </div>
       </div>

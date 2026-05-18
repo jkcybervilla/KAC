@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
@@ -7,10 +7,19 @@ import { Save, Search } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, getDaysInMonth, defaultDayMap, MONTHS } from '../../utils/attendance';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const [workers, setWorkers] = useState([]);
@@ -187,7 +196,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
       </div>
 
       <div style={s.gridSection}>
-        <div className="ag-theme-quartz-dark" style={{ height: '68vh', width: '100%' }}>
+        <div style={{ height: '68vh', width: '100%' }}>
           <AgGridReact
             rowData={rowData}
             columnDefs={columnDefs}
@@ -197,6 +206,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
             singleClickEdit
             stopEditingWhenCellsLoseFocus
             animateRows
+            theme={darkQuartzTheme}
           />
         </div>
       </div>

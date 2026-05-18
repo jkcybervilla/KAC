@@ -2,15 +2,24 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { Search } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, countPresent, getDaysInMonth } from '../../utils/attendance';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const AccountantDailyAttendance = ({ type, projectName }) => {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -95,12 +104,13 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         <ExportToolbar rows={rows} columnDefs={columnDefs} title={`${type} ${selectedDate}`} filename={`${type}-${selectedDate}`} />
       </div>
       <div style={s.gridSection}>
-        <div className="ag-theme-quartz-dark" style={{ height: '60vh', width: '100%' }}>
+        <div style={{ height: '60vh', width: '100%' }}>
           <AgGridReact
             rowData={rows}
             columnDefs={columnDefs}
             defaultColDef={{ filter: true, sortable: true, editable: false }}
             quickFilterText={searchText}
+            theme={darkQuartzTheme}
           />
         </div>
       </div>

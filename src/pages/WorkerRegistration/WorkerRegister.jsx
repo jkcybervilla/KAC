@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
@@ -8,8 +8,16 @@ import { ArrowLeft, UserPlus, Search, X } from 'lucide-react';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const WorkerRegister = () => {
   const [workers, setWorkers] = useState([]);
@@ -19,7 +27,6 @@ const WorkerRegister = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
-  // ১. সব কলামের জন্য স্টেট (আপনার রিকোয়ারমেন্ট অনুযায়ী)
   const [workerData, setWorkerData] = useState({
     SLNO: '',
     EMPID: '',
@@ -39,7 +46,6 @@ const WorkerRegister = () => {
     STATUS: 'ACTIVE'
   });
 
-  // ডাটাবেস থেকে ডাটা ফেচ করা
   const loadInitialData = async () => {
     try {
       const wSnap = await getDocs(query(collection(db, "workers"), orderBy("SLNO", "asc")));
@@ -61,7 +67,6 @@ const WorkerRegister = () => {
     loadInitialData();
   }, []);
 
-  // ২. আধার ভিত্তিক অটো-জেনারেশন লজিক
   useEffect(() => {
     if (workerData.AADHAR_NO.length === 12) {
       const exist = workers.find(w => String(w.AADHAR_NO) === String(workerData.AADHAR_NO));
@@ -105,7 +110,6 @@ const WorkerRegister = () => {
     }
   };
 
-  // ৩. গ্রিডে সব কলাম দেখানোর ব্যবস্থা
   const columnDefs = useMemo(() => [
     { field: "SLNO", headerName: "SL", width: 70, pinned: 'left' },
     { field: "EMPID", headerName: "EMP ID", width: 100, pinned: 'left' },
@@ -141,13 +145,14 @@ const WorkerRegister = () => {
       </header>
 
       <div style={styles.gridSection}>
-        <div className="ag-theme-quartz-dark" style={{ height: '78vh', width: '100%' }}>
+        <div style={{ height: '78vh', width: '100%' }}>
           <AgGridReact 
             rowData={workers} 
             columnDefs={columnDefs} 
             defaultColDef={{sortable:true, filter:true, resizable:true}} 
             quickFilterText={searchText}
             animateRows={true}
+            theme={darkQuartzTheme}
           />
         </div>
       </div>
@@ -161,7 +166,6 @@ const WorkerRegister = () => {
             </div>
             <form onSubmit={handleSave} style={styles.form}>
               <div style={styles.inputGrid}>
-                {/* Aadhaar (Key Field) */}
                 <div style={{gridColumn: 'span 2'}}>
                   <label style={styles.label}>AADHAAR NO (12 DIGIT)</label>
                   <input type="number" required style={styles.formInput} value={workerData.AADHAR_NO} 

@@ -3,15 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
 import { auth, db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
 import { pageStyles as s } from '../../styles/pageStyles';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const CoordinatorDashboard = () => {
   const { profile } = useAuth();
@@ -133,8 +142,8 @@ const CoordinatorDashboard = () => {
 
         <div className="page-box" style={{ padding: 0 }}>
           <div style={{ width: '100%', overflowX: 'auto' }}>
-            <div className="ag-theme-quartz-dark" style={{ minHeight: '50vh', width: '100%' }}>
-              <AgGridReact rowData={projects} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} />
+            <div style={{ minHeight: '50vh', width: '100%' }}>
+              <AgGridReact rowData={projects} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} theme={darkQuartzTheme} />
             </div>
           </div>
         </div>

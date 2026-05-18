@@ -2,14 +2,22 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { Save, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+const darkQuartzTheme = themeQuartz.withParams({
+  backgroundColor: '#0a0a0a',
+  foregroundColor: '#cccccc',
+  headerBackgroundColor: '#111111',
+  headerTextColor: '#ffffff',
+  borderColor: '#222222',
+  rowHoverColor: '#1a1a1a',
+  oddRowBackgroundColor: '#0d0d0d',
+  fontFamily: 'Inter, sans-serif',
+});
 
 const AttendanceSheet = () => {
   const [workers, setWorkers] = useState([]);
@@ -114,7 +122,7 @@ const AttendanceSheet = () => {
       </header>
 
       <div style={styles.gridSection}>
-        <div className="ag-theme-quartz-dark" style={{ height: '75vh', width: '100%' }}>
+        <div style={{ height: '75vh', width: '100%' }}>
           <AgGridReact
             rowData={workers}
             columnDefs={columnDefs}
@@ -128,6 +136,7 @@ const AttendanceSheet = () => {
             stopEditingWhenCellsLoseFocus={true} 
             animateRows={true}
             suppressRowClickSelection={true}
+            theme={darkQuartzTheme}
           />
         </div>
       </div>
