@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { db } from '../../config/firebase';
-import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
-import { ArrowLeft, Plus, Search, X, Settings2, Edit3 } from 'lucide-react';
+import { ArrowLeft, Plus, Search, X, Settings2, Edit3, Trash2 } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import ColumnSettings, { loadSettings } from '../../components/ColumnSettings';
@@ -406,6 +406,14 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
   const [data, setData] = useState({ ...project });
   const [isEditing, setIsEditing] = useState(false);
 
+  const handleDelete = async () => {
+    if (window.confirm(`WARNING: Are you sure you want to PERMANENTLY DELETE "${project.PROJECT_NAME}"?`)) {
+      await deleteDoc(doc(db, 'projects', project.id));
+      onClose();
+      window.location.reload();
+    }
+  };
+
   const details = [
     ['TYPE', data.TYPE],
     ['CLIENT', data.CLIENT],
@@ -429,6 +437,17 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
         <div style={s.modalHeader}>
           <h3 style={{ margin: 0 }}>PROJECT PROPERTIES — {project.PROJECT_NAME}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={handleDelete}
+              style={{
+                background: 'none', border: '1px solid #7f1d1d', color: '#ef4444',
+                padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold'
+              }}
+            >
+              <Trash2 size={14} /> DELETE
+            </button>
             <button
               type="button"
               onClick={() => setIsEditing(!isEditing)}
