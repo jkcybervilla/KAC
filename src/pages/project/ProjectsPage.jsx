@@ -4,7 +4,7 @@ import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { AgGridReact } from 'ag-grid-react';
-import { ArrowLeft, Plus, Search, X, Settings2, Edit3, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, Search, X, Settings2, Edit3, Trash2, Check } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import ColumnSettings, { loadSettings } from '../../components/ColumnSettings';
@@ -36,6 +36,127 @@ const EMPTY_FORM = {
   REQ_MANPOWER: '',
   CO_ORDINATOR: '',
   ACCOUNTANT: '',
+  VENDORS_LIST: [],
+};
+
+// Checkbox-based multi-select vendor component
+const VendorMultiSelect = ({ selected = [], onChange, vendors }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleVendor = (vendorName) => {
+    if (selected.includes(vendorName)) {
+      onChange(selected.filter((v) => v !== vendorName));
+    } else {
+      onChange([...selected, vendorName]);
+    }
+  };
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          backgroundColor: '#000',
+          border: '1px solid #1a1a1a',
+          padding: '11px',
+          borderRadius: '8px',
+          color: selected.length > 0 ? '#fff' : '#555',
+          fontSize: 13,
+          cursor: 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          minHeight: 20,
+        }}
+      >
+        <span>
+          {selected.length > 0
+            ? `${selected.length} vendor${selected.length > 1 ? 's' : ''} selected`
+            : '— Select Vendors —'}
+        </span>
+        <span style={{ fontSize: 10, color: '#555' }}>{isOpen ? '▲' : '▼'}</span>
+      </div>
+
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            backgroundColor: '#111',
+            border: '1px solid #333',
+            borderRadius: '8px',
+            marginTop: 4,
+            maxHeight: 220,
+            overflowY: 'auto',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+          }}
+        >
+          {vendors.length === 0 ? (
+            <div style={{ padding: 12, color: '#555', fontSize: 12, textAlign: 'center' }}>
+              No vendors available
+            </div>
+          ) : (
+            vendors.map((v) => {
+              const isChecked = selected.includes(v.vendorName);
+              return (
+                <div
+                  key={v.id}
+                  onClick={() => toggleVendor(v.vendorName)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 12px',
+                    cursor: 'pointer',
+                    backgroundColor: isChecked ? '#1a1a1a' : 'transparent',
+                    borderBottom: '1px solid #1a1a1a',
+                    transition: '0.15s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#222')}
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = isChecked ? '#1a1a1a' : 'transparent')
+                  }
+                >
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      border: isChecked ? '2px solid #0055ff' : '2px solid #444',
+                      backgroundColor: isChecked ? '#0055ff' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isChecked && <Check size={12} color="#fff" strokeWidth={3} />}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, color: '#fff' }}>{v.vendorName}</div>
+                    {v.contactPerson && (
+                      <div style={{ fontSize: 10, color: '#666' }}>{v.contactPerson}</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {/* Close on click outside */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+        />
+      )}
+    </div>
+  );
 };
 
 const ProjectsPage = () => {
@@ -43,6 +164,7 @@ const ProjectsPage = () => {
   const [workers, setWorkers] = useState([]);
   const [clientAttendance, setClientAttendance] = useState([]);
   const [officeAttendance, setOfficeAttendance] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
@@ -61,16 +183,18 @@ const ProjectsPage = () => {
 
   const loadData = async () => {
     try {
-      const [pSnap, wSnap, cSnap, oSnap] = await Promise.all([
+      const [pSnap, wSnap, cSnap, oSnap, vSnap] = await Promise.all([
         getDocs(query(collection(db, 'projects'), orderBy('SL', 'asc'))),
         getDocs(collection(db, 'workers')),
         getDocs(collection(db, 'attendance_client')),
         getDocs(collection(db, 'attendance_office')),
+        getDocs(collection(db, 'vendors')),
       ]);
       setProjects(pSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setWorkers(wSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setClientAttendance(cSnap.docs.map((d) => d.data()));
       setOfficeAttendance(oSnap.docs.map((d) => d.data()));
+      setVendors(vSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
     } finally {
@@ -81,6 +205,12 @@ const ProjectsPage = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Filter out only active vendors for dropdown
+  const activeVendorOptions = useMemo(
+    () => vendors.filter((v) => v.status !== 'inactive'),
+    [vendors]
+  );
 
   const enrichProject = useCallback(
     (p) => {
@@ -107,14 +237,19 @@ const ProjectsPage = () => {
           ? officeRows.filter((r) => countPresent(r.days || {}, daysInMonth) > 0).length
           : projectWorkers.filter((w) => w.REFFERENCE).length;
 
-      const vendors = [...new Set(projectWorkers.map((w) => w.REFFERENCE).filter(Boolean))].join(', ');
+      const vendorsList = [...new Set(projectWorkers.map((w) => w.REFFERENCE).filter(Boolean))].join(', ');
+
+      // Build VENDORS string from VENDORS_LIST array if available
+      const vendorsDisplay = Array.isArray(p.VENDORS_LIST) && p.VENDORS_LIST.length > 0
+        ? p.VENDORS_LIST.join(', ')
+        : (p.VENDORS || vendorsList);
 
       return {
         ...p,
         ACTIVE_STATUS: p.ACTIVE_STATUS || activeStatus,
         CURRENT_MANPOWER: currentManpower,
         MANPOWER: manpower,
-        VENDORS: p.VENDORS || vendors,
+        VENDORS: vendorsDisplay,
       };
     },
     [workers, clientAttendance, officeAttendance, batchId, daysInMonth]
@@ -312,6 +447,7 @@ const ProjectsPage = () => {
             setFormData(EMPTY_FORM);
           }}
           onSubmit={handleCreate}
+          vendors={activeVendorOptions}
         />
       )}
 
@@ -325,6 +461,7 @@ const ProjectsPage = () => {
             loadData();
           }}
           navigate={navigate}
+          vendors={activeVendorOptions}
         />
       )}
 
@@ -338,7 +475,7 @@ const ProjectsPage = () => {
   );
 };
 
-const ProjectFormModal = ({ formData, setFormData, onClose, onSubmit }) => (
+const ProjectFormModal = ({ formData, setFormData, onClose, onSubmit, vendors }) => (
   <div style={s.modalOverlay}>
     <div style={{ ...s.modalContent, maxWidth: '560px' }}>
       <div style={s.modalHeader}>
@@ -393,6 +530,13 @@ const ProjectFormModal = ({ formData, setFormData, onClose, onSubmit }) => (
           <FormField label="ACCOUNTANT">
             <input style={s.formInput} value={formData.ACCOUNTANT} onChange={(e) => setFormData({ ...formData, ACCOUNTANT: e.target.value })} />
           </FormField>
+          <FormField label="VENDORS" span={2}>
+            <VendorMultiSelect
+              selected={formData.VENDORS_LIST || []}
+              onChange={(newList) => setFormData({ ...formData, VENDORS_LIST: newList })}
+              vendors={vendors}
+            />
+          </FormField>
         </div>
         <button type="submit" style={s.submitBtn}>
           SAVE PROJECT
@@ -402,7 +546,7 @@ const ProjectFormModal = ({ formData, setFormData, onClose, onSubmit }) => (
   </div>
 );
 
-const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
+const ProjectPropertiesModal = ({ project, onClose, onSave, navigate, vendors }) => {
   const [data, setData] = useState({ ...project });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -532,6 +676,13 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate }) => {
               </FormField>
               <FormField label="ACCOUNTANT">
                 <input style={s.formInput} value={data.ACCOUNTANT || ''} onChange={(e) => setData({ ...data, ACCOUNTANT: e.target.value })} />
+              </FormField>
+              <FormField label="VENDORS" span={2}>
+                <VendorMultiSelect
+                  selected={data.VENDORS_LIST || []}
+                  onChange={(newList) => setData({ ...data, VENDORS_LIST: newList })}
+                  vendors={vendors}
+                />
               </FormField>
             </div>
 

@@ -5,6 +5,7 @@ import Login from './pages/login';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProjectDetails from './pages/project/ProjectDetails';
+import VendorManagement from './pages/admin/VendorManagement';
 import ProjectsPage from './pages/project/ProjectsPage';
 import AccountantDashboard from './pages/accountant/AccountantDashboard';
 import CoordinatorDashboard from './pages/coordinator/CoordinatorDashboard';
@@ -27,6 +28,7 @@ function App() {
         <Route path="/project/:id" element={<ProtectedRoute roles={['admin']}><ProjectDetails /></ProtectedRoute>} />
         <Route path="/attendance-sheet" element={<ProtectedRoute roles={['admin']}><AttendanceHub /></ProtectedRoute>} />
         <Route path="/register-worker" element={<ProtectedRoute roles={['admin']}><WorkerRegisterHub /></ProtectedRoute>} />
+        <Route path="/vendor-management" element={<ProtectedRoute roles={['admin']}><VendorManagement /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
