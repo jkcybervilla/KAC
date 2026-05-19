@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { db } from '../../config/firebase';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
-import { Search, Settings2, X } from 'lucide-react';
+import { Search, Settings2, X, Edit3, Trash2 } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 
@@ -150,26 +150,164 @@ const WorkerColumnSettings = ({ isOpen, onClose, visibility, onVisibilityChange 
   );
 };
 
+// Worker Properties Modal — View, Edit & Delete
+const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) => {
+  const [data, setData] = useState({ ...worker });
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const fields = [
+    { label: 'SL NO', key: 'SLNO', type: 'text' },
+    { label: 'EMP ID', key: 'EMPID', type: 'text' },
+    { label: 'REFERENCE', key: 'REFFERENCE', type: 'text' },
+    { label: 'WORKER NAME', key: 'WORKER_NAME', type: 'text' },
+    { label: 'FATHER NAME', key: 'FATHER_NAME', type: 'text' },
+    { label: 'DESIGNATION', key: 'DESIGNATION', type: 'text' },
+    { label: 'DOB', key: 'DOB', type: 'text' },
+    { label: 'MOBILE NO', key: 'MOBILE_NO', type: 'text' },
+    { label: 'AADHAAR NO', key: 'AADHAR_NO', type: 'text' },
+    { label: 'JOINING (CLIENT)', key: 'JOINING_DATE_CLIENT', type: 'text' },
+    { label: 'JOINING (OFFICE)', key: 'JOINING_DATE_OFFICE', type: 'text' },
+    { label: 'ADDRESS', key: 'ADDRESS', type: 'text' },
+    { label: 'PAN NUMBER', key: 'PAN_NO', type: 'text' },
+    { label: 'PAN PHOTO', key: 'PAN_PHOTO', type: 'text' },
+    { label: 'BANK', key: 'BANK', type: 'text' },
+    { label: 'ACCOUNT NO', key: 'ACCOUNT_NO', type: 'text' },
+    { label: 'IFSC', key: 'IFSC', type: 'text' },
+    { label: 'BANK PHOTO', key: 'BANK_PHOTO', type: 'text' },
+    { label: 'UAN NO', key: 'UAN_NO', type: 'text' },
+    { label: 'ESIC NO', key: 'ESIC_NO', type: 'text' },
+    { label: 'PROJECT', key: 'PROJECT', type: 'select', options: projects },
+    { label: 'STATUS', key: 'STATUS', type: 'text' },
+  ];
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'workers', worker.id), data);
+      onSave();
+    } catch (err) {
+      alert('Update error: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Permanently delete worker "${worker.WORKER_NAME || worker.EMPID}"?`)) return;
+    try {
+      await deleteDoc(doc(db, 'workers', worker.id));
+      onDelete();
+    } catch (err) {
+      alert('Delete error: ' + err.message);
+    }
+  };
+
+  return (
+    <div style={styles.overlay}>
+      <div style={{ ...styles.modal, maxWidth: '720px' }}>
+        <div style={styles.header}>
+          <h3 style={{ margin: 0, fontSize: 15 }}>
+            WORKER PROPERTIES — {worker.WORKER_NAME || worker.EMPID}
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              onClick={handleDelete}
+              style={{
+                background: 'none', border: '1px solid #7f1d1d', color: '#ef4444',
+                padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold'
+              }}
+            >
+              <Trash2 size={14} /> DELETE
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditing(!isEditing)}
+              style={{
+                background: 'none', border: '1px solid #333', color: '#0055ff',
+                padding: '6px 10px', borderRadius: '6px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 'bold'
+              }}
+            >
+              <Edit3 size={14} /> {isEditing ? 'VIEW' : 'EDIT'}
+            </button>
+            <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={onClose} />
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
+          {fields.map((f) => {
+            const val = data[f.key];
+            return (
+              <div key={f.key} style={{ gridColumn: f.key === 'ADDRESS' ? 'span 2' : undefined }}>
+                <span style={s.label}>{f.label}</span>
+                {isEditing ? (
+                  f.type === 'select' ? (
+                    <select
+                      style={s.formInput}
+                      value={data[f.key] || ''}
+                      onChange={(e) => setData({ ...data, [f.key]: e.target.value })}
+                    >
+                      <option value="">— Select —</option>
+                      {f.options.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      style={s.formInput}
+                      value={data[f.key] || ''}
+                      onChange={(e) => setData({ ...data, [f.key]: e.target.value })}
+                    />
+                  )
+                ) : (
+                  <p style={{ margin: '4px 0 0', color: '#ccc' }}>{val ?? '—'}</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {isEditing && (
+          <button type="button" style={{ ...s.submitBtn, marginTop: 20 }} onClick={handleSave} disabled={saving}>
+            {saving ? 'SAVING...' : 'UPDATE WORKER'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const RegisteredWorkers = () => {
   const [workers, setWorkers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [columnVisibility, setColumnVisibility] = useState(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedWorker, setSelectedWorker] = useState(null);
   const [gridApi, setGridApi] = useState(null);
   const [columnApi, setColumnApi] = useState(null);
 
+  const loadData = async () => {
+    try {
+      const [wSnap, pSnap] = await Promise.all([
+        getDocs(query(collection(db, 'workers'), orderBy('SLNO', 'asc'))),
+        getDocs(collection(db, 'projects')),
+      ]);
+      setWorkers(wSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setProjects(pSnap.docs.map((d) => d.data().PROJECT_NAME).filter(Boolean));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const snap = await getDocs(query(collection(db, 'workers'), orderBy('SLNO', 'asc')));
-        setWorkers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    loadData();
   }, []);
 
   const columnDefs = useMemo(
@@ -212,7 +350,7 @@ const RegisteredWorkers = () => {
               fontSize: '11px',
               fontWeight: 'bold',
             }}
-            onClick={() => alert(`Worker: ${params.data.WORKER_NAME || 'N/A'}\nEMP ID: ${params.data.EMPID || 'N/A'}\nProject: ${params.data.PROJECT || 'N/A'}`)}
+            onClick={() => setSelectedWorker(params.data)}
           >
             VIEW
           </button>
@@ -274,6 +412,22 @@ const RegisteredWorkers = () => {
         visibility={columnVisibility}
         onVisibilityChange={setColumnVisibility}
       />
+
+      {selectedWorker && (
+        <WorkerPropertiesModal
+          worker={selectedWorker}
+          onClose={() => setSelectedWorker(null)}
+          onSave={() => {
+            setSelectedWorker(null);
+            loadData();
+          }}
+          onDelete={() => {
+            setSelectedWorker(null);
+            loadData();
+          }}
+          projects={projects}
+        />
+      )}
     </div>
   );
 };
