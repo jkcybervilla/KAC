@@ -27,7 +27,7 @@ const WorkerRegisterHub = () => {
           REQUEST WORKER
         </button>
         <button type="button" style={tab === 'register' ? s.tabActive : s.tab} onClick={() => setTab('register')}>
-          WORKER REGISTER
+          WORKER INFO
         </button>
       </div>
 
