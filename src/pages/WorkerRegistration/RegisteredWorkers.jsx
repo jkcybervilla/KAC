@@ -36,6 +36,8 @@ const WORKER_COLUMNS = [
   { key: 'joiningOffice', label: 'Joining (Office)' },
   { key: 'address', label: 'Address' },
   { key: 'pan', label: 'PAN Number' },
+  { key: 'photo', label: 'Photo' },
+  { key: 'aadhaarPhoto', label: 'Aadhaar Photo' },
   { key: 'panPhoto', label: 'PAN Photo' },
   { key: 'bank', label: 'Bank' },
   { key: 'account', label: 'Account No' },
@@ -60,6 +62,8 @@ const DEFAULT_VISIBILITY = {
   joiningOffice: true,
   address: false,
   pan: false,
+  photo: true,
+  aadhaarPhoto: true,
   panPhoto: false,
   bank: false,
   account: false,
@@ -331,6 +335,28 @@ const RegisteredWorkers = () => {
       { field: 'JOINING_DATE_OFFICE', headerName: 'JOINING (OFFICE)', width: 130, hide: !columnVisibility.joiningOffice },
       { field: 'ADDRESS', headerName: 'ADDRESS', width: 180, hide: !columnVisibility.address },
       { field: 'PAN_NO', headerName: 'PAN NUMBER', width: 120, hide: !columnVisibility.pan },
+      {
+        headerName: 'PHOTO',
+        width: 80,
+        hide: !columnVisibility.photo,
+        cellRenderer: (params) =>
+          params.data.PHOTO ? (
+            <img src={params.data.PHOTO} alt="worker" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', marginTop: 4 }} />
+          ) : (
+            <span style={{ color: '#555', fontSize: 10 }}>—</span>
+          ),
+      },
+      {
+        headerName: 'AADHAAR PHOTO',
+        width: 80,
+        hide: !columnVisibility.aadhaarPhoto,
+        cellRenderer: (params) =>
+          params.data.AADHAR_PHOTO ? (
+            <img src={params.data.AADHAR_PHOTO} alt="aadhaar" style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover', marginTop: 4 }} />
+          ) : (
+            <span style={{ color: '#555', fontSize: 10 }}>—</span>
+          ),
+      },
       { field: 'PAN_PHOTO', headerName: 'PAN PHOTO', width: 110, hide: !columnVisibility.panPhoto },
       { field: 'BANK', headerName: 'BANK', width: 100, hide: !columnVisibility.bank },
       { field: 'ACCOUNT_NO', headerName: 'ACCOUNT NO', width: 120, hide: !columnVisibility.account },
