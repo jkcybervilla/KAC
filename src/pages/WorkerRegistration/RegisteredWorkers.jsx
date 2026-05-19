@@ -195,6 +195,29 @@ const RegisteredWorkers = () => {
       { field: 'UAN_NO', headerName: 'UAN NO', width: 100, hide: !columnVisibility.uan },
       { field: 'ESIC_NO', headerName: 'ESIC NO', width: 100, hide: !columnVisibility.esic },
       { field: 'PROJECT', headerName: 'PROJECT', width: 140, hide: !columnVisibility.project },
+      {
+        headerName: 'DETAILS',
+        width: 100,
+        pinned: 'right',
+        cellRenderer: (params) => (
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: '1px solid #222',
+              color: '#0055ff',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '11px',
+              fontWeight: 'bold',
+            }}
+            onClick={() => alert(`Worker: ${params.data.WORKER_NAME || 'N/A'}\nEMP ID: ${params.data.EMPID || 'N/A'}\nProject: ${params.data.PROJECT || 'N/A'}`)}
+          >
+            VIEW
+          </button>
+        ),
+      },
     ],
     [columnVisibility]
   );
