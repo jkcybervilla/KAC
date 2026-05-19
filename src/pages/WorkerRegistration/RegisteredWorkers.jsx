@@ -312,7 +312,13 @@ const RegisteredWorkers = () => {
 
   const columnDefs = useMemo(
     () => [
-      { field: 'SLNO', headerName: 'SL NO', width: 80, pinned: 'left', hide: !columnVisibility.slno },
+      {
+        headerName: 'SL NO',
+        width: 80,
+        pinned: 'left',
+        hide: !columnVisibility.slno,
+        valueGetter: (params) => (params.node ? params.node.rowIndex + 1 : ''),
+      },
       { field: 'EMPID', headerName: 'EMP ID', width: 100, pinned: 'left', hide: !columnVisibility.empid },
       { field: 'REFFERENCE', headerName: 'REFERENCE', width: 120, hide: !columnVisibility.reference },
       { field: 'WORKER_NAME', headerName: 'NAME', minWidth: 160, flex: 1, hide: !columnVisibility.name },
