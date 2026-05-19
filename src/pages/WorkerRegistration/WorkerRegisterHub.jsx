@@ -22,12 +22,53 @@ const WorkerRegisterHub = () => {
         </div>
       </header>
 
-      <div style={s.tabBar}>
-        <button type="button" style={tab === 'request' ? s.tabActive : s.tab} onClick={() => setTab('request')}>
-          REQUEST WORKER
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        marginBottom: '24px',
+        padding: '6px',
+        backgroundColor: '#0a0a0a',
+        borderRadius: '14px',
+        border: '1px solid #1a1a1a',
+        width: 'fit-content',
+      }}>
+        <button
+          type="button"
+          onClick={() => setTab('request')}
+          style={{
+            padding: '14px 32px',
+            borderRadius: '10px',
+            border: 'none',
+            background: tab === 'request' ? 'linear-gradient(135deg, #0055ff, #0033aa)' : 'transparent',
+            color: tab === 'request' ? '#fff' : '#666',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '14px',
+            letterSpacing: '1px',
+            transition: 'all 0.3s ease',
+            boxShadow: tab === 'request' ? '0 4px 15px rgba(0,85,255,0.3)' : 'none',
+          }}
+        >
+          📋 REQUEST WORKER
         </button>
-        <button type="button" style={tab === 'register' ? s.tabActive : s.tab} onClick={() => setTab('register')}>
-          WORKER INFO
+        <button
+          type="button"
+          onClick={() => setTab('register')}
+          style={{
+            padding: '14px 32px',
+            borderRadius: '10px',
+            border: 'none',
+            background: tab === 'register' ? 'linear-gradient(135deg, #0055ff, #0033aa)' : 'transparent',
+            color: tab === 'register' ? '#fff' : '#666',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '14px',
+            letterSpacing: '1px',
+            transition: 'all 0.3s ease',
+            boxShadow: tab === 'register' ? '0 4px 15px rgba(0,85,255,0.3)' : 'none',
+          }}
+        >
+          👷 WORKER INFO
         </button>
       </div>
 
