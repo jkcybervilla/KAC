@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
@@ -64,7 +64,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const daysInMonth = getDaysInMonth(month, year);
   const batchId = getBatchId(month, year);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [wSnap, aSnap] = await Promise.all([
@@ -84,11 +84,11 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [batchId, collectionName]);
 
   useEffect(() => {
     load();
-  }, [month, year, type]);
+  }, [load]);
 
   useEffect(() => {
     if (projectFilter) setProject(projectFilter);
@@ -104,7 +104,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   }, [expandDays, gridApi, daysInMonth]);
 
   // Load full attendance history for a worker across all months
-  const loadWorkerHistory = async (empId) => {
+  const loadWorkerHistory = useCallback(async (empId) => {
     setHistoryLoading(true);
     try {
       const aSnap = await getDocs(collection(db, collectionName));
@@ -138,7 +138,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [collectionName]);
 
   useEffect(() => {
     if (selectedWorker) {
@@ -146,7 +146,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
     } else {
       setWorkerHistory(null);
     }
-  }, [selectedWorker]);
+  }, [loadWorkerHistory, selectedWorker]);
 
   const rowData = useMemo(() => {
     return workers

@@ -6,6 +6,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { Search, Settings2, X, Edit3, Trash2 } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
+import { getBatchId } from '../../utils/attendance';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -292,8 +293,19 @@ const RegisteredWorkers = () => {
   const [columnVisibility, setColumnVisibility] = useState(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [gridApi, setGridApi] = useState(null);
   const [columnApi, setColumnApi] = useState(null);
+  const [onlyWithAttendance, setOnlyWithAttendance] = useState(false);
+  const [attendanceSet, setAttendanceSet] = useState(new Set());
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+  const currentBatchId = getBatchId(currentMonth, currentYear);
+
+  const displayedWorkers = useMemo(() => {
+    if (!onlyWithAttendance) return workers;
+    return workers.filter((w) => attendanceSet.has(w.EMPID));
+  }, [workers, onlyWithAttendance, attendanceSet]);
 
   const loadData = async () => {
     try {
@@ -313,6 +325,32 @@ const RegisteredWorkers = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (onlyWithAttendance && attendanceSet.size === 0) {
+      // load attendance IDs for current month
+      const loadAttendanceForCurrentMonth = async () => {
+        setAttendanceLoading(true);
+        try {
+          const [aClient, aOffice] = await Promise.all([
+            getDocs(collection(db, 'attendance_client')),
+            getDocs(collection(db, 'attendance_office')),
+          ]);
+          const ids = new Set();
+          [...aClient.docs, ...aOffice.docs].forEach((d) => {
+            const data = d.data();
+            if (data && data.batchId === currentBatchId && data.EMPID) ids.add(data.EMPID);
+          });
+          setAttendanceSet(ids);
+        } catch (err) {
+          console.error('Attendance load error:', err);
+        } finally {
+          setAttendanceLoading(false);
+        }
+      };
+      loadAttendanceForCurrentMonth();
+    }
+  }, [onlyWithAttendance, attendanceSet.size, currentBatchId]);
 
   const columnDefs = useMemo(
     () => [
@@ -393,7 +431,6 @@ const RegisteredWorkers = () => {
   );
 
   const handleGridReady = useCallback((params) => {
-    setGridApi(params.api);
     setColumnApi(params.columnApi);
   }, []);
 
@@ -418,7 +455,16 @@ const RegisteredWorkers = () => {
           <Search size={16} color="#444" />
           <input type="text" placeholder="Filter workers..." style={s.searchInput} onChange={(e) => setSearchText(e.target.value)} />
         </div>
-        <ExportToolbar rows={workers} columnDefs={columnDefs} title="Worker Register" filename="worker-register" />
+        <select
+          value={onlyWithAttendance ? 'has' : 'all'}
+          onChange={(e) => setOnlyWithAttendance(e.target.value === 'has')}
+          style={{ ...s.select, minWidth: 160, fontWeight: 'bold' }}
+          title="Filter workers by current-month attendance"
+        >
+          <option value="all">ALL WORKERS</option>
+          <option value="has">{attendanceLoading ? 'LOADING...' : 'HAS ATTENDANCE'}</option>
+        </select>
+        <ExportToolbar rows={displayedWorkers} columnDefs={columnDefs} title="Worker Register" filename="worker-register" />
         <button type="button" onClick={() => setShowSettings(true)} style={s.secondaryBtn}>
           <Settings2 size={16} /> COLUMNS
         </button>
@@ -426,7 +472,7 @@ const RegisteredWorkers = () => {
       <div style={s.gridSection}>
         <div style={{ height: '70vh', width: '100%' }}>
           <AgGridReact
-            rowData={workers}
+            rowData={displayedWorkers}
             columnDefs={columnDefs}
             defaultColDef={{ resizable: true, filter: true, sortable: true }}
             quickFilterText={searchText}

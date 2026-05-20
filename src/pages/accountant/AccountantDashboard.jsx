@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
-import { getBatchId, countPresent, getDaysInMonth } from '../../utils/attendance';
+import { getBatchId } from '../../utils/attendance';
 import { pageStyles as s } from '../../styles/pageStyles';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
@@ -40,7 +40,6 @@ const AccountantDashboard = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   const [menu, setMenu] = useState('home');
-  const [projects, setProjects] = useState([]);
   const [project, setProject] = useState(null);
   const [clientMp, setClientMp] = useState(0);
   const [officeMp, setOfficeMp] = useState(0);
@@ -50,14 +49,12 @@ const AccountantDashboard = () => {
   const dateStr = today.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
   const batchId = getBatchId(today.getMonth() + 1, today.getFullYear());
   const day = today.getDate();
-  const daysInMonth = getDaysInMonth(today.getMonth() + 1, today.getFullYear());
 
   useEffect(() => {
     (async () => {
       const snap = await getDocs(collection(db, 'projects'));
       const all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const mine = filterProjectsByUser(all, profile);
-      setProjects(mine);
       if (mine.length) setProject(mine[0]);
     })();
   }, [profile]);

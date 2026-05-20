@@ -302,7 +302,6 @@ const RequestWorker = () => {
   const [form, setForm] = useState(EMPTY);
   const [columnVisibility, setColumnVisibility] = useState(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
-  const [gridApi, setGridApi] = useState(null);
   const [columnApi, setColumnApi] = useState(null);
 
   // Bulk upload state
@@ -343,7 +342,7 @@ const RequestWorker = () => {
     load();
   }, []);
 
-  const approveRequest = async (row) => {
+  const approveRequest = useCallback(async (row) => {
     const exist = workers.find((w) => String(w.AADHAR_NO) === String(row.AADHAR_NO));
     const slno = exist ? exist.SLNO : nextSerial(workers, 'SLNO');
     const empid = exist ? exist.EMPID : `KAC${String(slno).padStart(4, '0')}`;
@@ -377,7 +376,7 @@ const RequestWorker = () => {
     await updateDoc(doc(db, 'worker_requests', row.id), { STATUS: 'APPROVED', EMPID: empid });
     alert(`Approved — EMP ID: ${empid}`);
     load();
-  };
+  }, [workers]);
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -599,11 +598,10 @@ const RequestWorker = () => {
         ],
       },
     ],
-    [columnVisibility, workers]
+    [approveRequest, columnVisibility]
   );
 
   const handleGridReady = useCallback((params) => {
-    setGridApi(params.api);
     setColumnApi(params.columnApi);
   }, []);
 
@@ -834,7 +832,7 @@ const RequestWorker = () => {
               <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={() => { setShowBulkModal(false); setBulkPreview([]); }} />
             </div>
             <p style={{ color: '#9ca3af', fontSize: 13, marginBottom: 16 }}>
-              Upload an Excel file (.xlsx) with columns: <strong>NAME</strong>, <strong>AADHAAR NUMBER</strong> (required). Optional: <strong>FATHER NAME</strong>, <strong>DOB</strong>.
+              Upload an Excel file (.xlsx) with columns: <strong>NAME</strong>, <strong>AADHAAR NUMBER</strong> (required). Optional: <strong>FATHER NAME</strong>, <strong>DOB</strong>, <strong>PROJECT</strong>.
             </p>
 
             <input
@@ -890,6 +888,7 @@ const RequestWorker = () => {
                         <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #222' }}>NAME</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #222' }}>FATHER NAME</th>
                         <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #222' }}>DOB</th>
+                        <th style={{ padding: '8px 10px', textAlign: 'left', borderBottom: '1px solid #222' }}>PROJECT</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -900,6 +899,7 @@ const RequestWorker = () => {
                           <td style={{ padding: '6px 10px' }}>{row.NAME || row.WORKER_NAME || '—'}</td>
                           <td style={{ padding: '6px 10px' }}>{row.FATHER_NAME || row['FATHER NAME'] || '—'}</td>
                           <td style={{ padding: '6px 10px' }}>{row.DOB || '—'}</td>
+                          <td style={{ padding: '6px 10px' }}>{row.PROJECT || '—'}</td>
                         </tr>
                       ))}
                       {bulkPreview.length > 50 && (

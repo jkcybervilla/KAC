@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../config/firebase';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { ArrowLeft, Plus, Edit2, Trash2, X, Search, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { db } from '../../config/firebase';
+import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { ArrowLeft, Plus, Edit2, X, Search, Building2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 
 const MONTHS = [
@@ -76,7 +76,6 @@ const VendorManagement = () => {
 
   const openCreateModal = () => {
     setEditingVendor(null);
-    const monthKey = getMonthKey(selectedMonth, selectedYear);
     setFormData({
       vendorName: '',
       contactPerson: '',
@@ -176,16 +175,6 @@ const VendorManagement = () => {
       alert('Error: ' + err.message);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id, name) => {
-    if (!window.confirm(`Delete vendor "${name}"? This action cannot be undone.`)) return;
-    try {
-      await deleteDoc(doc(db, 'vendors', id));
-      loadVendors();
-    } catch (err) {
-      alert('Delete error: ' + err.message);
     }
   };
 

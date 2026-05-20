@@ -6,7 +6,7 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 import { Search } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
-import { getBatchId, countPresent, getDaysInMonth } from '../../utils/attendance';
+import { getBatchId, countPresent } from '../../utils/attendance';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -32,7 +32,6 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   const year = dateObj.getFullYear();
   const day = dateObj.getDate();
   const batchId = getBatchId(month, year);
-  const daysInMonth = getDaysInMonth(month, year);
   const coll = type === 'office' ? 'attendance_office' : 'attendance_client';
 
   useEffect(() => {

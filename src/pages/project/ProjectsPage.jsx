@@ -173,7 +173,6 @@ const ProjectsPage = () => {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showSettings, setShowSettings] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState(loadSettings);
-  const [gridApi, setGridApi] = useState(null);
   const [columnApi, setColumnApi] = useState(null);
   const navigate = useNavigate();
 
@@ -349,7 +348,6 @@ const ProjectsPage = () => {
   );
 
   const handleGridReady = useCallback((params) => {
-    setGridApi(params.api);
     setColumnApi(params.columnApi);
   }, []);
 

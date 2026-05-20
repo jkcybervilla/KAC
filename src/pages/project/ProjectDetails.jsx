@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../config/firebase'; // পাথটি আপনার ফোল্ডার অনুযায়ী চেক করুন
 import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ArrowLeft, Trash2, Save, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 
 const ProjectDetails = () => {
   const { id } = useParams();

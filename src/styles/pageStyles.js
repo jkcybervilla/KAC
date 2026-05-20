@@ -9,7 +9,7 @@ export const pageStyles = {
   searchBox: { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#0a0a0a', padding: '8px 15px', borderRadius: '8px', border: '1px solid #111' },
   searchInput: { background: 'none', border: 'none', color: '#fff', outline: 'none', fontSize: '13px', width: '200px' },
   primaryBtn: { backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' },
-  secondaryBtn: { backgroundColor: '#0a0a0a', border: '1px solid #222', color: '#fff', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' },
+  secondaryBtn: { backgroundColor: '#111', border: '1px solid #0055ff', color: '#fff', padding: '10px 18px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(0, 85, 255, 0.3)', transition: 'all 0.3s ease' },
   tabBar: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
   tab: { padding: '10px 18px', borderRadius: '8px', border: '1px solid #222', background: '#0a0a0a', color: '#888', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
   tabActive: { padding: '10px 18px', borderRadius: '8px', border: '1px solid #0055ff', background: '#0055ff22', color: '#fff', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },

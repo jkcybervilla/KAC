@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { collection, getDocs, query, orderBy, addDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
@@ -50,7 +50,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [rSnap, wSnap] = await Promise.all([
       getDocs(query(collection(db, 'worker_requests'), orderBy('SLNO', 'asc'))),
       getDocs(collection(db, 'workers')),
@@ -59,11 +59,11 @@ const AccountantWorkerRegistration = ({ projectName }) => {
     setRows(all.filter((r) => r.REQUESTED_BY === profile?.uid || r.PROJECT === projectName));
     setWorkers(wSnap.docs.map((d) => d.data()));
     setLoading(false);
-  };
+  }, [profile, projectName]);
 
   useEffect(() => {
     load();
-  }, [profile, projectName]);
+  }, [load]);
 
   useEffect(() => {
     if (form.AADHAR_NO.length === 12) {
