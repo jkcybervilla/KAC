@@ -8,17 +8,18 @@ import { LogOut, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
 import { pageStyles as s } from '../../styles/pageStyles';
+import ThemeToggle from '../../components/ThemeToggle';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: '#0a0a0a',
-  foregroundColor: '#cccccc',
-  headerBackgroundColor: '#111111',
-  headerTextColor: '#ffffff',
-  borderColor: '#222222',
-  rowHoverColor: '#1a1a1a',
-  oddRowBackgroundColor: '#0d0d0d',
+  backgroundColor: 'var(--surface)',
+  foregroundColor: 'var(--text-soft)',
+  headerBackgroundColor: 'var(--surface-2)',
+  headerTextColor: 'var(--text)',
+  borderColor: 'var(--border-strong)',
+  rowHoverColor: 'var(--surface-2)',
+  oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
 });
 
@@ -77,7 +78,7 @@ const CoordinatorDashboard = () => {
             ✕
           </button>
         </div>
-        <p style={{ fontSize: 11, color: '#666', marginBottom: 16 }}>View only — assigned projects</p>
+        <p style={{ fontSize: 11, color: 'var(--muted-2)', marginBottom: 16 }}>View only — assigned projects</p>
         {projects.map((p) => (
           <button
             key={p.id}
@@ -97,7 +98,8 @@ const CoordinatorDashboard = () => {
             {p.PROJECT_NAME}
           </button>
         ))}
-        <button type="button" onClick={logout} style={{ ...s.secondaryBtn, marginTop: 24, width: '100%' }}>
+        <ThemeToggle style={{ marginTop: 'auto' }} />
+        <button type="button" onClick={logout} style={{ ...s.secondaryBtn, width: '100%' }}>
           <LogOut size={14} /> Logout
         </button>
       </aside>
@@ -110,11 +112,11 @@ const CoordinatorDashboard = () => {
             </button>
             <div>
               <h1 style={{ margin: 0, fontSize: 22 }}>{selected?.PROJECT_NAME || 'No project'}</h1>
-              <p style={{ margin: '6px 0 0', color: '#888', fontSize: 13 }}>
+              <p style={{ margin: '6px 0 0', color: 'var(--muted)', fontSize: 13 }}>
                 Line: {selected?.LINE_NAME || '—'} | View only access
               </p>
             </div>
-            <Bell size={20} color="#666" />
+            <Bell size={20} color="var(--muted-2)" />
           </div>
         </header>
 

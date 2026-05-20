@@ -14,13 +14,13 @@ import { getBatchId, countPresent, getDaysInMonth } from '../../utils/attendance
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: '#0a0a0a',
-  foregroundColor: '#cccccc',
-  headerBackgroundColor: '#111111',
-  headerTextColor: '#ffffff',
-  borderColor: '#222222',
-  rowHoverColor: '#1a1a1a',
-  oddRowBackgroundColor: '#0d0d0d',
+  backgroundColor: 'var(--surface)',
+  foregroundColor: 'var(--text-soft)',
+  headerBackgroundColor: 'var(--surface-2)',
+  headerTextColor: 'var(--text)',
+  borderColor: 'var(--border-strong)',
+  rowHoverColor: 'var(--surface-2)',
+  oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
 });
 
@@ -403,19 +403,19 @@ const ProjectsPage = () => {
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+        <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '10px', padding: '18px' }}>
           <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Projects</p>
           <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#0055ff' }}>{enrichedProjects.length}</p>
         </div>
-        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+        <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '10px', padding: '18px' }}>
           <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Projects</p>
           <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#22c55e' }}>{enrichedProjects.filter(p => p.ACTIVE_STATUS === 'ACTIVE').length}</p>
         </div>
-        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+        <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '10px', padding: '18px' }}>
           <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inactive Projects</p>
           <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#ef4444' }}>{enrichedProjects.filter(p => p.ACTIVE_STATUS === 'INACTIVE').length}</p>
         </div>
-        <div style={{ backgroundColor: '#0a0a0a', border: '1px solid #222', borderRadius: '10px', padding: '18px' }}>
+        <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '10px', padding: '18px' }}>
           <p style={{ margin: '0 0 8px 0', color: '#888', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Manpower</p>
           <p style={{ margin: 0, fontSize: '28px', fontWeight: 'bold', color: '#f59e0b' }}>{enrichedProjects.reduce((sum, p) => sum + (p.CURRENT_MANPOWER || 0), 0)}</p>
         </div>

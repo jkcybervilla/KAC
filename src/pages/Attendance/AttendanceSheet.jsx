@@ -9,13 +9,13 @@ import { useNavigate } from 'react-router-dom';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: '#0a0a0a',
-  foregroundColor: '#cccccc',
-  headerBackgroundColor: '#111111',
-  headerTextColor: '#ffffff',
-  borderColor: '#222222',
-  rowHoverColor: '#1a1a1a',
-  oddRowBackgroundColor: '#0d0d0d',
+  backgroundColor: 'var(--surface)',
+  foregroundColor: 'var(--text-soft)',
+  headerBackgroundColor: 'var(--surface-2)',
+  headerTextColor: 'var(--text)',
+  borderColor: 'var(--border-strong)',
+  rowHoverColor: 'var(--surface-2)',
+  oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
 });
 

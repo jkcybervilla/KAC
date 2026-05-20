@@ -219,15 +219,15 @@ const VendorManagement = () => {
 
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 24 }}>
-        <div style={{ backgroundColor: '#0a0a0a', padding: '20px', borderRadius: '12px', border: '1px solid #111' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <small style={{ color: '#666', fontSize: 10, fontWeight: 'bold' }}>TOTAL VENDORS</small>
           <h3 style={{ margin: '8px 0 0', fontSize: 28 }}>{vendors.length}</h3>
         </div>
-        <div style={{ backgroundColor: '#0a0a0a', padding: '20px', borderRadius: '12px', border: '1px solid #111' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <small style={{ color: '#666', fontSize: 10, fontWeight: 'bold' }}>ACTIVE VENDORS</small>
           <h3 style={{ margin: '8px 0 0', fontSize: 28, color: '#22c55e' }}>{vendors.filter((v) => v.status !== 'inactive').length}</h3>
         </div>
-        <div style={{ backgroundColor: '#0a0a0a', padding: '20px', borderRadius: '12px', border: '1px solid #111' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <small style={{ color: '#666', fontSize: 10, fontWeight: 'bold' }}>TOTAL MANPOWER ({currentMonthLabel})</small>
           <h3 style={{ margin: '8px 0 0', fontSize: 28, color: '#22c55e' }}>
             {activeVendors.reduce((sum, v) => {
@@ -236,7 +236,7 @@ const VendorManagement = () => {
             }, 0)}
           </h3>
         </div>
-        <div style={{ backgroundColor: '#0a0a0a', padding: '20px', borderRadius: '12px', border: '1px solid #111' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
           <small style={{ color: '#666', fontSize: 10, fontWeight: 'bold' }}>TOTAL BOQ ({currentMonthLabel})</small>
           <h3 style={{ margin: '8px 0 0', fontSize: 28, color: '#f59e0b' }}>
             ₹{activeVendors.reduce((sum, v) => {
@@ -248,7 +248,7 @@ const VendorManagement = () => {
       </div>
 
       {/* Active Vendors */}
-      <div style={{ backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px solid #111', overflow: 'hidden', marginBottom: 24 }}>
+      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 24 }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <h3 style={{ margin: 0, fontSize: 14 }}>ACTIVE VENDORS <span style={{ color: '#666', fontWeight: 'normal' }}>({activeVendors.length})</span></h3>
           
@@ -339,7 +339,7 @@ const VendorManagement = () => {
 
       {/* Inactive Vendors */}
       {inactiveVendors.length > 0 && (
-        <div style={{ backgroundColor: '#0a0a0a', borderRadius: '12px', border: '1px solid #1a1a1a', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border-strong)', overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: 14, color: '#666' }}>INACTIVE VENDORS <span style={{ color: '#444' }}>({inactiveVendors.length})</span></h3>
           </div>

@@ -112,10 +112,13 @@ const styles = {
     backgroundColor: '#000',
     overflow: 'hidden',
     fontFamily: '"Inter", sans-serif',
+    colorScheme: 'light',
   },
   mainCard: {
     display: 'flex',
     backgroundColor: '#fff',
+    color: '#000',
+    colorScheme: 'light',
     overflow: 'hidden',
   },
   leftSection: {
@@ -140,6 +143,8 @@ const styles = {
     flexDirection: 'column',
     justifyContent: 'center',
     backgroundColor: '#fff',
+    color: '#000',
+    colorScheme: 'light',
   },
   brandTag: { color: '#0055ff', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', marginBottom: '15px' },
   brandName: { margin: '0', lineHeight: '0.8', fontWeight: '900', letterSpacing: '-2px' },
@@ -149,7 +154,7 @@ const styles = {
   authText: { fontSize: '12px', letterSpacing: '4px', color: '#ccc', marginBottom: '60px', fontWeight: 'bold' },
   inputGroup: { marginBottom: '35px' },
   label: { fontSize: '11px', fontWeight: 'bold', color: '#bbb', marginBottom: '10px', display: 'block', letterSpacing: '1px' },
-  input: { width: '100%', border: 'none', borderBottom: '1px solid #eee', padding: '10px 0', outline: 'none', fontSize: '16px' },
+  input: { width: '100%', border: 'none', borderBottom: '1px solid #eee', padding: '10px 0', outline: 'none', fontSize: '16px', backgroundColor: '#fff', color: '#000', colorScheme: 'light' },
   button: { 
     width: '100%', 
     padding: '22px', 

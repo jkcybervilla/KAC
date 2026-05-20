@@ -3,7 +3,72 @@
    ========================================================================== */
 body {
   margin: 0;
-  background-color: #050505;
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+:root,
+:root[data-theme='dark'] {
+  --bg: #050505;
+  --surface: #0a0a0a;
+  --surface-2: #111111;
+  --surface-3: #000000;
+  --border: #111111;
+  --border-strong: #222222;
+  --text: #ffffff;
+  --text-soft: #cccccc;
+  --muted: #888888;
+  --muted-2: #666666;
+  --accent: #0055ff;
+  --accent-soft: #0055ff22;
+  --accent-shadow: rgba(0, 85, 255, 0.3);
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --overlay: rgba(0, 0, 0, 0.9);
+  --shadow-lg: rgba(0, 0, 0, 0.32);
+  --chart-grid: #111111;
+  --sidebar-bg: var(--surface);
+  --sidebar-border: var(--border);
+}
+
+:root[data-theme='light'] {
+  --bg: linear-gradient(135deg, #f8fbff 0%, #eef4ff 48%, #f7f3ff 100%);
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --surface-3: #ffffff;
+  --border: #dfe5ef;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-soft: #334155;
+  --muted: #64748b;
+  --muted-2: #94a3b8;
+  --accent: #0055ff;
+  --accent-soft: #0055ff18;
+  --accent-shadow: rgba(0, 85, 255, 0.14);
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+  --overlay: rgba(15, 23, 42, 0.55);
+  --shadow-lg: rgba(15, 23, 42, 0.16);
+  --chart-grid: #e2e8f0;
+  --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f1f6ff 46%, #eef2ff 100%);
+  --sidebar-border: rgba(0, 85, 255, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}
+
+::placeholder {
+  color: var(--muted);
 }
 
 /* ==========================================================================
@@ -195,14 +260,14 @@ body {
     --ag-list-item-height: 40px;
     
     /* Core Colors */
-    --ag-background-color: #050505 !important;
-    --ag-header-background-color: #050505 !important;
-    --ag-odd-row-background-color: #080808 !important;
-    --ag-border-color: #1a1a1a !important;
-    --ag-row-hover-color: #111111 !important;
-    --ag-selected-row-background-color: #1a1a1a !important;
-    --ag-foreground-color: #ffffff !important;
-    --ag-header-foreground-color: #ffffff !important;
+    --ag-background-color: var(--surface) !important;
+    --ag-header-background-color: var(--surface) !important;
+    --ag-odd-row-background-color: var(--surface-2) !important;
+    --ag-border-color: var(--border-strong) !important;
+    --ag-row-hover-color: var(--surface-2) !important;
+    --ag-selected-row-background-color: var(--accent-soft) !important;
+    --ag-foreground-color: var(--text) !important;
+    --ag-header-foreground-color: var(--text) !important;
 }
 
 /* Remove Outer Borders and Shadows */
@@ -220,14 +285,14 @@ body {
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
-    background-color: #050505 !important;
+    background-color: var(--surface) !important;
     border-radius: 12px;
 }
 
 /* Table Header Styles */
 .ag-header {
-    border-bottom: 1px solid #1a1a1a !important;
-    background-color: #050505 !important;
+    border-bottom: 1px solid var(--border-strong) !important;
+    background-color: var(--surface) !important;
     position: sticky;
     top: 0;
     z-index: 5;
@@ -239,7 +304,7 @@ body {
 
 /* Row & Cell Styles */
 .ag-row {
-    border-bottom: 1px solid #121212 !important;
+    border-bottom: 1px solid var(--border) !important;
 }
 
 .ag-cell {
@@ -249,9 +314,9 @@ body {
 /* Bottom Panels (Pagination/Status Bar) */
 .ag-status-bar, 
 .ag-paging-panel {
-    background-color: #050505 !important;
-    border-top: 1px solid #1a1a1a !important;
-    color: #555 !important;
+    background-color: var(--surface) !important;
+    border-top: 1px solid var(--border-strong) !important;
+    color: var(--muted) !important;
 }
 
 /* Custom Scrollbar for Dark Theme */
@@ -260,11 +325,11 @@ body {
 }
 
 .ag-body-viewport::-webkit-scrollbar-track {
-    background: #050505;
+    background: var(--surface);
 }
 
 .ag-body-viewport::-webkit-scrollbar-thumb {
-    background: #222;
+    background: var(--border-strong);
     border-radius: 10px;
 }
 
@@ -276,8 +341,8 @@ body {
 .coordinator-layout {
   display: flex;
   min-height: 100vh;
-  background: #050505;
-  color: #fff;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .page-container {
@@ -289,12 +354,12 @@ body {
 
 .page-aside {
   width: 260px;
-  border-right: 1px solid #111;
+  border-right: 1px solid var(--sidebar-border);
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: #050505;
+  background: var(--sidebar-bg);
   transition: transform 0.28s ease, box-shadow 0.28s ease;
 }
 
@@ -309,7 +374,7 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.68);
+  background: var(--overlay);
   z-index: 24;
 }
 
@@ -336,7 +401,7 @@ body {
   width: min(320px, 100%);
   transform: translateX(-100%);
   z-index: 25;
-  box-shadow: 24px 0 64px rgba(0, 0, 0, 0.32);
+  box-shadow: 24px 0 64px var(--shadow-lg);
 }
 
 @media (max-width: 640px) {
@@ -348,8 +413,8 @@ body {
     min-width: 44px;
     min-height: 44px;
     font-size: 18px;
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    background: var(--surface-2);
   }
 }
 
@@ -371,7 +436,7 @@ body {
 }
 
 .page-header {
-  border-bottom: 1px solid #111;
+  border-bottom: 1px solid var(--border);
   padding: 16px 24px;
 }
 
@@ -411,7 +476,7 @@ body {
   .page-aside {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #111;
+    border-bottom: 1px solid var(--border);
   }
 
   .page-header {
@@ -430,6 +495,28 @@ body {
   .page-box {
     padding: 16px;
   }
+}
+
+.theme-toggle-btn {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 11px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 @media (max-width: 640px) {

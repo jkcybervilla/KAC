@@ -11,13 +11,13 @@ import { getBatchId } from '../../utils/attendance';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: '#0a0a0a',
-  foregroundColor: '#cccccc',
-  headerBackgroundColor: '#111111',
-  headerTextColor: '#ffffff',
-  borderColor: '#222222',
-  rowHoverColor: '#1a1a1a',
-  oddRowBackgroundColor: '#0d0d0d',
+  backgroundColor: 'var(--surface)',
+  foregroundColor: 'var(--text-soft)',
+  headerBackgroundColor: 'var(--surface-2)',
+  headerTextColor: 'var(--text)',
+  borderColor: 'var(--border-strong)',
+  rowHoverColor: 'var(--surface-2)',
+  oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
 });
 
@@ -293,7 +293,7 @@ const RegisteredWorkers = () => {
   const [columnVisibility, setColumnVisibility] = useState(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [columnApi, setColumnApi] = useState(null);
+  const [gridApi, setGridApi] = useState(null);
   const [onlyWithAttendance, setOnlyWithAttendance] = useState(false);
   const [attendanceSet, setAttendanceSet] = useState(new Set());
   const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -363,7 +363,7 @@ const RegisteredWorkers = () => {
       },
       { field: 'EMPID', headerName: 'EMP ID', width: 100, pinned: 'left', hide: !columnVisibility.empid },
       { field: 'REFFERENCE', headerName: 'REFERENCE', width: 120, hide: !columnVisibility.reference },
-      { field: 'WORKER_NAME', headerName: 'NAME', minWidth: 160, flex: 1, hide: !columnVisibility.name },
+      { field: 'WORKER_NAME', headerName: 'NAME', minWidth: 160, hide: !columnVisibility.name },
       { field: 'FATHER_NAME', headerName: 'FATHER NAME', width: 140, hide: !columnVisibility.fatherName },
       { field: 'DESIGNATION', headerName: 'DESIGNATION', width: 120, hide: !columnVisibility.designation },
       { field: 'DOB', headerName: 'DOB', width: 110, hide: !columnVisibility.dob },
@@ -431,20 +431,22 @@ const RegisteredWorkers = () => {
   );
 
   const handleGridReady = useCallback((params) => {
-    setColumnApi(params.columnApi);
+    setGridApi(params.api);
   }, []);
 
-  const autoSizeAllColumns = useCallback(() => {
-    if (!columnApi) return;
-    const allColumnIds = columnApi.getAllDisplayedColumns().map((col) => col.getColId());
+  const autoSizeAllColumns = useCallback((api = gridApi) => {
+    if (!api) return;
+    const allColumnIds = api.getAllDisplayedColumns().map((col) => col.getColId());
     if (allColumnIds.length) {
-      columnApi.autoSizeColumns(allColumnIds, false);
+      window.requestAnimationFrame(() => {
+        api.autoSizeColumns(allColumnIds, false);
+      });
     }
-  }, [columnApi]);
+  }, [gridApi]);
 
   useEffect(() => {
     autoSizeAllColumns();
-  }, [autoSizeAllColumns, columnDefs, workers]);
+  }, [autoSizeAllColumns, columnDefs, displayedWorkers.length]);
 
   if (loading) return <div style={{ color: '#666', padding: 20 }}>Loading register...</div>;
 
@@ -479,6 +481,11 @@ const RegisteredWorkers = () => {
             animateRows
             theme={darkQuartzTheme}
             onGridReady={handleGridReady}
+            onFirstDataRendered={(params) => autoSizeAllColumns(params.api)}
+            onRowDataUpdated={(params) => autoSizeAllColumns(params.api)}
+            onColumnVisible={(params) => autoSizeAllColumns(params.api)}
+            onGridSizeChanged={(params) => autoSizeAllColumns(params.api)}
+            suppressColumnVirtualisation
             autoSizeStrategy={{ type: 'fitCellContents' }}
           />
         </div>

@@ -8,6 +8,7 @@ import {
   Building2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ThemeToggle from '../../components/ThemeToggle';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -71,6 +72,8 @@ const menuItems = [
           ))}
         </nav>
 
+        <ThemeToggle collapsed={isCollapsed} style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', marginBottom: 8 }} />
+
         <button onClick={handleLogout} style={styles.logoutBtn}>
           <LogOut size={20} />
           {!isCollapsed && <span style={{marginLeft: '15px'}}>Logout</span>}
@@ -124,10 +127,10 @@ const menuItems = [
             <div style={{height: '300px', width: '100%', marginTop: '20px'}}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#111" />
-                  <XAxis dataKey="name" stroke="#444" fontSize={12} />
-                  <YAxis stroke="#444" fontSize={12} />
-                  <Tooltip contentStyle={{backgroundColor: '#fff', border: '1px solid #222'}} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+                  <XAxis dataKey="name" stroke="var(--muted)" fontSize={12} />
+                  <YAxis stroke="var(--muted)" fontSize={12} />
+                  <Tooltip contentStyle={{backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border-strong)'}} />
                   <Bar dataKey="workers" fill="#0055ff" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -140,22 +143,22 @@ const menuItems = [
 };
 
 const styles = {
-  layout: { display: 'flex', height: '100vh', backgroundColor: '#050505', color: '#fff', fontFamily: 'Inter, sans-serif' },
+  layout: { display: 'flex', height: '100vh', backgroundColor: 'var(--bg)', color: 'var(--text)', fontFamily: 'Inter, sans-serif' },
   
   // Sidebar
-  sidebar: { backgroundColor: '#0a0a0a', borderRight: '1px solid #111', display: 'flex', flexDirection: 'column', transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', padding: '20px 10px' },
+  sidebar: { background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', padding: '20px 10px' },
   sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', padding: '0 10px' },
   logo: { fontSize: '18px', fontWeight: '900', margin: 0 },
-  toggleBtn: { background: '#111', border: '1px solid #222', color: '#fff', borderRadius: '6px', cursor: 'pointer', padding: '5px' },
+  toggleBtn: { background: 'var(--surface-2)', border: '1px solid var(--border-strong)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', padding: '5px' },
   nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' },
-  navItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: '#555', transition: '0.2s' },
-  activeNavItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: '#fff', backgroundColor: '#111', borderLeft: '4px solid #0055ff' },
+  navItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: 'var(--muted-2)', transition: '0.2s' },
+  activeNavItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text)', backgroundColor: 'var(--surface-2)', borderLeft: '4px solid #0055ff' },
   logoutBtn: { display: 'flex', alignItems: 'center', padding: '12px 15px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', marginTop: '20px' },
 
   // Main
   main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  topBar: { height: '70px', borderBottom: '1px solid #111', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 30px' },
-  input: { backgroundColor: '#0a0a0a', border: '1px solid #222', color: '#0a0a0a', padding: '10px 20px', borderRadius: '30px', width: '300px' },
+  topBar: { height: '70px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 30px' },
+  input: { backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', color: 'var(--text)', padding: '10px 20px', borderRadius: '30px', width: '300px' },
   topIcons: { display: 'flex', alignItems: 'center', gap: '25px' },
   notifIcon: { position: 'relative', cursor: 'pointer' },
   badge: { position: 'absolute', top: '-5px', right: '-5px', backgroundColor: '#ef4444', fontSize: '9px', padding: '2px 5px', borderRadius: '10px' },
@@ -164,8 +167,8 @@ const styles = {
 
   content: { padding: '40px', overflowY: 'auto', flex: 1 },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' },
-  card: { backgroundColor: '#0a0a0a', padding: '25px', borderRadius: '15px', border: '1px solid #111' },
-  chartBox: { backgroundColor: '#0a0a0a', padding: '30px', borderRadius: '15px', border: '1px solid #111' }
+  card: { backgroundColor: 'var(--surface)', padding: '25px', borderRadius: '15px', border: '1px solid var(--border)' },
+  chartBox: { backgroundColor: 'var(--surface)', padding: '30px', borderRadius: '15px', border: '1px solid var(--border)' }
 };
 
 export default AdminDashboard;

@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
 import { getBatchId } from '../../utils/attendance';
 import { pageStyles as s } from '../../styles/pageStyles';
+import ThemeToggle from '../../components/ThemeToggle';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
 
@@ -32,7 +33,7 @@ const Placeholder = ({ title }) => (
   <div style={{ ...s.chartBox, textAlign: 'center', padding: 60 }}>
     <Link2 size={40} color="#0055ff" style={{ marginBottom: 16 }} />
     <h3 style={{ margin: 0 }}>{title}</h3>
-    <p style={{ color: '#666', fontSize: 13 }}>Connected — full module deploy hobe pore.</p>
+    <p style={{ color: 'var(--muted-2)', fontSize: 13 }}>Connected — full module deploy hobe pore.</p>
   </div>
 );
 
@@ -100,33 +101,33 @@ const AccountantDashboard = () => {
       case 'home':
         return (
           <div style={{ display: 'grid', gap: 20 }}>
-            <div style={{ padding: 24, borderRadius: 20, background: '#0b1121', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding: 24, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
               <h2 style={{ margin: 0, fontSize: 22 }}>Welcome back, {profile?.name || 'Accountant'}.</h2>
-              <p style={{ margin: '12px 0 0', color: '#cbd5e1', fontSize: 14 }}>
+              <p style={{ margin: '12px 0 0', color: 'var(--text-soft)', fontSize: 14 }}>
                 This is your dashboard home. Select a module from the left menu to manage attendance, worker registration, or expenses.
               </p>
             </div>
             <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              <div style={{ padding: 20, borderRadius: 20, background: '#081022', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ color: '#94a3b8', fontSize: 12 }}>Current Project</span>
+              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Current Project</span>
                 <h3 style={{ margin: '8px 0 0', fontSize: 18 }}>{project?.PROJECT_NAME || 'No project assigned'}</h3>
-                <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: 13 }}>{project?.LINE_NAME ? `Line: ${project.LINE_NAME}` : 'Assign a project to start'}</p>
+                <p style={{ margin: '6px 0 0', color: 'var(--muted)', fontSize: 13 }}>{project?.LINE_NAME ? `Line: ${project.LINE_NAME}` : 'Assign a project to start'}</p>
               </div>
-              <div style={{ padding: 20, borderRadius: 20, background: '#081022', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ color: '#94a3b8', fontSize: 12 }}>Attendance Today</span>
+              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Attendance Today</span>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
                   <div>
                     <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{clientMp}</p>
-                    <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>Client Present</p>
+                    <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>Client Present</p>
                   </div>
                   <div>
                     <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{officeMp}</p>
-                    <p style={{ margin: '4px 0 0', color: '#94a3b8', fontSize: 13 }}>Office Present</p>
+                    <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>Office Present</p>
                   </div>
                 </div>
               </div>
-              <div style={{ padding: 20, borderRadius: 20, background: '#081022', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <span style={{ color: '#94a3b8', fontSize: 12 }}>Today's Date</span>
+              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Today's Date</span>
                 <p style={{ margin: '8px 0 0', fontSize: 18, fontWeight: 700 }}>{dateStr}</p>
               </div>
             </div>
@@ -177,8 +178,8 @@ const AccountantDashboard = () => {
               border: 'none',
               borderRadius: 8,
               cursor: 'pointer',
-              background: menu === m.id ? '#0055ff22' : 'transparent',
-              color: menu === m.id ? '#fff' : '#ccc',
+              background: menu === m.id ? 'var(--accent-soft)' : 'transparent',
+              color: menu === m.id ? 'var(--text)' : 'var(--text-soft)',
               fontWeight: 'bold',
               fontSize: 12,
               textAlign: 'left',
@@ -190,7 +191,9 @@ const AccountantDashboard = () => {
           </button>
         ))}
 
-        <button type="button" onClick={logout} style={{ ...s.secondaryBtn, marginTop: 'auto', width: '100%' }}>
+        <ThemeToggle style={{ marginTop: 'auto' }} />
+
+        <button type="button" onClick={logout} style={{ ...s.secondaryBtn, width: '100%' }}>
           <LogOut size={14} /> Logout
         </button>
       </aside>
@@ -202,11 +205,11 @@ const AccountantDashboard = () => {
               ☰
             </button>
             <div style={{ minWidth: 0 }}>
-              <p style={{ margin: '0 0 8px', color: '#888', fontSize: 12 }}>
+              <p style={{ margin: '0 0 8px', color: 'var(--muted)', fontSize: 12 }}>
                 {dateStr}
               </p>
               <h1 style={{ margin: 0, fontSize: 20 }}>{project?.PROJECT_NAME || 'No project assigned'}</h1>
-              <p style={{ margin: '8px 0 2px', color: '#888', fontSize: 12 }}>
+              <p style={{ margin: '8px 0 2px', color: 'var(--muted)', fontSize: 12 }}>
                 Line: {project?.LINE_NAME || '—'}
               </p>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, fontSize: 12, marginTop: 8, flexWrap: 'wrap' }}>
@@ -219,7 +222,7 @@ const AccountantDashboard = () => {
               </div>
             </div>
             <div style={{ position: 'absolute', right: 16, top: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Bell size={22} color="#888" style={{ cursor: 'pointer' }} />
+              <Bell size={22} color="var(--muted)" style={{ cursor: 'pointer' }} />
               <span style={s.badgeActive}>3</span>
             </div>
           </div>
