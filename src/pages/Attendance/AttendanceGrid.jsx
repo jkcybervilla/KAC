@@ -3,7 +3,7 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
-import { Save, Search, X, User, Hash, Building, List, Calendar, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Search, X, User, Hash, Building, List, Calendar, MapPin, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, getDaysInMonth, defaultDayMap, MONTHS } from '../../utils/attendance';
@@ -44,6 +44,121 @@ const monthBarStyle = {
   marginBottom: '6px',
 };
 
+const STORAGE_KEY = 'kac_attendance_column_visibility';
+
+const ATTENDANCE_COLUMNS = [
+  { key: 'slno', label: 'SL NO' },
+  { key: 'empid', label: 'EMP ID' },
+  { key: 'reference', label: 'Reference' },
+  { key: 'name', label: 'Name' },
+  { key: 'fatherName', label: 'Father Name' },
+  { key: 'designation', label: 'Designation' },
+  { key: 'joining', label: 'Joining' },
+  { key: 'close', label: 'Close' },
+];
+
+const DEFAULT_COL_VISIBILITY = {
+  slno: true,
+  empid: true,
+  reference: true,
+  name: true,
+  fatherName: true,
+  designation: true,
+  joining: true,
+  close: true,
+};
+
+const loadColSettings = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { ...DEFAULT_COL_VISIBILITY, ...parsed };
+    }
+  } catch {
+    // ignore
+  }
+  return { ...DEFAULT_COL_VISIBILITY };
+};
+
+const saveColSettings = (visibility) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(visibility));
+  } catch {
+    // ignore
+  }
+};
+
+const AttendanceColumnSettings = ({ isOpen, onClose, visibility, onVisibilityChange }) => {
+  useEffect(() => {
+    if (visibility) {
+      saveColSettings(visibility);
+    }
+  }, [visibility]);
+
+  if (!isOpen) return null;
+
+  const allVisible = ATTENDANCE_COLUMNS.every((col) => visibility[col.key]);
+
+  const toggleAll = () => {
+    const newVal = !allVisible;
+    const updated = {};
+    ATTENDANCE_COLUMNS.forEach((col) => {
+      updated[col.key] = newVal;
+    });
+    onVisibilityChange(updated);
+  };
+
+  const toggleColumn = (key) => {
+    onVisibilityChange({ ...visibility, [key]: !visibility[key] });
+  };
+
+  return (
+    <div style={overlayBase}>
+      <div style={{ ...modalBase, maxWidth: '480px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', borderBottom: '1px solid #111', paddingBottom: '15px' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#fff' }}>COLUMN VISIBILITY</h3>
+          <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={onClose} />
+        </div>
+        <p style={{ margin: '0 0 16px 0', color: '#9ca3af', fontSize: '13px' }}>Show / hide columns in the attendance grid.</p>
+
+        <button type="button" onClick={toggleAll} style={{
+          backgroundColor: '#111', border: '1px solid #222', color: '#fff',
+          padding: '8px 16px', borderRadius: '6px', cursor: 'pointer',
+          fontSize: '11px', fontWeight: 'bold', marginBottom: '16px', display: 'inline-block',
+        }}>
+          {allVisible ? 'HIDE ALL' : 'SHOW ALL'}
+        </button>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {ATTENDANCE_COLUMNS.map((col) => (
+            <label key={col.key} style={{
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px',
+              backgroundColor: '#000', border: '1px solid #1a1a1a', borderRadius: '6px', cursor: 'pointer',
+            }}>
+              <input
+                type="checkbox"
+                checked={!!visibility[col.key]}
+                onChange={() => toggleColumn(col.key)}
+                style={{ width: '16px', height: '16px', accentColor: '#0055ff', cursor: 'pointer' }}
+              />
+              <span style={{ color: '#ccc', fontSize: '12px', fontWeight: '500' }}>{col.label}</span>
+            </label>
+          ))}
+        </div>
+
+        <button type="button" onClick={onClose} style={{
+          width: '100%', backgroundColor: '#0055ff', color: '#fff', border: 'none',
+          padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer',
+          marginTop: '18px', fontSize: '13px',
+        }}>
+          DONE
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const [workers, setWorkers] = useState([]);
   const [saved, setSaved] = useState({});
@@ -58,6 +173,8 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const [workerHistory, setWorkerHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [expandDays, setExpandDays] = useState(false);
+  const [colVisibility, setColVisibility] = useState(loadColSettings);
+  const [showColSettings, setShowColSettings] = useState(false);
   const dayColsRef = useRef([]);
 
   const collectionName = type === 'office' ? 'attendance_office' : 'attendance_client';
@@ -179,15 +296,16 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
         width: 70,
         pinned: 'left',
         editable: false,
+        hide: !colVisibility.slno,
         valueGetter: (params) => (params.node ? params.node.rowIndex + 1 : 0),
       },
-      { field: 'EMPID', headerName: 'EMP ID', width: 90, pinned: 'left', editable: false },
-      { field: 'REFFERENCE', headerName: 'REFERENCE', width: 110, editable: false },
-      { field: 'WORKER_NAME', headerName: 'NAME', width: 140, pinned: 'left', editable: false },
-      { field: 'FATHER_NAME', headerName: 'FATHER NAME', width: 130, editable: false },
-      { field: 'DESIGNATION', headerName: 'DESIGNATION', width: 120, editable: true },
-      { field: 'JOINING', headerName: 'JOINING', width: 100, editable: false },
-      { field: 'CLOSE', headerName: 'CLOSE', width: 100, editable: false },
+      { field: 'EMPID', headerName: 'EMP ID', width: 90, pinned: 'left', editable: false, hide: !colVisibility.empid },
+      { field: 'REFFERENCE', headerName: 'REFERENCE', width: 110, editable: false, hide: !colVisibility.reference },
+      { field: 'WORKER_NAME', headerName: 'NAME', width: 140, pinned: 'left', editable: false, hide: !colVisibility.name },
+      { field: 'FATHER_NAME', headerName: 'FATHER NAME', width: 130, editable: false, hide: !colVisibility.fatherName },
+      { field: 'DESIGNATION', headerName: 'DESIGNATION', width: 120, editable: true, hide: !colVisibility.designation },
+      { field: 'JOINING', headerName: 'JOINING', width: 100, editable: false, hide: !colVisibility.joining },
+      { field: 'CLOSE', headerName: 'CLOSE', width: 100, editable: false, hide: !colVisibility.close },
     ];
     const dayCols = Array.from({ length: daysInMonth }, (_, i) => ({
       field: String(i + 1),
@@ -251,7 +369,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
       ),
     };
     return [...base, ...dayCols, totalCol, detailsBtnCol];
-  }, [daysInMonth, expandDays]);
+  }, [daysInMonth, expandDays, colVisibility]);
 
   const projects = useMemo(() => [...new Set(workers.map((w) => w.PROJECT).filter(Boolean))], [workers]);
   const designations = useMemo(() => [...new Set(workers.map((w) => w.DESIGNATION).filter(Boolean))], [workers]);
@@ -339,6 +457,13 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
           {expandDays ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {expandDays ? 'HIDE DAYS' : 'SHOW DAYS'}
         </button>
+        <button
+          type="button"
+          style={s.settingsBtn}
+          onClick={() => setShowColSettings(true)}
+        >
+          <Settings2 size={14} /> COLUMNS
+        </button>
         <ExportToolbar rows={rowData} columnDefs={columnDefs} title={`${type} Attendance ${batchId}`} filename={`attendance-${type}-${batchId}`} />
         <button type="button" style={s.primaryBtn} onClick={saveSheet}>
           <Save size={16} /> SAVE
@@ -366,6 +491,13 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
           />
         </div>
       </div>
+
+      <AttendanceColumnSettings
+        isOpen={showColSettings}
+        onClose={() => setShowColSettings(false)}
+        visibility={colVisibility}
+        onVisibilityChange={setColVisibility}
+      />
 
       {/* DETAILS MODAL */}
       {selectedWorker && (
