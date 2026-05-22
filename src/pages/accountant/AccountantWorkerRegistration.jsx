@@ -4,6 +4,7 @@ import { db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { UserPlus, Search, X } from 'lucide-react';
+import PhotoUpload from '../../components/PhotoUpload';
 import { useAuth } from '../../context/AuthContext';
 import { pageStyles as s } from '../../styles/pageStyles';
 import { nextSerial } from '../../utils/serial';
@@ -29,6 +30,7 @@ const EMPTY = {
   DOB: '',
   MOBILE_NO: '',
   AADHAR_NO: '',
+  PHOTO: '',
   AADHAR_PHOTO: '',
   JOINING_DATE_CLIENT: '',
   JOINING_DATE_OFFICE: '',
@@ -165,12 +167,17 @@ const AccountantWorkerRegistration = ({ projectName }) => {
               </select>
               <input required type="date" style={s.formInput} onChange={(e) => setForm({ ...form, DOB: e.target.value })} />
               <input required placeholder="PH NUMBER *" style={s.formInput} value={form.MOBILE_NO} onChange={(e) => setForm({ ...form, MOBILE_NO: e.target.value })} />
-              <input required placeholder="AADHAAR PHOTO URL *" style={s.formInput} value={form.AADHAR_PHOTO} onChange={(e) => setForm({ ...form, AADHAR_PHOTO: e.target.value })} />
+              <PhotoUpload label="AADHAAR PHOTO *" value={form.AADHAR_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
+              <PhotoUpload label="WORKER PHOTO (optional)" value={form.PHOTO} onChange={(val) => setForm({ ...form, PHOTO: val })} folder="worker-photos" aspect={1} />
               <input required placeholder="ADDRESS *" style={s.formInput} value={form.ADDRESS} onChange={(e) => setForm({ ...form, ADDRESS: e.target.value })} />
               <input type="date" placeholder="JOINING CLIENT" style={s.formInput} onChange={(e) => setForm({ ...form, JOINING_DATE_CLIENT: e.target.value })} />
               <input type="date" placeholder="JOINING OFFICE" style={s.formInput} onChange={(e) => setForm({ ...form, JOINING_DATE_OFFICE: e.target.value })} />
               <input placeholder="PAN (optional)" style={s.formInput} onChange={(e) => setForm({ ...form, PAN_NO: e.target.value })} />
-              <input placeholder="BANK (optional)" style={s.formInput} onChange={(e) => setForm({ ...form, BANK: e.target.value })} />
+              <PhotoUpload label="PAN PHOTO (optional)" value={form.PAN_PHOTO} onChange={(val) => setForm({ ...form, PAN_PHOTO: val })} folder="pan-photos" aspect={1.4} />
+              <input placeholder="BANK (optional)" style={s.formInput} value={form.BANK} onChange={(e) => setForm({ ...form, BANK: e.target.value })} />
+              <input placeholder="ACCOUNT NO (optional)" style={s.formInput} value={form.ACCOUNT_NO} onChange={(e) => setForm({ ...form, ACCOUNT_NO: e.target.value })} />
+              <input placeholder="IFSC (optional)" style={s.formInput} value={form.IFSC} onChange={(e) => setForm({ ...form, IFSC: e.target.value })} />
+              <PhotoUpload label="BANK PHOTO (optional)" value={form.BANK_PHOTO} onChange={(val) => setForm({ ...form, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
               <button type="submit" style={s.submitBtn}>SUBMIT REQUEST</button>
             </form>
           </div>

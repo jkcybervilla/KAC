@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // আপনার লেটেস্ট কনফিগারেশন
 const firebaseConfig = {
@@ -13,9 +14,8 @@ const firebaseConfig = {
   measurementId: "G-0HTSL2PG0R"
 };
 
-// ফায়ারবেস ইনিশিয়ালাইজ করা
 const app = initializeApp(firebaseConfig);
 
-// সার্ভিসগুলো এক্সপোর্ট করা (Login.jsx-এ ব্যবহারের জন্য)
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);

@@ -5,6 +5,8 @@ import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
 import { UserPlus, Search, Settings2, X, Eye, CheckCircle, XCircle, Trash2, Upload, Edit2 } from 'lucide-react';
+import PhotoUpload from '../../components/PhotoUpload';
+import PhotoCellRenderer from '../../components/PhotoCellRenderer';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { nextSerial } from '../../utils/serial';
@@ -488,23 +490,17 @@ const RequestWorker = () => {
         headerName: 'PHOTO',
         width: 80,
         hide: !columnVisibility.photo,
-        cellRenderer: (params) =>
-          params.data.PHOTO ? (
-            <img src={params.data.PHOTO} alt="worker" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', marginTop: 4 }} />
-          ) : (
-            <span style={{ color: '#555', fontSize: 10 }}>—</span>
-          ),
+        cellRenderer: (params) => (
+          <PhotoCellRenderer src={params.data.PHOTO} alt="worker" size={36} rounded label="Worker Photo" />
+        ),
       },
       {
         headerName: 'AADHAAR PHOTO',
-        width: 80,
+        width: 90,
         hide: !columnVisibility.aadhaarPhoto,
-        cellRenderer: (params) =>
-          params.data.AADHAR_PHOTO ? (
-            <img src={params.data.AADHAR_PHOTO} alt="aadhaar" style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover', marginTop: 4 }} />
-          ) : (
-            <span style={{ color: '#555', fontSize: 10 }}>—</span>
-          ),
+        cellRenderer: (params) => (
+          <PhotoCellRenderer src={params.data.AADHAR_PHOTO} alt="aadhaar" size={36} rounded={false} label="Aadhaar Photo" />
+        ),
       },
       { field: 'JOINING_DATE_CLIENT', headerName: 'JOINING (CLIENT)', width: 130, hide: !columnVisibility.joiningClient },
       { field: 'JOINING_DATE_OFFICE', headerName: 'JOINING (OFFICE)', width: 130, hide: !columnVisibility.joiningOffice },
@@ -589,11 +585,25 @@ const RequestWorker = () => {
         children: [
           { field: 'ADDRESS', headerName: 'ADDRESS', width: 180, hide: !columnVisibility.address },
           { field: 'PAN_NO', headerName: 'PAN NUMBER', width: 120, hide: !columnVisibility.pan },
-          { field: 'PAN_PHOTO', headerName: 'PAN PHOTO', width: 110, hide: !columnVisibility.panPhoto },
+          {
+            headerName: 'PAN PHOTO',
+            width: 100,
+            hide: !columnVisibility.panPhoto,
+            cellRenderer: (params) => (
+              <PhotoCellRenderer src={params.data.PAN_PHOTO} alt="pan" size={36} rounded={false} label="PAN Photo" />
+            ),
+          },
           { field: 'BANK', headerName: 'BANK', width: 100, hide: !columnVisibility.bank },
           { field: 'ACCOUNT_NO', headerName: 'ACCOUNT NO', width: 120, hide: !columnVisibility.account },
           { field: 'IFSC', headerName: 'IFSC', width: 100, hide: !columnVisibility.ifsc },
-          { field: 'BANK_PHOTO', headerName: 'BANK PHOTO', width: 110, hide: !columnVisibility.bankPhoto },
+          {
+            headerName: 'BANK PHOTO',
+            width: 100,
+            hide: !columnVisibility.bankPhoto,
+            cellRenderer: (params) => (
+              <PhotoCellRenderer src={params.data.BANK_PHOTO} alt="bank" size={36} rounded={false} label="Bank Photo" />
+            ),
+          },
           { field: 'PROJECT', headerName: 'PROJECT NAME', width: 140, hide: !columnVisibility.project },
         ],
       },
@@ -724,12 +734,12 @@ const RequestWorker = () => {
                 <input type="date" placeholder="JOINING CLIENT" style={s.formInput} onChange={(e) => setForm({ ...form, JOINING_DATE_CLIENT: e.target.value })} />
                 <input type="date" placeholder="JOINING OFFICE" style={s.formInput} onChange={(e) => setForm({ ...form, JOINING_DATE_OFFICE: e.target.value })} />
                 <input placeholder="PAN NUMBER" style={s.formInput} value={form.PAN_NO} onChange={(e) => setForm({ ...form, PAN_NO: e.target.value })} />
-                <input placeholder="PHOTO URL" style={s.formInput} value={form.PHOTO} onChange={(e) => setForm({ ...form, PHOTO: e.target.value })} />
-                <input placeholder="AADHAAR PHOTO URL" style={s.formInput} value={form.AADHAR_PHOTO} onChange={(e) => setForm({ ...form, AADHAR_PHOTO: e.target.value })} />
-                <input placeholder="PAN PHOTO URL" style={s.formInput} value={form.PAN_PHOTO} onChange={(e) => setForm({ ...form, PAN_PHOTO: e.target.value })} />
+                <PhotoUpload label="WORKER PHOTO" value={form.PHOTO} onChange={(val) => setForm({ ...form, PHOTO: val })} folder="worker-photos" />
+                <PhotoUpload label="AADHAAR PHOTO" value={form.AADHAR_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_PHOTO: val })} folder="aadhaar-photos" />
+                <PhotoUpload label="PAN PHOTO" value={form.PAN_PHOTO} onChange={(val) => setForm({ ...form, PAN_PHOTO: val })} folder="pan-photos" />
                 <input placeholder="BANK NAME" style={s.formInput} value={form.BANK} onChange={(e) => setForm({ ...form, BANK: e.target.value })} />
                 <input placeholder="ACCOUNT NO" style={s.formInput} value={form.ACCOUNT_NO} onChange={(e) => setForm({ ...form, ACCOUNT_NO: e.target.value })} />
-                <input placeholder="BANK PHOTO URL" style={s.formInput} value={form.BANK_PHOTO} onChange={(e) => setForm({ ...form, BANK_PHOTO: e.target.value })} />
+                <PhotoUpload label="BANK PHOTO (CHEQUE)" value={form.BANK_PHOTO} onChange={(val) => setForm({ ...form, BANK_PHOTO: val })} folder="bank-photos" />
                 <select required style={{ gridColumn: 'span 2', ...s.formInput }} value={form.PROJECT} onChange={(e) => setForm({ ...form, PROJECT: e.target.value })}>
                   <option value="">SELECT PROJECT</option>
                   {projects.map((p) => (
@@ -805,12 +815,12 @@ const RequestWorker = () => {
                 <input type="date" placeholder="JOINING CLIENT" style={s.formInput} value={editForm.JOINING_DATE_CLIENT} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_CLIENT: e.target.value })} />
                 <input type="date" placeholder="JOINING OFFICE" style={s.formInput} value={editForm.JOINING_DATE_OFFICE} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_OFFICE: e.target.value })} />
                 <input placeholder="PAN NUMBER" style={s.formInput} value={editForm.PAN_NO} onChange={(e) => setEditForm({ ...editForm, PAN_NO: e.target.value })} />
-                <input placeholder="PHOTO URL" style={s.formInput} value={editForm.PHOTO} onChange={(e) => setEditForm({ ...editForm, PHOTO: e.target.value })} />
-                <input placeholder="AADHAAR PHOTO URL" style={s.formInput} value={editForm.AADHAR_PHOTO} onChange={(e) => setEditForm({ ...editForm, AADHAR_PHOTO: e.target.value })} />
-                <input placeholder="PAN PHOTO URL" style={s.formInput} value={editForm.PAN_PHOTO} onChange={(e) => setEditForm({ ...editForm, PAN_PHOTO: e.target.value })} />
+                <PhotoUpload label="WORKER PHOTO" value={editForm.PHOTO} onChange={(val) => setEditForm({ ...editForm, PHOTO: val })} folder="worker-photos" />
+                <PhotoUpload label="AADHAAR PHOTO" value={editForm.AADHAR_PHOTO} onChange={(val) => setEditForm({ ...editForm, AADHAR_PHOTO: val })} folder="aadhaar-photos" />
+                <PhotoUpload label="PAN PHOTO" value={editForm.PAN_PHOTO} onChange={(val) => setEditForm({ ...editForm, PAN_PHOTO: val })} folder="pan-photos" />
                 <input placeholder="BANK NAME" style={s.formInput} value={editForm.BANK} onChange={(e) => setEditForm({ ...editForm, BANK: e.target.value })} />
                 <input placeholder="ACCOUNT NO" style={s.formInput} value={editForm.ACCOUNT_NO} onChange={(e) => setEditForm({ ...editForm, ACCOUNT_NO: e.target.value })} />
-                <input placeholder="BANK PHOTO URL" style={s.formInput} value={editForm.BANK_PHOTO} onChange={(e) => setEditForm({ ...editForm, BANK_PHOTO: e.target.value })} />
+                <PhotoUpload label="BANK PHOTO (CHEQUE)" value={editForm.BANK_PHOTO} onChange={(val) => setEditForm({ ...editForm, BANK_PHOTO: val })} folder="bank-photos" />
                 <select required style={{ gridColumn: 'span 2', ...s.formInput }} value={editForm.PROJECT} onChange={(e) => setEditForm({ ...editForm, PROJECT: e.target.value })}>
                   <option value="">SELECT PROJECT</option>
                   {projects.map((p) => (

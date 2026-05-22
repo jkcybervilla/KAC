@@ -3,7 +3,7 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
-import { Save, Search, X, User, Hash, Building, List, Calendar, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Search, X, User, Hash, Building, List, Calendar, MapPin, ChevronDown, ChevronUp, Columns } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, getDaysInMonth, defaultDayMap, MONTHS } from '../../utils/attendance';
@@ -58,7 +58,28 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const [workerHistory, setWorkerHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [expandDays, setExpandDays] = useState(false);
+  const [showColumnMenu, setShowColumnMenu] = useState(false);
+  const columnMenuRef = useRef(null);
   const dayColsRef = useRef([]);
+  // Column visibility state
+  const allBaseCols = useMemo(() => [
+    { field: 'SLNO', headerName: 'SL NO' },
+    { field: 'EMPID', headerName: 'EMP ID' },
+    { field: 'REFFERENCE', headerName: 'REFERENCE' },
+    { field: 'WORKER_NAME', headerName: 'NAME' },
+    { field: 'FATHER_NAME', headerName: 'FATHER NAME' },
+    { field: 'DESIGNATION', headerName: 'DESIGNATION' },
+    { field: 'JOINING', headerName: 'JOINING' },
+    { field: 'CLOSE', headerName: 'CLOSE' },
+    { field: 'PROJECT', headerName: 'PROJECT' },
+    { field: 'TOTAL', headerName: 'TOTAL' },
+  ], []);
+
+  const [columnVisibility, setColumnVisibility] = useState(() => {
+    const init = {};
+    allBaseCols.forEach((c) => { init[c.field] = true; });
+    return init;
+  });
 
   const collectionName = type === 'office' ? 'attendance_office' : 'attendance_client';
   const daysInMonth = getDaysInMonth(month, year);
@@ -93,6 +114,30 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   useEffect(() => {
     if (projectFilter) setProject(projectFilter);
   }, [projectFilter]);
+
+  // Sync column visibility with AG-Grid when checkboxes change
+  useEffect(() => {
+    if (!gridApi) return;
+    allBaseCols.forEach((col) => {
+      const isVisible = columnVisibility[col.field] !== false;
+      if (gridApi.getColumnDef(col.field)) {
+        gridApi.setColumnsVisible([col.field], isVisible);
+      }
+    });
+  }, [columnVisibility, gridApi, allBaseCols]);
+
+  // Close column menu on outside click
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target)) {
+        setShowColumnMenu(false);
+      }
+    };
+    if (showColumnMenu) {
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+  }, [showColumnMenu]);
 
   // Toggle day columns visibility
   useEffect(() => {
@@ -170,6 +215,49 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
         };
       });
   }, [workers, saved, daysInMonth, project, designation]);
+
+  // Computed pinned bottom row — total "P" count per day (respects quick filter)
+  const pinnedBottomRowData = useMemo(() => {
+    if (!rowData || rowData.length === 0) return [];
+
+    // Apply the same quick filter logic as AG-Grid (searches all string fields)
+    const searchLower = (searchText || '').toLowerCase().trim();
+    const filtered = searchLower
+      ? rowData.filter((row) =>
+          Object.values(row).some((val) =>
+            String(val || '').toLowerCase().includes(searchLower)
+          )
+        )
+      : rowData;
+
+    const totals = {};
+    let totalPresent = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const key = String(d);
+      let pCount = 0;
+      filtered.forEach((row) => {
+        if ((row[key] || 'P') === 'P') pCount++;
+      });
+      totals[key] = pCount;
+      totalPresent += pCount;
+    }
+    return [
+      {
+        EMPID: '—',
+        WORKER_NAME: 'TOTAL P',
+        SLNO: '',
+        REFFERENCE: '',
+        FATHER_NAME: '',
+        DESIGNATION: '',
+        JOINING: '',
+        CLOSE: '',
+        PROJECT: '',
+        ...totals,
+        TOTAL: totalPresent,
+        DETAILS: '',
+      },
+    ];
+  }, [rowData, daysInMonth, searchText]);
 
   const columnDefs = useMemo(() => {
     const base = [
@@ -339,6 +427,67 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
           {expandDays ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {expandDays ? 'HIDE DAYS' : 'SHOW DAYS'}
         </button>
+        <div ref={columnMenuRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            style={{
+              ...s.secondaryBtn,
+              borderColor: showColumnMenu ? '#0055ff' : '#222',
+              color: showColumnMenu ? '#fff' : '#888',
+            }}
+            onClick={() => setShowColumnMenu(!showColumnMenu)}
+          >
+            <Columns size={14} /> COLUMNS
+          </button>
+          {showColumnMenu && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: 4,
+                backgroundColor: '#0a0a0a',
+                border: '1px solid #1a1a1a',
+                borderRadius: 8,
+                padding: '8px 0',
+                minWidth: 190,
+                zIndex: 9999,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              }}
+            >
+              {allBaseCols.map((col) => (
+                <label
+                  key={col.field}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '7px 16px',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    color: columnVisibility[col.field] !== false ? '#fff' : '#666',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility[col.field] !== false}
+                    onChange={() => {
+                      setColumnVisibility((prev) => ({
+                        ...prev,
+                        [col.field]: prev[col.field] === false ? true : false,
+                      }));
+                    }}
+                    style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                  />
+                  {col.headerName}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
         <ExportToolbar rows={rowData} columnDefs={columnDefs} title={`${type} Attendance ${batchId}`} filename={`attendance-${type}-${batchId}`} />
         <button type="button" style={s.primaryBtn} onClick={saveSheet}>
           <Save size={16} /> SAVE
@@ -351,6 +500,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
             rowData={rowData}
             columnDefs={columnDefs}
             defaultColDef={{ resizable: true, filter: true, sortable: true }}
+            pinnedBottomRowData={pinnedBottomRowData}
             onGridReady={(p) => {
               setGridApi(p.api);
               // Auto-fit all columns on load
