@@ -12,6 +12,7 @@ import {
   Bell,
   Link2,
   ClipboardList,
+  MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
@@ -21,6 +22,7 @@ import ThemeToggle from '../../components/ThemeToggle';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
 import AccountantWorkActivity from './AccountantWorkActivity';
+import AdminChat from '../../components/AdminChat';
 
 const MENU = [
   { id: 'home', label: 'HOME', icon: Home },
@@ -30,6 +32,7 @@ const MENU = [
   { id: 'dpr', label: 'DPR', icon: FileText },
   { id: 'activity', label: 'WORK ACTIVITY', icon: ClipboardList },
   { id: 'expense', label: 'EXPENSE', icon: ReceiptText },
+  { id: 'chat', label: 'CHAT WITH ADMIN', icon: MessageSquare },
 ];
 
 const Placeholder = ({ title }) => (
@@ -149,6 +152,8 @@ const AccountantDashboard = () => {
         return <AccountantWorkActivity projectName={pname} />;
       case 'expense':
         return <Placeholder title="EXPENSE MODULE" />;
+      case 'chat':
+        return <AdminChat user={profile} />;
       default:
         return null;
     }

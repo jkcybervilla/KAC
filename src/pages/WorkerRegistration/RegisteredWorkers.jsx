@@ -3,7 +3,7 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
-import { Search, Settings2, X, Edit3, Trash2 } from 'lucide-react';
+import { Search, Settings2, X, Edit3, Trash2, Eye, Download, ImageIcon } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId } from '../../utils/attendance';
@@ -155,11 +155,111 @@ const WorkerColumnSettings = ({ isOpen, onClose, visibility, onVisibilityChange 
   );
 };
 
+// ===== PHOTO VIEWER MODAL =====
+const PhotoViewerModal = ({ photoUrl, photoLabel, onClose }) => {
+  const [loaded, setLoaded] = useState(false);
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(photoUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${photoLabel.replace(/\s+/g, '_')}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      // Fallback: open in new tab for download
+      window.open(photoUrl, '_blank');
+    }
+  };
+
+  if (!photoUrl) return null;
+
+  return (
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={styles.photoViewerContent} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.photoViewerHeader}>
+          <h3 style={{ margin: 0, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ImageIcon size={18} color="#0055ff" /> {photoLabel}
+          </h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleDownload} style={styles.photoActionBtn} title="Download">
+              <Download size={16} />
+            </button>
+            <button onClick={onClose} style={{ ...styles.photoActionBtn, color: '#ef4444' }} title="Close">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+        <div style={styles.photoViewerBody}>
+          {!loaded && (
+            <div style={styles.photoLoading}>
+              <ImageIcon size={32} color="var(--muted-2)" />
+              <p>Loading image...</p>
+            </div>
+          )}
+          <img
+            src={photoUrl}
+            alt={photoLabel}
+            style={{
+              ...styles.photoViewerImg,
+              display: loaded ? 'block' : 'none',
+            }}
+            onLoad={() => setLoaded(true)}
+            onError={() => { setLoaded(true); /* shows broken img */ }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ===== PHOTO CELL RENDERER (reusable) =====
+const PhotoCellRenderer = ({ src, label, onClick, size = 36 }) => {
+  if (!src) {
+    return <span style={{ color: '#555', fontSize: 10 }}>—</span>;
+  }
+
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <img
+        src={src}
+        alt={label}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: label === 'Photo' ? '50%' : '4px',
+          objectFit: 'cover',
+          marginTop: 4,
+          cursor: 'pointer',
+          border: '1px solid var(--border-strong)',
+          transition: 'opacity 0.2s',
+        }}
+        onClick={() => onClick(src, label)}
+        onMouseOver={(e) => { e.target.style.opacity = '0.8'; }}
+        onMouseOut={(e) => { e.target.style.opacity = '1'; }}
+      />
+      <button
+        onClick={() => onClick(src, label)}
+        style={styles.photoOverlayBtn}
+        title={`View ${label}`}
+      >
+        <Eye size={10} />
+      </button>
+    </div>
+  );
+};
+
 // Worker Properties Modal — View, Edit & Delete
 const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) => {
   const [data, setData] = useState({ ...worker });
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState(null);
 
   const fields = [
     { label: 'SL NO', key: 'SLNO', type: 'text' },
@@ -175,11 +275,11 @@ const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) 
     { label: 'JOINING (OFFICE)', key: 'JOINING_DATE_OFFICE', type: 'text' },
     { label: 'ADDRESS', key: 'ADDRESS', type: 'text' },
     { label: 'PAN NUMBER', key: 'PAN_NO', type: 'text' },
-    { label: 'PAN PHOTO', key: 'PAN_PHOTO', type: 'text' },
+    { label: 'PAN PHOTO', key: 'PAN_PHOTO', type: 'photo' },
     { label: 'BANK', key: 'BANK', type: 'text' },
     { label: 'ACCOUNT NO', key: 'ACCOUNT_NO', type: 'text' },
     { label: 'IFSC', key: 'IFSC', type: 'text' },
-    { label: 'BANK PHOTO', key: 'BANK_PHOTO', type: 'text' },
+    { label: 'BANK PHOTO', key: 'BANK_PHOTO', type: 'photo' },
     { label: 'UAN NO', key: 'UAN_NO', type: 'text' },
     { label: 'ESIC NO', key: 'ESIC_NO', type: 'text' },
     { label: 'PROJECT', key: 'PROJECT', type: 'select', options: projects },
@@ -206,6 +306,10 @@ const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) 
     } catch (err) {
       alert('Delete error: ' + err.message);
     }
+  };
+
+  const openPhoto = (url, label) => {
+    if (url) setViewingPhoto({ url, label });
   };
 
   return (
@@ -260,6 +364,24 @@ const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) 
                         <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
+                  ) : f.type === 'photo' ? (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        style={{ ...s.formInput, flex: 1 }}
+                        value={data[f.key] || ''}
+                        onChange={(e) => setData({ ...data, [f.key]: e.target.value })}
+                        placeholder="Paste photo URL..."
+                      />
+                      {val && (
+                        <button
+                          onClick={() => openPhoto(val, f.label)}
+                          style={{ ...styles.photoActionBtn, padding: '8px 10px' }}
+                          title="View photo"
+                        >
+                          <Eye size={14} />
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <input
                       style={s.formInput}
@@ -268,7 +390,27 @@ const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) 
                     />
                   )
                 ) : (
-                  <p style={{ margin: '4px 0 0', color: '#ccc' }}>{val ?? '—'}</p>
+                  f.type === 'photo' ? (
+                    <div style={{ marginTop: '4px' }}>
+                      {val ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={val}
+                            alt={f.label}
+                            style={{ width: 60, height: 60, borderRadius: 4, objectFit: 'cover', border: '1px solid var(--border-strong)' }}
+                            onClick={() => openPhoto(val, f.label)}
+                          />
+                          <button onClick={() => openPhoto(val, f.label)} style={styles.photoActionBtn}>
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <p style={{ margin: '4px 0 0', color: '#555', fontSize: 12 }}>—</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p style={{ margin: '4px 0 0', color: '#ccc' }}>{val ?? '—'}</p>
+                  )
                 )}
               </div>
             );
@@ -281,6 +423,15 @@ const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) 
           </button>
         )}
       </div>
+
+      {/* Photo Viewer Modal inside Properties */}
+      {viewingPhoto && (
+        <PhotoViewerModal
+          photoUrl={viewingPhoto.url}
+          photoLabel={viewingPhoto.label}
+          onClose={() => setViewingPhoto(null)}
+        />
+      )}
     </div>
   );
 };
@@ -297,6 +448,7 @@ const RegisteredWorkers = () => {
   const [onlyWithAttendance, setOnlyWithAttendance] = useState(false);
   const [attendanceSet, setAttendanceSet] = useState(new Set());
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState(null);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
@@ -328,7 +480,6 @@ const RegisteredWorkers = () => {
 
   useEffect(() => {
     if (onlyWithAttendance && attendanceSet.size === 0) {
-      // load attendance IDs for current month
       const loadAttendanceForCurrentMonth = async () => {
         setAttendanceLoading(true);
         try {
@@ -351,6 +502,10 @@ const RegisteredWorkers = () => {
       loadAttendanceForCurrentMonth();
     }
   }, [onlyWithAttendance, attendanceSet.size, currentBatchId]);
+
+  const handlePhotoClick = useCallback((src, label) => {
+    setViewingPhoto({ url: src, label });
+  }, []);
 
   const columnDefs = useMemo(
     () => [
@@ -377,29 +532,53 @@ const RegisteredWorkers = () => {
         headerName: 'PHOTO',
         width: 80,
         hide: !columnVisibility.photo,
-        cellRenderer: (params) =>
-          params.data.PHOTO ? (
-            <img src={params.data.PHOTO} alt="worker" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', marginTop: 4 }} />
-          ) : (
-            <span style={{ color: '#555', fontSize: 10 }}>—</span>
-          ),
+        cellRenderer: (params) => (
+          <PhotoCellRenderer
+            src={params.data.PHOTO}
+            label="Photo"
+            onClick={handlePhotoClick}
+          />
+        ),
       },
       {
         headerName: 'AADHAAR PHOTO',
         width: 80,
         hide: !columnVisibility.aadhaarPhoto,
-        cellRenderer: (params) =>
-          params.data.AADHAR_PHOTO ? (
-            <img src={params.data.AADHAR_PHOTO} alt="aadhaar" style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover', marginTop: 4 }} />
-          ) : (
-            <span style={{ color: '#555', fontSize: 10 }}>—</span>
-          ),
+        cellRenderer: (params) => (
+          <PhotoCellRenderer
+            src={params.data.AADHAR_PHOTO}
+            label="Aadhaar Photo"
+            onClick={handlePhotoClick}
+          />
+        ),
       },
-      { field: 'PAN_PHOTO', headerName: 'PAN PHOTO', width: 110, hide: !columnVisibility.panPhoto },
+      {
+        headerName: 'PAN PHOTO',
+        width: 80,
+        hide: !columnVisibility.panPhoto,
+        cellRenderer: (params) => (
+          <PhotoCellRenderer
+            src={params.data.PAN_PHOTO}
+            label="PAN Photo"
+            onClick={handlePhotoClick}
+          />
+        ),
+      },
       { field: 'BANK', headerName: 'BANK', width: 100, hide: !columnVisibility.bank },
       { field: 'ACCOUNT_NO', headerName: 'ACCOUNT NO', width: 120, hide: !columnVisibility.account },
       { field: 'IFSC', headerName: 'IFSC', width: 100, hide: !columnVisibility.ifsc },
-      { field: 'BANK_PHOTO', headerName: 'BANK PHOTO', width: 110, hide: !columnVisibility.bankPhoto },
+      {
+        headerName: 'BANK PHOTO',
+        width: 80,
+        hide: !columnVisibility.bankPhoto,
+        cellRenderer: (params) => (
+          <PhotoCellRenderer
+            src={params.data.BANK_PHOTO}
+            label="Bank Photo"
+            onClick={handlePhotoClick}
+          />
+        ),
+      },
       { field: 'UAN_NO', headerName: 'UAN NO', width: 100, hide: !columnVisibility.uan },
       { field: 'ESIC_NO', headerName: 'ESIC NO', width: 100, hide: !columnVisibility.esic },
       { field: 'PROJECT', headerName: 'PROJECT', width: 140, hide: !columnVisibility.project },
@@ -427,7 +606,7 @@ const RegisteredWorkers = () => {
         ),
       },
     ],
-    [columnVisibility]
+    [columnVisibility, handlePhotoClick]
   );
 
   const handleGridReady = useCallback((params) => {
@@ -497,6 +676,15 @@ const RegisteredWorkers = () => {
         visibility={columnVisibility}
         onVisibilityChange={setColumnVisibility}
       />
+
+      {/* Photo Viewer Modal (Global) */}
+      {viewingPhoto && (
+        <PhotoViewerModal
+          photoUrl={viewingPhoto.url}
+          photoLabel={viewingPhoto.label}
+          onClose={() => setViewingPhoto(null)}
+        />
+      )}
 
       {selectedWorker && (
         <WorkerPropertiesModal
@@ -597,6 +785,72 @@ const styles = {
     cursor: 'pointer',
     marginTop: '20px',
     fontSize: '13px',
+  },
+  // Photo Viewer
+  photoViewerContent: {
+    backgroundColor: '#0a0a0a',
+    borderRadius: '15px',
+    border: '1px solid #1a1a1a',
+    maxWidth: '90vw',
+    maxHeight: '90vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  photoViewerHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '14px 20px',
+    borderBottom: '1px solid #1a1a1a',
+    color: '#fff',
+  },
+  photoViewerBody: {
+    padding: '20px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '200px',
+    overflow: 'auto',
+  },
+  photoViewerImg: {
+    maxWidth: '100%',
+    maxHeight: '70vh',
+    borderRadius: '8px',
+    objectFit: 'contain',
+  },
+  photoLoading: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px',
+    color: 'var(--muted-2)',
+    fontSize: '13px',
+  },
+  photoActionBtn: {
+    background: 'none',
+    border: '1px solid #333',
+    color: '#0055ff',
+    padding: '6px 8px',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'border-color 0.2s',
+  },
+  photoOverlayBtn: {
+    position: 'absolute',
+    bottom: '2px',
+    right: '2px',
+    background: 'rgba(0,0,0,0.7)',
+    border: 'none',
+    color: '#fff',
+    borderRadius: '4px',
+    padding: '2px 4px',
+    cursor: 'pointer',
+    opacity: 0,
+    transition: 'opacity 0.2s',
   },
 };
 

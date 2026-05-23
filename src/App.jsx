@@ -14,6 +14,7 @@ import CoordinatorDashboard from './pages/coordinator/CoordinatorDashboard';
 import WorkerRegisterHub from './pages/WorkerRegistration/WorkerRegisterHub';
 import AttendanceHub from './pages/Attendance/AttendanceHub';
 import StaffManagement from './pages/user/StaffManagement';
+import ActivityLog from './pages/admin/ActivityLog';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/attendance-sheet" element={<ProtectedRoute roles={['admin']}><AttendanceHub /></ProtectedRoute>} />
         <Route path="/register-worker" element={<ProtectedRoute roles={['admin']}><WorkerRegisterHub /></ProtectedRoute>} />
         <Route path="/vendor-management" element={<ProtectedRoute roles={['admin']}><VendorManagement /></ProtectedRoute>} />
+        <Route path="/activity-log" element={<ProtectedRoute roles={['admin']}><ActivityLog /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
