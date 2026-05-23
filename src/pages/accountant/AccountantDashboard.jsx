@@ -11,6 +11,7 @@ import {
   LogOut,
   Bell,
   Link2,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
@@ -19,6 +20,7 @@ import { pageStyles as s } from '../../styles/pageStyles';
 import ThemeToggle from '../../components/ThemeToggle';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
+import AccountantWorkActivity from './AccountantWorkActivity';
 
 const MENU = [
   { id: 'home', label: 'HOME', icon: Home },
@@ -26,6 +28,7 @@ const MENU = [
   { id: 'client', label: 'CLIENT ATTENDANCE', icon: ClipboardCheck },
   { id: 'office', label: 'OFFICE ATTENDANCE', icon: ClipboardCheck },
   { id: 'dpr', label: 'DPR', icon: FileText },
+  { id: 'activity', label: 'WORK ACTIVITY', icon: ClipboardList },
   { id: 'expense', label: 'EXPENSE', icon: ReceiptText },
 ];
 
@@ -140,7 +143,10 @@ const AccountantDashboard = () => {
       case 'office':
         return <AccountantDailyAttendance type="office" projectName={pname} />;
       case 'dpr':
-        return <Placeholder title="DPR MODULE" />;
+        navigate('/dpr-view');
+        return null;
+      case 'activity':
+        return <AccountantWorkActivity projectName={pname} />;
       case 'expense':
         return <Placeholder title="EXPENSE MODULE" />;
       default:

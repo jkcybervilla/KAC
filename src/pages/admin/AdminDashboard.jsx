@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ThemeToggle from '../../components/ThemeToggle';
+import KACLogo from '../../assets/LOGO 1.png'; // Import the logo
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ const AdminDashboard = () => {
 const menuItems = [
   { name: 'Dashboard', icon: <LayoutDashboard size={20}/>, path: '/admin' },
   { name: 'Projects', icon: <Folder size={20}/>, path: '/all-projects' },
-  // এখানে path যোগ করা হয়েছে
+  { name: 'Work Activity', icon: <ReceiptText size={20}/>, path: '/work-activity' },
   { name: 'Attendance', icon: <ClipboardCheck size={20}/>, path: '/attendance-sheet' }, 
   { name: 'DPR Status', icon: <ReceiptText size={20}/> },
   { name: 'Worker Reg.', icon: <UserPlus size={20}/>, path: '/register-worker' },
@@ -50,7 +51,7 @@ const menuItems = [
       {/* --- COLLAPSIBLE SIDEBAR --- */}
       <aside style={{ ...styles.sidebar, width: isCollapsed ? '80px' : '260px' }}>
         <div style={styles.sidebarHeader}>
-          {!isCollapsed && <h2 style={styles.logo}>KAC <span style={{color: '#0055ff'}}>CORE</span></h2>}
+          
           <button onClick={() => setIsCollapsed(!isCollapsed)} style={styles.toggleBtn}>
             {isCollapsed ? <ChevronRight size={18}/> : <ChevronLeft size={18}/>}
           </button>
@@ -86,8 +87,9 @@ const menuItems = [
         {/* Top Notification Bar */}
         <header style={styles.topBar}>
           
-          <div style={styles.searchBox}>
-            <input type="text" placeholder="Global Search..." style={styles.input} />
+          <div style={styles.topBarBranding}>
+            <img src={KACLogo} alt="KAC CORE Logo" style={{ height: '50px', marginRight: '10px' }} />
+            <h2 style={styles.logo}>KAC <span style={{ color: '#0055ff' }}>CORE</span></h2>
           </div>
           <div style={styles.topIcons}>
             <div style={styles.notifIcon}>
@@ -158,6 +160,7 @@ const styles = {
   // Main
   main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   topBar: { height: '70px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 30px' },
+  topBarBranding: { display: 'flex', alignItems: 'center' },
   input: { backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', color: 'var(--text)', padding: '10px 20px', borderRadius: '30px', width: '300px' },
   topIcons: { display: 'flex', alignItems: 'center', gap: '25px' },
   notifIcon: { position: 'relative', cursor: 'pointer' },

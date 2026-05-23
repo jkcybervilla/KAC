@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
-import AttendanceGrid from './AttendanceGrid';
-import AttendanceChart from './AttendanceChart';
-import DesignationView from './DesignationView';
+import WorkActivity from './WorkActivity';
+import DprView from './DprView';
+import JmcView from './JmcView';
 
-const AttendanceHub = () => {
-  const [params] = useSearchParams();
-  const initialTab = params.get('tab') || 'client';
-  const projectFilter = params.get('project') || '';
-  const [tab, setTab] = useState(initialTab);
+const WorkActivityHub = () => {
+  const [tab, setTab] = useState('activity');
   const navigate = useNavigate();
 
   const headerTabBtn = (isActive) => ({
@@ -44,59 +41,48 @@ const AttendanceHub = () => {
             <ArrowLeft size={18} />
           </button>
           <h2 style={s.title}>
-            ATTENDANCE <span style={{ color: '#0055ff' }}>SYSTEM</span>
+            WORK ACTIVITY <span style={{ color: '#0055ff' }}>HUB</span>
           </h2>
         </div>
         <div style={s.headerRight}>
           <button
             type="button"
-            data-active={tab === 'client'}
-            style={headerTabBtn(tab === 'client')}
-            onClick={() => setTab('client')}
+            data-active={tab === 'activity'}
+            style={headerTabBtn(tab === 'activity')}
+            onClick={() => setTab('activity')}
             onMouseEnter={(e) => handleTabHover(e, true)}
             onMouseLeave={(e) => handleTabHover(e, false)}
           >
-            CLIENT
+            WORK ACTIVITY
           </button>
           <button
             type="button"
-            data-active={tab === 'office'}
-            style={headerTabBtn(tab === 'office')}
-            onClick={() => setTab('office')}
+            data-active={tab === 'dpr'}
+            style={headerTabBtn(tab === 'dpr')}
+            onClick={() => setTab('dpr')}
             onMouseEnter={(e) => handleTabHover(e, true)}
             onMouseLeave={(e) => handleTabHover(e, false)}
           >
-            OFFICE (VENDORS)
+            DPR
           </button>
           <button
             type="button"
-            data-active={tab === 'chart'}
-            style={headerTabBtn(tab === 'chart')}
-            onClick={() => setTab('chart')}
+            data-active={tab === 'jmc'}
+            style={headerTabBtn(tab === 'jmc')}
+            onClick={() => setTab('jmc')}
             onMouseEnter={(e) => handleTabHover(e, true)}
             onMouseLeave={(e) => handleTabHover(e, false)}
           >
-            CHART
-          </button>
-          <button
-            type="button"
-            data-active={tab === 'designation'}
-            style={headerTabBtn(tab === 'designation')}
-            onClick={() => setTab('designation')}
-            onMouseEnter={(e) => handleTabHover(e, true)}
-            onMouseLeave={(e) => handleTabHover(e, false)}
-          >
-            DESIGNATION
+            JMC
           </button>
         </div>
       </header>
 
-      {tab === 'client' && <AttendanceGrid type="client" projectFilter={projectFilter} />}
-      {tab === 'office' && <AttendanceGrid type="office" projectFilter={projectFilter} />}
-      {tab === 'chart' && <AttendanceChart />}
-      {tab === 'designation' && <DesignationView />}
+      {tab === 'activity' && <WorkActivity />}
+      {tab === 'dpr' && <DprView />}
+      {tab === 'jmc' && <JmcView />}
     </div>
   );
 };
 
-export default AttendanceHub;
+export default WorkActivityHub;

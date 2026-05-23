@@ -24,6 +24,8 @@ const WorkerRegister = () => {
   const [projectsList, setProjectsList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [selectedProject, setSelectedProject] = useState('');
+  const [selectedDesignation, setSelectedDesignation] = useState('');
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
@@ -126,6 +128,18 @@ const WorkerRegister = () => {
     { field: "COMMENT", headerName: "COMMENT", width: 200 },
   ], []);
 
+  const filteredWorkers = useMemo(() => {
+    return workers.filter(worker => {
+      const matchesSearchText = searchText === '' ||
+        Object.values(worker).some(value =>
+          String(value).toLowerCase().includes(searchText.toLowerCase())
+        );
+      const matchesProject = selectedProject === '' || worker.PROJECT === selectedProject;
+      const matchesDesignation = selectedDesignation === '' || worker.DESIGNATION === selectedDesignation;
+      return matchesSearchText && matchesProject && matchesDesignation;
+    });
+  }, [workers, searchText, selectedProject, selectedDesignation]);
+
   if (loading) return <div style={styles.loading}>Accessing Master Register...</div>;
 
   return (
@@ -135,19 +149,30 @@ const WorkerRegister = () => {
           <button onClick={() => navigate('/admin')} style={styles.backBtn}><ArrowLeft size={18} /></button>
           <h2 style={styles.title}>WORKER <span style={{color: '#0055ff'}}>REGISTER</span></h2>
         </div>
-        <div style={styles.headerRight}>
-          <div style={styles.searchBox}>
-            <Search size={16} color="#444" />
-            <input type="text" placeholder="Quick Search..." style={styles.searchInput} onChange={e => setSearchText(e.target.value)} />
-          </div>
-          <button onClick={() => setShowModal(true)} style={styles.addBtn}><UserPlus size={18}/> NEW ENTRY</button>
-        </div>
       </header>
+
+      <div style={styles.filterBar}>
+        <div style={styles.searchBox}>
+          <Search size={16} color="#444" />
+          <input type="text" placeholder="Quick Search..." style={styles.searchInput} onChange={e => setSearchText(e.target.value)} />
+        </div>
+        <select style={styles.filterSelect} value={selectedProject} onChange={e => setSelectedProject(e.target.value)}>
+          <option value="">All Projects</option>
+          {projectsList.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
+        </select>
+        <select style={styles.filterSelect} value={selectedDesignation} onChange={e => setSelectedDesignation(e.target.value)}>
+          <option value="">All Designations</option>
+          <option value="LABOUR">LABOUR</option>
+          <option value="SKILLED">SKILLED</option>
+          <option value="SUPERVISOR">SUPERVISOR</option>
+        </select>
+        <button onClick={() => setShowModal(true)} style={styles.addBtn}><UserPlus size={18}/> NEW ENTRY</button>
+      </div>
 
       <div style={styles.gridSection}>
         <div style={{ height: '78vh', width: '100%' }}>
           <AgGridReact 
-            rowData={workers} 
+            rowData={filteredWorkers} 
             columnDefs={columnDefs} 
             defaultColDef={{sortable:true, filter:true, resizable:true}} 
             quickFilterText={searchText}
@@ -218,13 +243,14 @@ const WorkerRegister = () => {
 const styles = {
   container: { padding: '30px', backgroundColor: '#050505', minHeight: '100vh', color: '#fff' },
   loading: { color: '#444', textAlign: 'center', marginTop: '20%' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
+  header: { display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '20px' },
   headerLeft: { display: 'flex', alignItems: 'center', gap: '20px' },
-  headerRight: { display: 'flex', gap: '15px' },
+  filterBar: { display: 'flex', gap: '15px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' },
   title: { fontSize: '20px', fontWeight: '900', margin: 0 },
   backBtn: { background: '#0a0a0a', border: '1px solid #111', color: '#fff', padding: '8px', borderRadius: '8px', cursor: 'pointer' },
   searchBox: { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#0a0a0a', padding: '8px 15px', borderRadius: '8px', border: '1px solid #111' },
   searchInput: { background: 'none', border: 'none', color: '#fff', outline: 'none', fontSize: '13px', width: '200px' },
+  filterSelect: { background: '#0a0a0a', border: '1px solid #111', color: '#fff', padding: '8px 15px', borderRadius: '8px', outline: 'none', fontSize: '13px' },
   addBtn: { backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
   gridSection: { borderRadius: '12px', overflow: 'hidden' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },

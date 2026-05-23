@@ -26,7 +26,7 @@ const darkQuartzTheme = themeQuartz.withParams({
 
 const EMPTY_FORM = {
   PROJECT_NAME: '',
-  TYPE: 'SS',
+  TYPE: 'FOUNDATION',
   CLIENT: '',
   PO_NUMBER: '',
   GEM_ID: '',
@@ -491,10 +491,14 @@ const ProjectFormModal = ({ formData, setFormData, onClose, onSubmit, vendors })
         </FormField>
         <div style={s.inputGrid}>
           <FormField label="TYPE">
-            <select style={s.formInput} value={formData.TYPE} onChange={(e) => setFormData({ ...formData, TYPE: e.target.value })}>
-              <option value="SS">Substation (SS)</option>
-              <option value="TL">Transmission Line (TL)</option>
-            </select>
+              <select style={s.formInput} value={formData.TYPE} onChange={(e) => setFormData({ ...formData, TYPE: e.target.value })}>
+                <option value="FOUNDATION">FOUNDATION</option>
+                <option value="ERECTION">ERECTION</option>
+                <option value="STRINGING">STRINGING</option>
+                <option value="RESTORATION">RESTORATION</option>
+                <option value="RE-STRINGING">RE-STRINGING</option>
+                <option value="OPGW">OPGW</option>
+              </select>
           </FormField>
           <FormField label="CLIENT">
             <input style={s.formInput} value={formData.CLIENT} onChange={(e) => setFormData({ ...formData, CLIENT: e.target.value })} />
@@ -638,9 +642,13 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate, vendors })
                 <input style={s.formInput} value={data.PROJECT_NAME || ''} onChange={(e) => setData({ ...data, PROJECT_NAME: e.target.value })} />
               </FormField>
               <FormField label="TYPE">
-                <select style={s.formInput} value={data.TYPE || 'SS'} onChange={(e) => setData({ ...data, TYPE: e.target.value })}>
-                  <option value="SS">SS</option>
-                  <option value="TL">TL</option>
+                <select style={s.formInput} value={data.TYPE || 'FOUNDATION'} onChange={(e) => setData({ ...data, TYPE: e.target.value })}>
+                  <option value="FOUNDATION">FOUNDATION</option>
+                  <option value="ERECTION">ERECTION</option>
+                  <option value="STRINGING">STRINGING</option>
+                  <option value="RESTORATION">RESTORATION</option>
+                  <option value="RE-STRINGING">RE-STRINGING</option>
+                  <option value="OPGW">OPGW</option>
                 </select>
               </FormField>
               <FormField label="CLIENT">
