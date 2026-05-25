@@ -47,19 +47,22 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   const { profile } = useAuth();
   const [rows, setRows] = useState([]);
   const [workers, setWorkers] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const [rSnap, wSnap] = await Promise.all([
+    const [rSnap, wSnap, vSnap] = await Promise.all([
       getDocs(query(collection(db, 'worker_requests'), orderBy('SLNO', 'asc'))),
       getDocs(collection(db, 'workers')),
+      getDocs(collection(db, 'vendors')),
     ]);
     const all = rSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
     setRows(all.filter((r) => r.REQUESTED_BY === profile?.uid || r.PROJECT === projectName));
     setWorkers(wSnap.docs.map((d) => d.data()));
+    setVendors(vSnap.docs.map((d) => ({ id: d.id, vendorName: d.data().vendorName || '' })));
     setLoading(false);
   }, [profile, projectName]);
 
@@ -156,7 +159,14 @@ const AccountantWorkerRegistration = ({ projectName }) => {
               <X size={20} style={{ cursor: 'pointer' }} onClick={() => setShowModal(false)} />
             </div>
             <form onSubmit={handleSubmit} style={s.form}>
-              <input required placeholder="REFERENCE *" style={s.formInput} value={form.REFFERENCE} onChange={(e) => setForm({ ...form, REFFERENCE: e.target.value })} />
+              <select required style={s.formInput} value={form.REFFERENCE} onChange={(e) => setForm({ ...form, REFFERENCE: e.target.value })}>
+                <option value="">SELECT VENDOR (REFERENCE) *</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.vendorName}>
+                    {v.vendorName}
+                  </option>
+                ))}
+              </select>
               <input required placeholder="AADHAAR NO (12 digit) *" style={s.formInput} value={form.AADHAR_NO} onChange={(e) => setForm({ ...form, AADHAR_NO: e.target.value })} />
               <input required placeholder="NAME *" style={s.formInput} value={form.WORKER_NAME} onChange={(e) => setForm({ ...form, WORKER_NAME: e.target.value.toUpperCase() })} />
               <input required placeholder="FATHER NAME *" style={s.formInput} value={form.FATHER_NAME} onChange={(e) => setForm({ ...form, FATHER_NAME: e.target.value.toUpperCase() })} />

@@ -26,15 +26,21 @@ const WORK_TYPES = ['EXCAVATION', 'CONCRETING', 'REINFORCEMENT', 'FORMWORK', 'BR
 const ActivityForm = ({ project, onClose, onSaved }) => {
   const { profile } = useAuth();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [gangLeaders, setGangLeaders] = useState([]);
+  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [closeDate, setCloseDate] = useState('');
+  const [mistriList, setMistriList] = useState([]);
   const [manpowerList, setManpowerList] = useState([]);
-  const [gangLeader, setGangLeader] = useState('');
+  const [mistri, setMistri] = useState('');
   const [workType, setWorkType] = useState('');
+  const [pkg, setPkg] = useState('');
+  const [locNo, setLocNo] = useState('');
+  const [towerType, setTowerType] = useState('');
   const [details, setDetails] = useState('');
+  const [qty, setQty] = useState('');
   const [selectedManpower, setSelectedManpower] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  // Load gang leaders (from office attendance) and manpower (from client+office attendance) for selected date
+  // Load mistri (from office attendance) and manpower (from client+office attendance) for selected date
   useEffect(() => {
     if (!date || !project) return;
     (async () => {
@@ -68,9 +74,9 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
         if (data.batchId === batchId) clientMap[data.EMPID] = data.days?.[String(day)] === 'P';
       });
 
-      // Gang leaders = workers present in office
-      const gl = workers.filter((w) => officeMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME }));
-      setGangLeaders(gl);
+      // Mistri = workers present in office
+      const ml = workers.filter((w) => officeMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME }));
+      setMistriList(ml);
 
       // Manpower = workers present in either office or client
       const mp = workers.filter((w) => officeMap[w.EMPID] || clientMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME }));
@@ -80,8 +86,8 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!gangLeader || !workType) {
-      alert('Please select Gang Leader and Work Type.');
+    if (!mistri || !workType) {
+      alert('Please select Mistri and Work Type.');
       return;
     }
     setSaving(true);
@@ -89,10 +95,17 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
       await addDoc(collection(db, 'accountant_activities'), {
         PROJECT_NAME: project.PROJECT_NAME,
         LINE_NAME: project.LINE_NAME || '',
+        PKG: pkg || project.PO_NUMBER || '',
+        START_DATE: startDate,
+        CLOSE_DATE: closeDate,
         DISTRICT: project.DISTRICT || '',
+        LOC_NO: locNo,
+        TOWER_TYPE: towerType,
         WORKING_DATE: date,
-        GANG_LEADER: gangLeader,
+        MISTRI: mistri,
         WORKING_TYPE: workType,
+        WORK_DETAILS: details,
+        QTY: Number(qty) || 0,
         MANPOWER: selectedManpower,
         DETAILS: details,
         CREATED_BY: profile?.uid || '',
@@ -126,27 +139,53 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORKING DATE *</label>
-              <input type="date" required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={date} onChange={(e) => { setDate(e.target.value); setGangLeader(''); setSelectedManpower([]); }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>GANG LEADER *</label>
-              <select required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={gangLeader} onChange={(e) => setGangLeader(e.target.value)}>
-                <option value="">-- SELECT --</option>
-                {gangLeaders.map((gl) => <option key={gl.EMPID} value={gl.NAME}>{gl.NAME}</option>)}
-              </select>
+              <input type="date" required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={date} onChange={(e) => { setDate(e.target.value); setMistri(''); setSelectedManpower([]); }} />
             </div>
             <div>
               <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>LINE NAME</label>
               <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#888', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', fontStyle: 'italic' }} value={project?.LINE_NAME || ''} readOnly />
             </div>
             <div>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>PKG</label>
+              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Package number" value={pkg} onChange={(e) => setPkg(e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>START DATE</label>
+              <input type="date" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>CLOSE DATE</label>
+              <input type="date" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
+            </div>
+            <div>
               <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>DISTRICT</label>
               <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#888', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', fontStyle: 'italic' }} value={project?.DISTRICT || ''} readOnly />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORKING TYPE *</label>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>LOC NO</label>
+              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Location number" value={locNo} onChange={(e) => setLocNo(e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>TOWER TYPE</label>
+              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Tower type" value={towerType} onChange={(e) => setTowerType(e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORK TYPE *</label>
               <input type="text" required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Enter work type" value={workType} onChange={(e) => setWorkType(e.target.value.toUpperCase())} />
             </div>
+            <div>
+              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>QTY</label>
+              <input type="number" step="0.01" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="0.00" value={qty} onChange={(e) => setQty(e.target.value)} />
+            </div>
+          </div>
+
+          {/* MISTRI SELECT */}
+          <div>
+            <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>MISTRI (from attendance) *</label>
+            <select required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={mistri} onChange={(e) => setMistri(e.target.value)}>
+              <option value="">-- SELECT --</option>
+              {mistriList.map((m) => <option key={m.EMPID} value={m.NAME}>{m.NAME}</option>)}
+            </select>
           </div>
 
           {/* MANPOWER MULTI-SELECT */}
@@ -166,8 +205,8 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
           </div>
 
           <div>
-            <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>DETAILS</label>
-            <textarea style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }} placeholder="Enter activity details..." value={details} onChange={(e) => setDetails(e.target.value)} />
+            <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORK DETAILS</label>
+            <textarea style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }} placeholder="Enter work details..." value={details} onChange={(e) => setDetails(e.target.value)} />
           </div>
 
           <button type="submit" disabled={saving} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: 15, borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
@@ -204,13 +243,20 @@ const ActivityTab = ({ project, profile }) => {
 
   const columnDefs = useMemo(() => [
     { headerName: "SL", width: 60, pinned: 'left', valueGetter: (p) => (p.node ? p.node.rowIndex + 1 : '') },
-    { field: "WORKING_DATE", headerName: "DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "GANG_LEADER", headerName: "GANG LEADER", width: 150 },
     { field: "LINE_NAME", headerName: "LINE NAME", width: 130 },
+    { field: "PKG", headerName: "PKG", width: 110 },
+    { field: "START_DATE", headerName: "START DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
+    { field: "CLOSE_DATE", headerName: "CLOSE DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
     { field: "DISTRICT", headerName: "DISTRICT", width: 120 },
+    { field: "LOC_NO", headerName: "LOC NO", width: 110 },
+    { field: "TOWER_TYPE", headerName: "TOWER TYPE", width: 110 },
+    { field: "WORKING_DATE", headerName: "DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
+    { field: "MISTRI", headerName: "MISTRI", width: 150 },
     { field: "WORKING_TYPE", headerName: "WORK TYPE", width: 110 },
+    { field: "WORK_DETAILS", headerName: "WORK DETAILS", width: 250, wrapText: true, autoHeight: true },
+    { field: "QTY", headerName: "QTY", width: 80 },
     { field: "MANPOWER", headerName: "MANPOWER", width: 200, cellRenderer: (p) => Array.isArray(p.value) ? p.value.join(', ') : p.value || '' },
-    { field: "DETAILS", headerName: "DETAILS", width: 250, wrapText: true, autoHeight: true },
+    { field: "DETAILS", headerName: "DETAILS", width: 200, wrapText: true, autoHeight: true },
     { field: "CREATED_BY_NAME", headerName: "SENT BY", width: 130 },
   ], []);
 

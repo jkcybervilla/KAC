@@ -212,32 +212,12 @@ const DetailModal = ({ data, onClose }) => {
           <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={onClose} />
         </div>
 
-        {/* Photo section */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' }}>
-          {data.PHOTO && (
-            <div>
-              <p style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>PHOTO</p>
-              <img src={data.PHOTO} alt="worker" style={{ width: 80, height: 80, borderRadius: 8, objectFit: 'cover' }} />
-            </div>
-          )}
-          {data.AADHAR_PHOTO && (
-            <div>
-              <p style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>AADHAAR PHOTO</p>
-              <img src={data.AADHAR_PHOTO} alt="aadhaar" style={{ width: 120, height: 80, borderRadius: 4, objectFit: 'cover' }} />
-            </div>
-          )}
-          {data.PAN_PHOTO && (
-            <div>
-              <p style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>PAN PHOTO</p>
-              <img src={data.PAN_PHOTO} alt="pan" style={{ width: 120, height: 80, borderRadius: 4, objectFit: 'cover' }} />
-            </div>
-          )}
-          {data.BANK_PHOTO && (
-            <div>
-              <p style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>BANK PHOTO</p>
-              <img src={data.BANK_PHOTO} alt="bank" style={{ width: 120, height: 80, borderRadius: 4, objectFit: 'cover' }} />
-            </div>
-          )}
+        {/* Photo section — clickable, viewable, downloadable */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <PhotoCellRenderer src={data.PHOTO} alt="Worker Photo" size={80} rounded label="PHOTO" />
+          <PhotoCellRenderer src={data.AADHAR_PHOTO} alt="Aadhaar Photo" size={80} rounded={false} label="AADHAAR PHOTO" />
+          <PhotoCellRenderer src={data.PAN_PHOTO} alt="PAN Photo" size={80} rounded={false} label="PAN PHOTO" />
+          <PhotoCellRenderer src={data.BANK_PHOTO} alt="Bank Photo" size={80} rounded={false} label="BANK PHOTO" />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -521,6 +501,14 @@ const RequestWorker = () => {
           // Pending → show action buttons
           return (
             <div style={{ display: 'flex', gap: 4, alignItems: 'center', height: '100%' }}>
+              <button
+                type="button"
+                title="View Details"
+                style={{ ...actionIconBtn, color: '#3b82f6' }}
+                onClick={() => setDetailData(data)}
+              >
+                <Eye size={14} />
+              </button>
               <button
                 type="button"
                 title="Edit Details"

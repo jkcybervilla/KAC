@@ -22,6 +22,7 @@ import ThemeToggle from '../../components/ThemeToggle';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
 import AccountantWorkActivity from './AccountantWorkActivity';
+import DprView from '../project/DprView';
 import AdminChat from '../../components/AdminChat';
 
 const MENU = [
@@ -146,8 +147,7 @@ const AccountantDashboard = () => {
       case 'office':
         return <AccountantDailyAttendance type="office" projectName={pname} />;
       case 'dpr':
-        navigate('/dpr-view');
-        return null;
+        return <DprView />;
       case 'activity':
         return <AccountantWorkActivity projectName={pname} />;
       case 'expense':
