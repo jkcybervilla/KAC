@@ -4,6 +4,7 @@ import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
 import { Search, Settings2, X, Edit3, Trash2, Eye, Download, ImageIcon } from 'lucide-react';
+import { createNotification } from '../../utils/notifications';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId } from '../../utils/attendance';
@@ -290,6 +291,19 @@ const WorkerPropertiesModal = ({ worker, onClose, onSave, onDelete, projects }) 
     setSaving(true);
     try {
       await updateDoc(doc(db, 'workers', worker.id), data);
+      
+      // If status changed to INACTIVE, send notification
+      if (data.STATUS === 'INACTIVE' && worker.STATUS !== 'INACTIVE') {
+        await createNotification({
+          type: 'WORKER_CLOSED',
+          message: `Worker "${data.WORKER_NAME}" (${data.EMPID}) has been closed/deactivated.`,
+          workerName: data.WORKER_NAME,
+          empId: data.EMPID || '',
+          project: data.PROJECT || '',
+          performedBy: 'ADMIN',
+        });
+      }
+      
       onSave();
     } catch (err) {
       alert('Update error: ' + err.message);

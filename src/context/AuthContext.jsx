@@ -43,8 +43,11 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = profile?.role === 'admin';
   const isAccountant = profile?.role === 'accountant';
   const isCoordinator = profile?.role === 'coordinator';
-  const canEdit = isAdmin;
-  const canDelete = isAdmin;
+  const isHrAssistant = profile?.role === 'hr_assistant';
+  const isSuperAdmin = profile?.role === 'super_admin';
+  const isExecutiveAssistant = profile?.role === 'executive_assistant';
+  const canEdit = isAdmin || isSuperAdmin;
+  const canDelete = isAdmin || isSuperAdmin;
 
   return (
     <AuthContext.Provider
@@ -55,6 +58,9 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         isAccountant,
         isCoordinator,
+        isHrAssistant,
+        isSuperAdmin,
+        isExecutiveAssistant,
         canEdit,
         canDelete,
       }}

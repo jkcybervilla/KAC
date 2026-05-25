@@ -3,8 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, collection, getDocs, updateDoc, deleteDoc, deleteField } from 'firebase/firestore';
-import { ArrowLeft, Plus, Trash2, Edit3, Save, X, Search, UserCheck, UserX } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Edit3, Save, X, Search, UserCheck, UserX, Eye, EyeOff, Key, Shield } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
+
+const ALL_ROLES = [
+  { value: 'coordinator', label: 'Coordinator', color: '#f59e0b' },
+  { value: 'accountant', label: 'Accountant', color: '#0055ff' },
+  { value: 'hr_assistant', label: 'HR Assistant', color: '#8b5cf6' },
+  { value: 'super_admin', label: 'Super Admin', color: '#ef4444' },
+  { value: 'executive_assistant', label: 'Executive Assistant', color: '#06b6d4' },
+];
 
 const StaffManagement = () => {
   const navigate = useNavigate();
@@ -19,6 +27,10 @@ const StaffManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [visiblePasswords, setVisiblePasswords] = useState({});
+  const [editingPassword, setEditingPassword] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const load = async () => {
     const [pSnap, uSnap] = await Promise.all([
@@ -44,7 +56,7 @@ const StaffManagement = () => {
       const staffName = formData.name.toUpperCase();
 
       await setDoc(doc(db, 'users', uid), {
-        uid, name: staffName, email: formData.email, role: formData.role,
+        uid, name: staffName, email: formData.email, password: formData.password, role: formData.role,
         assignedProjectIds: selectedProjectIds, canEdit: false, canDelete: false, createdAt: new Date(),
       });
 
@@ -81,7 +93,6 @@ const StaffManagement = () => {
 
   const handleDeleteUser = async (userId, userName, role) => {
     try {
-      // Remove assignments from projects
       for (const p of projects) {
         const field = role === 'accountant' ? 'ACCOUNTANT' : 'CO_ORDINATOR';
         if ((role === 'accountant' && p.ACCOUNTANT === userName) || (role === 'coordinator' && p.CO_ORDINATOR === userName)) {
@@ -93,6 +104,28 @@ const StaffManagement = () => {
       load();
     } catch (error) {
       alert('Delete failed: ' + error.message);
+    }
+  };
+
+  const handleChangePassword = async (user) => {
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters.');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const userId = user.uid || user.id;
+      await updateDoc(doc(db, 'users', userId), { password: newPassword });
+
+      alert('Password updated successfully.');
+      
+      setEditingPassword(null);
+      setNewPassword('');
+      load();
+    } catch (error) {
+      alert('Failed to update password: ' + error.message);
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -108,6 +141,29 @@ const StaffManagement = () => {
 
   const toggleEditProject = (id) => {
     setEditProjectIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const togglePasswordVisibility = (userId) => {
+    setVisiblePasswords((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }));
+  };
+
+  const startPasswordEdit = (user) => {
+    setEditingPassword(user.uid || user.id);
+    setNewPassword('');
+  };
+
+  const cancelPasswordEdit = () => {
+    setEditingPassword(null);
+    setNewPassword('');
+  };
+
+  const getRoleStyle = (role) => {
+    const r = ALL_ROLES.find((r) => r.value === role);
+    if (!r) return { color: '#666', bg: '#66666620' };
+    return { color: r.color, bg: `${r.color}20` };
   };
 
   // Filter logic
@@ -153,6 +209,13 @@ const StaffManagement = () => {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
         .delete-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .delete-modal { background: var(--surface); padding: 28px; border-radius: 15px; border: 1px solid var(--border-strong); max-width: 400px; width: 90%; text-align: center; }
+        .password-toggle-btn { background: none; border: none; cursor: pointer; padding: 2px; display: inline-flex; align-items: center; color: var(--muted-2); transition: color 0.15s; }
+        .password-toggle-btn:hover { color: var(--text); }
+        .password-cell { display: inline-flex; align-items: center; gap: 6px; font-family: 'Courier New', monospace; font-size: 12px; }
+        .password-edit-input { width: 120px; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface); color: var(--text); font-family: 'Courier New', monospace; font-size: 11px; outline: none; }
+        .password-edit-input:focus { border-color: #0055ff; box-shadow: 0 0 0 2px #0055ff20; }
+        .change-password-btn { background: none; border: 1px dashed var(--border-strong); cursor: pointer; padding: 2px 6px; border-radius: 4px; color: var(--muted-2); font-size: 10px; display: inline-flex; align-items: center; gap: 3px; transition: all 0.15s; }
+        .change-password-btn:hover { border-color: #0055ff; color: #0055ff; background: #0055ff10; }
         @media (max-width: 768px) { .user-table { font-size: 12px; } .user-table th, .user-table td { padding: 10px 12px; } }
       `}</style>
 
@@ -178,8 +241,9 @@ const StaffManagement = () => {
           </div>
           <select style={s.select} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
             <option value="all">All Roles</option>
-            <option value="coordinator">Coordinator</option>
-            <option value="accountant">Accountant</option>
+            {ALL_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
           </select>
           <button style={s.primaryBtn} onClick={() => setShowCreateForm(true)}>
             <Plus size={16} /> CREATE USER
@@ -199,6 +263,7 @@ const StaffManagement = () => {
             </div>
             <p style={{ fontSize: 12, color: 'var(--muted-2)', marginBottom: 16 }}>
               Coordinator: assigned projects — view only. Accountant: submit only (no edit/delete).
+              Super Admin: full access. HR Assistant: employee management. Executive Assistant: admin support.
             </p>
             <form onSubmit={handleCreate} style={s.form}>
               <div style={s.inputGrid}>
@@ -209,8 +274,9 @@ const StaffManagement = () => {
                 <div>
                   <label style={s.label}>ROLE</label>
                   <select style={s.formInput} value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })}>
-                    <option value="coordinator">Coordinator</option>
-                    <option value="accountant">Accountant</option>
+                    {ALL_ROLES.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -280,6 +346,7 @@ const StaffManagement = () => {
               <th style={{ width: '28px' }}>#</th>
               <th>NAME</th>
               <th>EMAIL</th>
+              <th>PASSWORD</th>
               <th>ROLE</th>
               <th>PROJECTS</th>
               <th>STATUS</th>
@@ -289,7 +356,7 @@ const StaffManagement = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--muted-2)' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--muted-2)' }}>
                   <UserX size={32} style={{ margin: '0 auto 8px', display: 'block' }} />
                   No users found
                 </td>
@@ -297,20 +364,81 @@ const StaffManagement = () => {
             ) : (
               filteredUsers.map((u, idx) => {
                 const status = getProjectStatus(u.uid || u.id, u.assignedProjectIds);
+                const userId = u.uid || u.id;
+                const isPasswordVisible = visiblePasswords[userId];
+                const isEditingPassword = editingPassword === userId;
+                const roleStyle = getRoleStyle(u.role);
                 return (
-                  <tr key={u.uid || u.id}>
+                  <tr key={userId}>
                     <td style={{ color: 'var(--muted-2)', fontSize: '12px' }}>{idx + 1}</td>
                     <td>
                       <strong style={{ fontSize: '13px' }}>{u.name}</strong>
                     </td>
                     <td style={{ fontSize: '12px', color: 'var(--muted-2)' }}>{u.email}</td>
                     <td>
+                      {isEditingPassword ? (
+                        <span className="password-cell" style={{ gap: '4px' }}>
+                          <input
+                            type="text"
+                            className="password-edit-input"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="New password"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleChangePassword(u)}
+                            style={{ ...s.primaryBtn, padding: '3px 8px', fontSize: '10px' }}
+                            disabled={savingPassword}
+                            title="Save password"
+                          >
+                            <Save size={12} /> {savingPassword ? '...' : ''}
+                          </button>
+                          <button
+                            onClick={cancelPasswordEdit}
+                            style={{ ...s.secondaryBtn, padding: '3px 8px', fontSize: '10px' }}
+                            title="Cancel"
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="password-cell">
+                          <span style={{
+                            color: isPasswordVisible ? 'var(--text)' : 'var(--muted-2)',
+                            filter: isPasswordVisible ? 'none' : 'blur(4px)',
+                            transition: 'all 0.2s',
+                            userSelect: isPasswordVisible ? 'text' : 'none',
+                          }}>
+                            {u.password ? u.password : '••••••'}
+                          </span>
+                          <button
+                            className="password-toggle-btn"
+                            onClick={() => togglePasswordVisibility(userId)}
+                            title={isPasswordVisible ? 'Hide password' : 'Show password'}
+                          >
+                            {isPasswordVisible ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                          <button
+                            className="change-password-btn"
+                            onClick={() => startPasswordEdit(u)}
+                            title="Change password"
+                          >
+                            <Key size={10} /> CHANGE
+                          </button>
+                        </span>
+                      )}
+                    </td>
+                    <td>
                       <span style={{
                         padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
-                        backgroundColor: u.role === 'coordinator' ? '#f59e0b20' : '#0055ff20',
-                        color: u.role === 'coordinator' ? '#f59e0b' : '#0055ff'
+                        backgroundColor: roleStyle.bg,
+                        color: roleStyle.color
                       }}>
-                        {u.role?.toUpperCase()}
+                        {u.role === 'hr_assistant' ? 'HR ASST' : 
+                         u.role === 'super_admin' ? 'SUPER ADMIN' : 
+                         u.role === 'executive_assistant' ? 'EXEC ASST' : 
+                         u.role?.toUpperCase()}
                       </span>
                     </td>
                     <td style={{ fontSize: '12px', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -395,9 +523,11 @@ const StaffManagement = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', fontSize: '12px', color: 'var(--muted-2)' }}>
         <span>Total: <strong style={{ color: 'var(--text)' }}>{filteredUsers.length}</strong> user{filteredUsers.length !== 1 ? 's' : ''}</span>
         <span>
-          <span style={{ color: '#f59e0b' }}>{users.filter(u => u.role === 'coordinator' && u.role !== 'admin').length} Coordinators</span>
-          <span style={{ margin: '0 8px' }}>|</span>
-          <span style={{ color: '#0055ff' }}>{users.filter(u => u.role === 'accountant' && u.role !== 'admin').length} Accountants</span>
+          {ALL_ROLES.map((r, i) => (
+            <span key={r.value}>
+              <span style={{ color: r.color }}>{users.filter(u => u.role === r.value && u.role !== 'admin').length} {r.label}{i < ALL_ROLES.length - 1 ? ' · ' : ''}</span>
+            </span>
+          ))}
         </span>
       </div>
     </div>

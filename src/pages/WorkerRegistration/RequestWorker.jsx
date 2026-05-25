@@ -5,6 +5,7 @@ import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
 import { UserPlus, Search, Settings2, X, Eye, CheckCircle, XCircle, Trash2, Upload, Edit2 } from 'lucide-react';
+import { createNotification } from '../../utils/notifications';
 import PhotoUpload from '../../components/PhotoUpload';
 import PhotoCellRenderer from '../../components/PhotoCellRenderer';
 import { pageStyles as s } from '../../styles/pageStyles';
@@ -356,9 +357,19 @@ const RequestWorker = () => {
     }
 
     await updateDoc(doc(db, 'worker_requests', row.id), { STATUS: 'APPROVED', EMPID: empid });
+    
+    await createNotification({
+      type: 'WORKER_ADDED',
+      message: `New worker "${row.WORKER_NAME}" has been approved and added to the register.`,
+      workerName: row.WORKER_NAME,
+      empId: empid,
+      project: row.PROJECT || '',
+      performedBy: profile?.name || profile?.email || 'ADMIN',
+    });
+    
     alert(`Approved — EMP ID: ${empid}`);
     load();
-  }, [workers]);
+  }, [workers, profile]);
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
@@ -391,6 +402,16 @@ const RequestWorker = () => {
 
   const rejectRequest = async (row) => {
     await updateDoc(doc(db, 'worker_requests', row.id), { STATUS: 'REJECTED' });
+    
+    await createNotification({
+      type: 'WORKER_REJECTED',
+      message: `Worker request for "${row.WORKER_NAME}" has been rejected.`,
+      workerName: row.WORKER_NAME,
+      empId: row.EMPID || '',
+      project: row.PROJECT || '',
+      performedBy: profile?.name || profile?.email || 'ADMIN',
+    });
+    
     setConfirmState(null);
     alert(`Request from ${row.WORKER_NAME} has been rejected.`);
     load();
@@ -443,6 +464,16 @@ const RequestWorker = () => {
         timestamp: new Date(),
       }),
     ]);
+    
+    await createNotification({
+      type: 'WORKER_ADDED',
+      message: `Worker "${form.WORKER_NAME}" has been added directly to the register.`,
+      workerName: form.WORKER_NAME,
+      empId: empid,
+      project: form.PROJECT || '',
+      performedBy: profile?.name || profile?.email || 'ADMIN',
+    });
+    
     alert(`Worker added directly — EMP ID: ${empid}`);
     setShowModal(false);
     setForm(EMPTY);
@@ -625,6 +656,103 @@ const RequestWorker = () => {
   }, [autoSizeAllColumns, columnDefs, filteredRows.length]);
 
   const statusTabs = ['PENDING', 'APPROVED', 'REJECTED'];
+
+  // Also add notifications for bulk upload at the end
+  const originalBulkUploadHandler = async () => {
+    if (!window.confirm(`Upload ${bulkPreview.length} workers directly to the register? They will appear in the APPROVED tab.`)) return;
+    setBulkUploading(true);
+    let success = 0, errors = 0;
+    let currentSlno = nextSerial(workers, 'SLNO');
+    const senderName = profile?.name || profile?.email || 'ADMIN';
+    for (const row of bulkPreview) {
+      try {
+        const aadhaar = String(row.AADHAR_NO || row.AADHAAR || row.AADHAAR_NO || row['AADHAAR NUMBER'] || row['AADHAAR_NO'] || '').trim();
+        const name = (row.NAME || row.WORKER_NAME || '').toString().toUpperCase().trim();
+        const fatherName = (row.FATHER_NAME || row['FATHER NAME'] || '').toString().toUpperCase().trim() || '';
+        const dob = row.DOB || '';
+        if (!aadhaar || !name) { errors++; continue; }
+        const slno = currentSlno++;
+        const empid = `KAC${String(slno).padStart(4, '0')}`;
+        await Promise.all([
+          addDoc(collection(db, 'workers'), {
+            SLNO: slno,
+            EMPID: empid,
+            REFFERENCE: row.REFFERENCE || '',
+            WORKER_NAME: name,
+            FATHER_NAME: fatherName,
+            DESIGNATION: 'LABOUR',
+            DOB: dob,
+            MOBILE_NO: String(row.MOBILE_NO || row.MOBILE || ''),
+            AADHAR_NO: aadhaar,
+            PHOTO: row.PHOTO || '',
+            AADHAR_PHOTO: row.AADHAR_PHOTO || '',
+            JOINING_DATE_CLIENT: row.JOINING_DATE_CLIENT || '',
+            JOINING_DATE_OFFICE: row.JOINING_DATE_OFFICE || '',
+            ADDRESS: (row.ADDRESS || '').toString().toUpperCase().trim() || '',
+            PAN_NO: (row.PAN_NO || '').toString().toUpperCase().trim() || '',
+            PAN_PHOTO: row.PAN_PHOTO || '',
+            BANK: (row.BANK || '').toString().toUpperCase().trim() || '',
+            ACCOUNT_NO: String(row.ACCOUNT_NO || ''),
+            IFSC: (row.IFSC || '').toString().toUpperCase().trim() || '',
+            BANK_PHOTO: row.BANK_PHOTO || '',
+            PROJECT: (row.PROJECT || '').toString().toUpperCase().trim() || '',
+            STATUS: 'ACTIVE',
+            timestamp: new Date(),
+          }),
+          addDoc(collection(db, 'worker_requests'), {
+            REFFERENCE: row.REFFERENCE || '',
+            WORKER_NAME: name,
+            FATHER_NAME: fatherName,
+            DESIGNATION: 'LABOUR',
+            DOB: dob,
+            MOBILE_NO: String(row.MOBILE_NO || row.MOBILE || ''),
+            AADHAR_NO: aadhaar,
+            PHOTO: row.PHOTO || '',
+            AADHAR_PHOTO: row.AADHAR_PHOTO || '',
+            JOINING_DATE_CLIENT: row.JOINING_DATE_CLIENT || '',
+            JOINING_DATE_OFFICE: row.JOINING_DATE_OFFICE || '',
+            ADDRESS: (row.ADDRESS || '').toString().toUpperCase().trim() || '',
+            PAN_NO: (row.PAN_NO || '').toString().toUpperCase().trim() || '',
+            PAN_PHOTO: row.PAN_PHOTO || '',
+            BANK: (row.BANK || '').toString().toUpperCase().trim() || '',
+            ACCOUNT_NO: String(row.ACCOUNT_NO || ''),
+            IFSC: (row.IFSC || '').toString().toUpperCase().trim() || '',
+            BANK_PHOTO: row.BANK_PHOTO || '',
+            PROJECT: (row.PROJECT || '').toString().toUpperCase().trim() || '',
+            SLNO: slno,
+            EMPID: empid,
+            SENDER_NAME: senderName,
+            STATUS: 'APPROVED',
+            SOURCE: 'ADMIN',
+            timestamp: new Date(),
+          }),
+        ]);
+        success++;
+      } catch (e) {
+        console.error(e);
+        errors++;
+      }
+    }
+    
+    // Notification for bulk upload
+    if (success > 0) {
+      await createNotification({
+        type: 'WORKER_ADDED',
+        message: `Bulk upload: ${success} workers added to the register.`,
+        workerName: `${success} workers`,
+        empId: '',
+        project: '',
+        performedBy: profile?.name || profile?.email || 'ADMIN',
+      });
+    }
+    
+    setBulkUploading(false);
+    alert(`Bulk upload complete!\n✅ ${success} workers added\n❌ ${errors} errors`);
+    setShowBulkModal(false);
+    setBulkPreview([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    load();
+  };
 
   if (loading) return <div style={{ color: '#666', padding: 20 }}>Loading requests...</div>;
 
@@ -917,88 +1045,7 @@ const RequestWorker = () => {
                 <button
                   type="button"
                   disabled={bulkUploading}
-                  onClick={async () => {
-                    if (!window.confirm(`Upload ${bulkPreview.length} workers directly to the register? They will appear in the APPROVED tab.`)) return;
-                    setBulkUploading(true);
-                    let success = 0, errors = 0;
-                    let currentSlno = nextSerial(workers, 'SLNO');
-                    const senderName = profile?.name || profile?.email || 'ADMIN';
-                    for (const row of bulkPreview) {
-                      try {
-                        const aadhaar = String(row.AADHAR_NO || row.AADHAAR || row.AADHAAR_NO || row['AADHAAR NUMBER'] || row['AADHAAR_NO'] || '').trim();
-                        const name = (row.NAME || row.WORKER_NAME || '').toString().toUpperCase().trim();
-                        const fatherName = (row.FATHER_NAME || row['FATHER NAME'] || '').toString().toUpperCase().trim() || '';
-                        const dob = row.DOB || '';
-                        if (!aadhaar || !name) { errors++; continue; }
-                        const slno = currentSlno++;
-                        const empid = `KAC${String(slno).padStart(4, '0')}`;
-                        await Promise.all([
-                          addDoc(collection(db, 'workers'), {
-                            SLNO: slno,
-                            EMPID: empid,
-                            REFFERENCE: row.REFFERENCE || '',
-                            WORKER_NAME: name,
-                            FATHER_NAME: fatherName,
-                            DESIGNATION: 'LABOUR',
-                            DOB: dob,
-                            MOBILE_NO: String(row.MOBILE_NO || row.MOBILE || ''),
-                            AADHAR_NO: aadhaar,
-                            PHOTO: row.PHOTO || '',
-                            AADHAR_PHOTO: row.AADHAR_PHOTO || '',
-                            JOINING_DATE_CLIENT: row.JOINING_DATE_CLIENT || '',
-                            JOINING_DATE_OFFICE: row.JOINING_DATE_OFFICE || '',
-                            ADDRESS: (row.ADDRESS || '').toString().toUpperCase().trim() || '',
-                            PAN_NO: (row.PAN_NO || '').toString().toUpperCase().trim() || '',
-                            PAN_PHOTO: row.PAN_PHOTO || '',
-                            BANK: (row.BANK || '').toString().toUpperCase().trim() || '',
-                            ACCOUNT_NO: String(row.ACCOUNT_NO || ''),
-                            IFSC: (row.IFSC || '').toString().toUpperCase().trim() || '',
-                            BANK_PHOTO: row.BANK_PHOTO || '',
-                            PROJECT: (row.PROJECT || '').toString().toUpperCase().trim() || '',
-                            STATUS: 'ACTIVE',
-                            timestamp: new Date(),
-                          }),
-                          addDoc(collection(db, 'worker_requests'), {
-                            REFFERENCE: row.REFFERENCE || '',
-                            WORKER_NAME: name,
-                            FATHER_NAME: fatherName,
-                            DESIGNATION: 'LABOUR',
-                            DOB: dob,
-                            MOBILE_NO: String(row.MOBILE_NO || row.MOBILE || ''),
-                            AADHAR_NO: aadhaar,
-                            PHOTO: row.PHOTO || '',
-                            AADHAR_PHOTO: row.AADHAR_PHOTO || '',
-                            JOINING_DATE_CLIENT: row.JOINING_DATE_CLIENT || '',
-                            JOINING_DATE_OFFICE: row.JOINING_DATE_OFFICE || '',
-                            ADDRESS: (row.ADDRESS || '').toString().toUpperCase().trim() || '',
-                            PAN_NO: (row.PAN_NO || '').toString().toUpperCase().trim() || '',
-                            PAN_PHOTO: row.PAN_PHOTO || '',
-                            BANK: (row.BANK || '').toString().toUpperCase().trim() || '',
-                            ACCOUNT_NO: String(row.ACCOUNT_NO || ''),
-                            IFSC: (row.IFSC || '').toString().toUpperCase().trim() || '',
-                            BANK_PHOTO: row.BANK_PHOTO || '',
-                            PROJECT: (row.PROJECT || '').toString().toUpperCase().trim() || '',
-                            SLNO: slno,
-                            EMPID: empid,
-                            SENDER_NAME: senderName,
-                            STATUS: 'APPROVED',
-                            SOURCE: 'ADMIN',
-                            timestamp: new Date(),
-                          }),
-                        ]);
-                        success++;
-                      } catch (e) {
-                        console.error(e);
-                        errors++;
-                      }
-                    }
-                    setBulkUploading(false);
-                    alert(`Bulk upload complete!\n✅ ${success} workers added\n❌ ${errors} errors`);
-                    setShowBulkModal(false);
-                    setBulkPreview([]);
-                    if (fileInputRef.current) fileInputRef.current.value = '';
-                    load();
-                  }}
+                  onClick={originalBulkUploadHandler}
                   style={{
                     width: '100%',
                     backgroundColor: '#0055ff',

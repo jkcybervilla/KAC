@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../config/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, updateDoc, doc } from 'firebase/firestore';
 import {
   LayoutDashboard, Folder, Users, ClipboardCheck,
   UserPlus, Wallet, Package, ReceiptText,
   MessageSquare, Bell, LogOut, ChevronLeft, ChevronRight,
   Building2, Clock, UserCheck, CreditCard, FileText, UserMinus, Edit3, Activity,
-  UserX, ClipboardList, AlertTriangle
+  UserX, ClipboardList, AlertTriangle, Settings, Globe, Shield, Database, Sliders
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -21,6 +21,11 @@ const AdminDashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [selectedAdminMenu, setSelectedAdminMenu] = useState('overview');
+
+  // Notifications
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef(null);
 
   // Stats from Firestore
   const [stats, setStats] = useState({
@@ -38,6 +43,64 @@ const AdminDashboard = () => {
   const currentYear = now.getFullYear();
   const currentDay = now.getDate();
   const currentBatchId = `batch_${currentMonth}_${currentYear}`;
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const nSnap = await getDocs(query(collection(db, 'notifications'), orderBy('createdAt', 'desc')));
+        const notifs = nSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setNotifications(notifs);
+      } catch (err) {
+        console.error('Notifications fetch error:', err);
+      }
+    };
+    fetchNotifications();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Close notification panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAsRead = async (notifId) => {
+    try {
+      await updateDoc(doc(db, 'notifications', notifId), { read: true });
+      setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
+    } catch (err) {
+      console.error('Mark as read error:', err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const unread = notifications.filter(n => !n.read);
+    try {
+      await Promise.all(unread.map(n => updateDoc(doc(db, 'notifications', n.id), { read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Mark all as read error:', err);
+    }
+  };
+
+  const getNotifIcon = (type) => {
+    switch (type) {
+      case 'WORKER_ADDED': return '✅';
+      case 'WORKER_CLOSED': return '🔒';
+      case 'WORKER_REJECTED': return '❌';
+      default: return '📌';
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -134,12 +197,15 @@ const menuItems = [
   { name: 'Expense', icon: <ReceiptText size={20}/> },
   { name: 'Activity Log', icon: <Activity size={20}/>, path: '/activity-log' },
   { name: 'Live Chat', icon: <MessageSquare size={20}/> },
+  { name: 'Settings', icon: <Settings size={20}/> },
 ];
 
   const handleMenuClick = (item) => {
     setActiveMenu(item.name);
     if (item.name === 'Live Chat') {
       setSelectedAdminMenu('chat');
+    } else if (item.name === 'Settings') {
+      setSelectedAdminMenu('settings');
     } else if (item.path) {
       navigate(item.path);
     }
@@ -204,10 +270,51 @@ const menuItems = [
             <h2 style={styles.logo}>KAC <span style={{ color: '#0055ff' }}>CORE</span></h2>
           </div>
           <div style={styles.topIcons}>
+          <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setShowNotifications(!showNotifications)} ref={notifRef}>
             <div style={styles.notifIcon}>
               <Bell size={20} />
-              <span style={styles.badge}>3</span>
+              {unreadCount > 0 && <span style={styles.badge}>{unreadCount}</span>}
             </div>
+            {showNotifications && (
+              <div style={styles.notifPanel}>
+                <div style={styles.notifPanelHeader}>
+                  <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Notifications</h4>
+                  {unreadCount > 0 && (
+                    <button onClick={markAllAsRead} style={styles.markAllReadBtn}>
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div style={styles.notifPanelList}>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: '30px 20px', textAlign: 'center', color: '#666', fontSize: 13 }}>
+                      No notifications yet
+                    </div>
+                  ) : (
+                    notifications.slice(0, 50).map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => markAsRead(n.id)}
+                        style={{
+                          ...styles.notifItem,
+                          backgroundColor: n.read ? 'transparent' : 'rgba(0,85,255,0.05)',
+                          borderLeft: n.read ? '3px solid transparent' : '3px solid #0055ff',
+                        }}
+                      >
+                        <div style={styles.notifItemIcon}>{getNotifIcon(n.type)}</div>
+                        <div style={styles.notifItemContent}>
+                          <p style={styles.notifItemMsg}>{n.message}</p>
+                          <p style={styles.notifItemMeta}>
+                            {n.performedBy} · {n.createdAt ? new Date(n.createdAt).toLocaleString('en-IN') : ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
             <div style={styles.profile}>
               <div style={styles.avatar}>A</div>
               <span>ADMIN</span>
@@ -229,6 +336,8 @@ const menuItems = [
               </div>
               <AdminChat user={profile} />
             </div>
+          ) : selectedAdminMenu === 'settings' ? (
+            <AdminSettingsView />
           ) : (
           <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -340,6 +449,461 @@ const menuItems = [
   );
 };
 
+// ---------- Admin Settings View ----------
+const AdminSettingsView = () => {
+  const [activeSection, setActiveSection] = useState('general');
+
+  const sections = [
+    { id: 'general', label: 'General', icon: <Sliders size={18} /> },
+    { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} /> },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
+    { id: 'projects', label: 'Projects', icon: <Folder size={18} /> },
+    { id: 'users', label: 'Users & Roles', icon: <Users size={18} /> },
+    { id: 'security', label: 'Security', icon: <Shield size={18} /> },
+    { id: 'data', label: 'Data & Backup', icon: <Database size={18} /> },
+    { id: 'regional', label: 'Regional Config', icon: <Globe size={18} /> },
+  ];
+
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'general':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Sliders size={22} color="#0055ff" /> General Settings
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Application Name</p>
+                  <p style={sett.desc}>KAC CORE — Construction Management System</p>
+                </div>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Timezone</p>
+                  <p style={sett.desc}>Asia/Calcutta (UTC +5:30)</p>
+                </div>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Date Format</p>
+                  <p style={sett.desc}>DD/MM/YYYY (Indian Standard)</p>
+                </div>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Currency</p>
+                  <p style={sett.desc}>Indian Rupee (₹)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'chat':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <MessageSquare size={22} color="#0055ff" /> Chat Settings
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Enable Live Chat</p>
+                  <p style={sett.desc}>Allow accountants and coordinators to send messages to admin</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Auto-Reply to Common Queries</p>
+                  <p style={sett.desc}>Send automated responses for frequently asked questions</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Chat History Retention (Days)</p>
+                  <p style={sett.desc}>How long to keep chat messages before auto-deletion</p>
+                </div>
+                <select style={sett.select}>
+                  <option>30 days</option>
+                  <option>60 days</option>
+                  <option selected>90 days</option>
+                  <option>180 days</option>
+                  <option>Forever</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        );
+      case 'notifications':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Bell size={22} color="#0055ff" /> Notification Preferences
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Worker Registration</p>
+                  <p style={sett.desc}>Get notified when a new worker is added or approved</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Worker Status Changes</p>
+                  <p style={sett.desc}>Get notified when a worker is closed or deactivated</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Attendance Alerts</p>
+                  <p style={sett.desc}>Get notified when attendance is pending for the day</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Work Activity Alerts</p>
+                  <p style={sett.desc}>Get notified when work activity reports are overdue</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Email Notifications</p>
+                  <p style={sett.desc}>Receive notification summaries via email</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+      case 'projects':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Folder size={22} color="#0055ff" /> Project Settings
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Default Project Status</p>
+                  <p style={sett.desc}>Status assigned to newly created projects</p>
+                </div>
+                <select style={sett.select}>
+                  <option>ACTIVE</option>
+                  <option>INACTIVE</option>
+                  <option>COMPLETED</option>
+                  <option>ON HOLD</option>
+                </select>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Allow Accountants to Create Projects</p>
+                  <p style={sett.desc}>Grant project creation permission to accountant-level users</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Auto-Archive Completed Projects</p>
+                  <p style={sett.desc}>Automatically archive projects marked as COMPLETED after 30 days</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+      case 'users':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Users size={22} color="#0055ff" /> Users & Roles
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>User Registration</p>
+                  <p style={sett.desc}>Allow new user registrations (requires admin approval)</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Default User Role</p>
+                  <p style={sett.desc}>Role assigned to newly registered users</p>
+                </div>
+                <select style={sett.select}>
+                  <option>Accountant</option>
+                  <option>Coordinator</option>
+                  <option selected>Viewer</option>
+                </select>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Session Timeout (Minutes)</p>
+                  <p style={sett.desc}>Auto-logout after period of inactivity</p>
+                </div>
+                <select style={sett.select}>
+                  <option>15 min</option>
+                  <option selected>30 min</option>
+                  <option>60 min</option>
+                  <option>120 min</option>
+                  <option>Never</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Role Access Control */}
+            <h4 style={{ margin: '24px 0 16px', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, color: '#0055ff' }}>
+              <Shield size={18} /> ROLE ACCESS CONTROL
+            </h4>
+            <div style={sett.card}>
+              {[
+                { role: 'Coordinator', pages: 'Dashboard, Projects (view only), DPR View' },
+                { role: 'Accountant', pages: 'Dashboard, Projects, DPR View, JMC View, Work Activity' },
+                { role: 'HR Assistant', pages: 'Dashboard, Worker Registration, Attendance (view)' },
+                { role: 'Super Admin', pages: 'Full access to all modules including User Manager, Activity Log' },
+                { role: 'Executive Assistant', pages: 'Dashboard, Calendar, Tasks, Communications' },
+              ].map((item, i) => (
+                <div key={i} style={sett.row}>
+                  <div>
+                    <p style={sett.label}>{item.role}</p>
+                    <p style={sett.desc}>{item.pages}</p>
+                  </div>
+                  <a href="/user-manager" style={{ ...sett.exportBtn, textDecoration: 'none', fontSize: 10 }}>
+                    MANAGE USERS
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      case 'security':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Shield size={22} color="#0055ff" /> Security Settings
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Two-Factor Authentication (2FA)</p>
+                  <p style={sett.desc}>Require OTP verification for admin login</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Login Alerts</p>
+                  <p style={sett.desc}>Get notified via email for new admin logins</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>IP Whitelisting</p>
+                  <p style={sett.desc}>Restrict access to specific IP addresses</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        );
+      case 'data':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Database size={22} color="#0055ff" /> Data & Backup
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Auto-Backup</p>
+                  <p style={sett.desc}>Automatically backup data to cloud storage</p>
+                </div>
+                <label style={sett.toggle}>
+                  <input type="checkbox" defaultChecked style={sett.checkbox} />
+                  <span style={sett.slider}></span>
+                </label>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Backup Frequency</p>
+                  <p style={sett.desc}>How often to create automatic backups</p>
+                </div>
+                <select style={sett.select}>
+                  <option>Daily</option>
+                  <option selected>Weekly</option>
+                  <option>Monthly</option>
+                </select>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Data Export</p>
+                  <p style={sett.desc}>Export all system data (attendance, workers, activities)</p>
+                </div>
+                <button style={sett.exportBtn}>EXPORT DATA</button>
+              </div>
+            </div>
+          </div>
+        );
+      case 'regional':
+        return (
+          <div>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 18, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Globe size={22} color="#0055ff" /> Regional Configuration
+            </h3>
+            <div style={sett.card}>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Language</p>
+                  <p style={sett.desc}>Application interface language</p>
+                </div>
+                <select style={sett.select}>
+                  <option>English</option>
+                  <option>Hindi</option>
+                </select>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Regional Zones</p>
+                  <p style={sett.desc}>Manage construction zones/regions (NR1, NER, WR1, WR2, SR1)</p>
+                </div>
+                <button style={sett.exportBtn}>MANAGE ZONES</button>
+              </div>
+              <div style={sett.row}>
+                <div>
+                  <p style={sett.label}>Holiday Calendar</p>
+                  <p style={sett.desc}>Configure public holidays for attendance calculations</p>
+                </div>
+                <button style={sett.exportBtn}>MANAGE HOLIDAYS</button>
+              </div>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={sett.container}>
+      <h2 style={{ margin: '0 0 24px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Settings size={24} color="#0055ff" /> Settings
+      </h2>
+      <p style={{ margin: '-12px 0 24px 0', fontSize: 13, color: 'var(--muted-2)' }}>
+        Configure system preferences, notifications, users, and more
+      </p>
+      <div style={sett.layout}>
+        <div style={sett.sidebar}>
+          {sections.map((sec) => (
+            <button
+              key={sec.id}
+              onClick={() => setActiveSection(sec.id)}
+              style={{
+                ...sett.sidebarItem,
+                backgroundColor: activeSection === sec.id ? 'rgba(0,85,255,0.1)' : 'transparent',
+                borderLeft: activeSection === sec.id ? '3px solid #0055ff' : '3px solid transparent',
+                color: activeSection === sec.id ? '#0055ff' : 'var(--text-soft)',
+              }}
+            >
+              {sec.icon}
+              <span>{sec.label}</span>
+            </button>
+          ))}
+        </div>
+        <div style={sett.content}>
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Settings styles
+const sett = {
+  container: {},
+  layout: { display: 'flex', gap: 24, minHeight: 'calc(100vh - 240px)' },
+  sidebar: { width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4 },
+  sidebarItem: {
+    display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+    borderRadius: '8px', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+    border: 'none', background: 'none', textAlign: 'left', width: '100%',
+    transition: 'all 0.2s ease',
+  },
+  content: { flex: 1 },
+  card: {
+    backgroundColor: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)',
+    padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 4,
+  },
+  row: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '14px 0', borderBottom: '1px solid var(--border)',
+  },
+  label: { margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--text)' },
+  desc: { margin: '4px 0 0', fontSize: 12, color: 'var(--muted-2)', maxWidth: 400 },
+  toggle: { position: 'relative', display: 'inline-block', width: 46, height: 24, cursor: 'pointer' },
+  checkbox: { opacity: 0, width: 0, height: 0 },
+  slider: {
+    position: 'absolute', cursor: 'pointer', inset: 0, backgroundColor: '#333',
+    borderRadius: 24, transition: '0.3s',
+  },
+  select: {
+    backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)',
+    color: 'var(--text)', padding: '8px 12px', borderRadius: 6, fontSize: 12,
+    fontWeight: 600, cursor: 'pointer', outline: 'none',
+  },
+  exportBtn: {
+    backgroundColor: '#0055ff', color: '#fff', border: 'none',
+    padding: '8px 16px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+    cursor: 'pointer',
+  },
+};
+
 const styles = {
   layout: { display: 'flex', height: '100vh', backgroundColor: 'var(--bg)', color: 'var(--text)', fontFamily: 'Inter, sans-serif' },
   
@@ -358,7 +922,16 @@ const styles = {
   input: { backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', color: 'var(--text)', padding: '10px 20px', borderRadius: '30px', width: '300px' },
   topIcons: { display: 'flex', alignItems: 'center', gap: '25px' },
   notifIcon: { position: 'relative', cursor: 'pointer' },
-  badge: { position: 'absolute', top: '-5px', right: '-5px', backgroundColor: '#ef4444', fontSize: '9px', padding: '2px 5px', borderRadius: '10px' },
+  badge: { position: 'absolute', top: '-8px', right: '-8px', backgroundColor: '#ef4444', fontSize: '10px', padding: '2px 6px', borderRadius: '10px', fontWeight: 700, minWidth: '18px', textAlign: 'center' },
+  notifPanel: { position: 'absolute', top: '100%', right: 0, marginTop: 12, width: 380, maxHeight: 480, backgroundColor: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  notifPanelHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: '1px solid #1a1a1a' },
+  markAllReadBtn: { background: 'none', border: '1px solid #333', color: '#0055ff', padding: '4px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600 },
+  notifPanelList: { flex: 1, overflowY: 'auto', maxHeight: 400 },
+  notifItem: { display: 'flex', gap: 12, padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #111', transition: 'background 0.2s' },
+  notifItemIcon: { fontSize: 18, flexShrink: 0, marginTop: 2 },
+  notifItemContent: { flex: 1, minWidth: 0 },
+  notifItemMsg: { margin: 0, fontSize: 13, color: '#ddd', lineHeight: 1.4 },
+  notifItemMeta: { margin: '4px 0 0', fontSize: 11, color: '#666' },
   profile: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' },
   avatar: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#0055ff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' },
 

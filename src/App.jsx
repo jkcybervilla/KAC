@@ -11,6 +11,9 @@ import DprView from './pages/project/DprView';
 import JmcView from './pages/project/JmcView';
 import AccountantDashboard from './pages/accountant/AccountantDashboard';
 import CoordinatorDashboard from './pages/coordinator/CoordinatorDashboard';
+import HrAssistantDashboard from './pages/hr_assistant/HrAssistantDashboard';
+import SuperAdminDashboard from './pages/super_admin/SuperAdminDashboard';
+import ExecutiveAssistantDashboard from './pages/executive_assistant/ExecutiveAssistantDashboard';
 import WorkerRegisterHub from './pages/WorkerRegistration/WorkerRegisterHub';
 import AttendanceHub from './pages/Attendance/AttendanceHub';
 import StaffManagement from './pages/user/StaffManagement';
@@ -22,11 +25,14 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'accountant', 'coordinator']}><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'accountant', 'coordinator', 'hr_assistant', 'super_admin', 'executive_assistant']}><Dashboard /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>} />
         <Route path="/accountant" element={<ProtectedRoute roles={['accountant']}><AccountantDashboard /></ProtectedRoute>} />
         <Route path="/coordinator" element={<ProtectedRoute roles={['coordinator']}><CoordinatorDashboard /></ProtectedRoute>} />
-        <Route path="/user-manager" element={<ProtectedRoute roles={['admin']}><StaffManagement /></ProtectedRoute>} />
+        <Route path="/hr-assistant" element={<ProtectedRoute roles={['hr_assistant']}><HrAssistantDashboard /></ProtectedRoute>} />
+        <Route path="/super-admin" element={<ProtectedRoute roles={['super_admin']}><SuperAdminDashboard /></ProtectedRoute>} />
+        <Route path="/executive-assistant" element={<ProtectedRoute roles={['executive_assistant']}><ExecutiveAssistantDashboard /></ProtectedRoute>} />
+        <Route path="/user-manager" element={<ProtectedRoute roles={['admin', 'super_admin']}><StaffManagement /></ProtectedRoute>} />
         <Route path="/all-projects" element={<ProtectedRoute roles={['admin']}><ProjectsPage /></ProtectedRoute>} />
         <Route path="/project/:id" element={<ProtectedRoute roles={['admin']}><ProjectDetails /></ProtectedRoute>} />
         <Route path="/work-activity" element={<ProtectedRoute roles={['admin']}><WorkActivity /></ProtectedRoute>} />
