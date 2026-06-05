@@ -13,4 +13,6 @@ export const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });

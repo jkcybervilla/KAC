@@ -20,6 +20,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const customSelectStyles = {
@@ -577,6 +581,8 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
             quickFilterText={searchText}
             theme={darkQuartzTheme}
             pinnedBottomRowData={footerRowData}
+            rowHeight={34}
+            headerHeight={38}
             onGridReady={(params) => {
               columnApiRef.current = params.columnApi;
               Object.entries(columnVisibility).forEach(([field, visible]) => {

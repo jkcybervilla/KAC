@@ -18,6 +18,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const WORK_TYPES = ['EXCAVATION', 'CONCRETING', 'REINFORCEMENT', 'FORMWORK', 'BRICKWORK', 'PLASTERING', 'PAINTING', 'FLOORING', 'WATERPROOFING', 'ELECTRICAL', 'PLUMBING', 'OTHER'];
@@ -279,6 +283,8 @@ const ActivityTab = ({ project, profile }) => {
             columnDefs={columnDefs}
             defaultColDef={{ sortable: true, filter: true, resizable: true }}
             animateRows={true}
+            rowHeight={34}
+            headerHeight={38}
             theme={darkQuartzTheme}
           />
         </div>
@@ -381,6 +387,8 @@ const JmcTab = ({ project, profile }) => {
             columnDefs={columnDefs}
             defaultColDef={{ sortable: true, filter: true, resizable: true }}
             animateRows={true}
+            rowHeight={34}
+            headerHeight={38}
             theme={darkQuartzTheme}
           />
         </div>

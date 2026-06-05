@@ -22,6 +22,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const EMPTY_FORM = {
@@ -173,7 +177,7 @@ const ProjectsPage = () => {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [showSettings, setShowSettings] = useState(false);
   const [columnVisibility, setColumnVisibility] = useState(loadSettings);
-  const [columnApi, setColumnApi] = useState(null);
+  const [gridApi, setGridApi] = useState(null);
   const navigate = useNavigate();
 
   const now = new Date();
@@ -288,22 +292,22 @@ const ProjectsPage = () => {
     (visibility) => [
       {
         headerName: 'SL NO',
-        flex: 0.6,
-        minWidth: 70,
+        width: 82,
+        minWidth: 82,
         pinned: 'left',
         hide: !visibility.sl,
         valueGetter: (params) => (params.node ? params.node.rowIndex + 1 : ''),
       },
-      { field: 'PROJECT_NAME', headerName: 'PROJECT NAME', flex: 1.8, minWidth: 180, pinned: 'left', hide: !visibility.projectName },
-      { field: 'TYPE', headerName: 'TYPE', flex: 0.7, minWidth: 80, hide: !visibility.type },
-      { field: 'CO_ORDINATOR', headerName: 'CO-ORDINATOR', flex: 1, minWidth: 120, hide: !visibility.coordinator },
-      { field: 'ACCOUNTANT', headerName: 'ACCOUNTANT', flex: 1, minWidth: 120, hide: !visibility.accountant },
-      { field: 'CURRENT_MANPOWER', headerName: 'CURRENT MANPOWER', flex: 1, minWidth: 130, hide: !visibility.currentManpower },
+      { field: 'PROJECT_NAME', headerName: 'PROJECT NAME', width: 260, minWidth: 220, pinned: 'left', hide: !visibility.projectName },
+      { field: 'TYPE', headerName: 'TYPE', width: 125, minWidth: 105, hide: !visibility.type },
+      { field: 'CO_ORDINATOR', headerName: 'CO-ORDINATOR', width: 155, minWidth: 145, hide: !visibility.coordinator },
+      { field: 'ACCOUNTANT', headerName: 'ACCOUNTANT', width: 145, minWidth: 135, hide: !visibility.accountant },
+      { field: 'CURRENT_MANPOWER', headerName: 'CURRENT MANPOWER', width: 170, minWidth: 160, hide: !visibility.currentManpower },
       {
         field: 'ACTIVE_STATUS',
         headerName: 'ACTIVE STATUS',
-        flex: 0.9,
-        minWidth: 110,
+        width: 145,
+        minWidth: 135,
         hide: !visibility.activeStatus,
         cellRenderer: (params) => (
           <span style={params.value === 'ACTIVE' ? s.badgeActive : s.badgeInactive}>
@@ -313,8 +317,8 @@ const ProjectsPage = () => {
       },
       {
         headerName: 'ACTION',
-        flex: 0.8,
-        minWidth: 110,
+        width: 120,
+        minWidth: 120,
         pinned: 'right',
         cellRenderer: (params) => (
           <button type="button" style={s.actionBtn} onClick={() => setPropertiesProject(params.data)}>
@@ -325,15 +329,15 @@ const ProjectsPage = () => {
       {
         headerName: 'MORE DETAILS',
         children: [
-          { field: 'MANPOWER', headerName: 'MANPOWER', flex: 0.8, minWidth: 100, hide: !visibility.manpower },
-          { field: 'LINE_NAME', headerName: 'LINE NAME', flex: 0.9, minWidth: 110, hide: !visibility.lineName },
-          { field: 'DISTRICT', headerName: 'DISTRICT', flex: 0.8, minWidth: 100, hide: !visibility.district },
-          { field: 'CLIENT', headerName: 'CLIENT', flex: 0.9, minWidth: 110, hide: !visibility.client },
-          { field: 'VENDORS', headerName: 'VENDORS', flex: 1, minWidth: 120, hide: !visibility.vendors },
-          { field: 'PO_NUMBER', headerName: 'PO NUMBER', flex: 0.8, minWidth: 100, hide: !visibility.poNumber },
-          { field: 'GEM_ID', headerName: 'GEM ID', flex: 0.75, minWidth: 90, hide: !visibility.gemId },
-          { field: 'REGION', headerName: 'REGION', flex: 0.75, minWidth: 90, hide: !visibility.region },
-          { field: 'REQ_MANPOWER', headerName: 'REQUIRED MANPOWER', flex: 1, minWidth: 130, hide: !visibility.reqManpower },
+          { field: 'MANPOWER', headerName: 'MANPOWER', width: 125, minWidth: 120, hide: !visibility.manpower },
+          { field: 'LINE_NAME', headerName: 'LINE NAME', width: 145, minWidth: 130, hide: !visibility.lineName },
+          { field: 'DISTRICT', headerName: 'DISTRICT', width: 130, minWidth: 120, hide: !visibility.district },
+          { field: 'CLIENT', headerName: 'CLIENT', width: 135, minWidth: 120, hide: !visibility.client },
+          { field: 'VENDORS', headerName: 'VENDORS', width: 160, minWidth: 130, hide: !visibility.vendors },
+          { field: 'PO_NUMBER', headerName: 'PO NUMBER', width: 140, minWidth: 125, hide: !visibility.poNumber },
+          { field: 'GEM_ID', headerName: 'GEM ID', width: 115, minWidth: 105, hide: !visibility.gemId },
+          { field: 'REGION', headerName: 'REGION', width: 120, minWidth: 110, hide: !visibility.region },
+          { field: 'REQ_MANPOWER', headerName: 'REQUIRED MANPOWER', width: 170, minWidth: 160, hide: !visibility.reqManpower },
         ],
       },
     ],
@@ -343,25 +347,33 @@ const ProjectsPage = () => {
   const columnDefs = useMemo(() => buildColumnDefs(columnVisibility), [buildColumnDefs, columnVisibility]);
 
   const defaultColDef = useMemo(
-    () => ({ resizable: true, filter: true, sortable: true, wrapHeaderText: true, autoHeaderHeight: true }),
+    () => ({
+      resizable: true,
+      filter: true,
+      sortable: true,
+      wrapHeaderText: false,
+      autoHeaderHeight: false,
+    }),
     []
   );
 
   const handleGridReady = useCallback((params) => {
-    setColumnApi(params.columnApi);
+    setGridApi(params.api);
   }, []);
 
-  const autoSizeAllColumns = useCallback(() => {
-    if (!columnApi) return;
-    const allColumnIds = columnApi.getAllDisplayedColumns().map((col) => col.getColId());
+  const autoSizeAllColumns = useCallback((api = gridApi) => {
+    if (!api) return;
+    const allColumnIds = api.getAllDisplayedColumns().map((col) => col.getColId());
     if (allColumnIds.length) {
-      columnApi.autoSizeColumns(allColumnIds, false);
+      window.requestAnimationFrame(() => {
+        api.autoSizeColumns(allColumnIds, false);
+      });
     }
-  }, [columnApi]);
+  }, [gridApi]);
 
   useEffect(() => {
     autoSizeAllColumns();
-  }, [autoSizeAllColumns, columnDefs, filteredProjects]);
+  }, [autoSizeAllColumns, columnDefs, filteredProjects.length]);
 
   if (loading) return <div style={s.loading}>Loading projects...</div>;
 
@@ -429,8 +441,15 @@ const ProjectsPage = () => {
             defaultColDef={defaultColDef}
             quickFilterText={searchText}
             animateRows
+            rowHeight={34}
+            headerHeight={48}
             theme={darkQuartzTheme}
             onGridReady={handleGridReady}
+            onFirstDataRendered={(params) => autoSizeAllColumns(params.api)}
+            onRowDataUpdated={(params) => autoSizeAllColumns(params.api)}
+            onColumnVisible={(params) => autoSizeAllColumns(params.api)}
+            onGridSizeChanged={(params) => autoSizeAllColumns(params.api)}
+            suppressColumnVirtualisation
             autoSizeStrategy={{ type: 'fitCellContents' }}
           />
         </div>

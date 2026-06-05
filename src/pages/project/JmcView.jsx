@@ -19,6 +19,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const EMPTY_FORM = {
@@ -258,9 +262,11 @@ const JmcView = () => {
           <AgGridReact
             rowData={filtered}
             columnDefs={columnDefs}
-            defaultColDef={{ sortable: true, filter: true, resizable: true }}
-            quickFilterText={searchText}
-            animateRows
+        defaultColDef={{ sortable: true, filter: true, resizable: true, wrapHeaderText: true, autoHeaderHeight: true }}
+        quickFilterText={searchText}
+        animateRows
+        rowHeight={34}
+        headerHeight={48}
             theme={darkQuartzTheme}
           />
         </div>

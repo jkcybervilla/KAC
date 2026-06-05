@@ -9,10 +9,8 @@ const AdminChat = ({ user, recipientRole = 'admin' }) => {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
-  // Chat ID based on user role — accountant chats with admin
-  const chatId = user?.role === 'admin' 
-    ? 'admin-chat-room' 
-    : `chat-${user?.role}-${user?.uid || 'anonymous'}`;
+  // Single shared chat room for all users
+  const chatId = 'general-chat-room';
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -21,11 +19,20 @@ const AdminChat = ({ user, recipientRole = 'admin' }) => {
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({
+      let msgs = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate() || new Date(),
       }));
+
+      // Accountant cannot see messages from other accountants
+      // They can only see their own messages + messages from other roles
+      if (user?.role === 'accountant') {
+        msgs = msgs.filter(
+          msg => msg.senderRole !== 'accountant' || msg.senderId === user.uid
+        );
+      }
+
       setMessages(msgs);
       setLoading(false);
     }, (error) => {
@@ -119,7 +126,7 @@ const AdminChat = ({ user, recipientRole = 'admin' }) => {
             <MessageSquare size={16} color="#0055ff" />
           </div>
           <div>
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Chat with Admin</h3>
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>General Chat</h3>
             <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#22c55e' }}>
               {loading ? 'Connecting...' : '● Online'}
             </p>

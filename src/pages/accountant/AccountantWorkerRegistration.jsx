@@ -20,6 +20,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const EMPTY = {
@@ -147,7 +151,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
       </div>
       <div style={s.gridSection}>
         <div style={{ height: '55vh', width: '100%' }}>
-          <AgGridReact rowData={rows} columnDefs={columnDefs} defaultColDef={{ filter: true }} quickFilterText={searchText} theme={darkQuartzTheme} />
+          <AgGridReact rowData={rows} columnDefs={columnDefs} defaultColDef={{ filter: true }} quickFilterText={searchText} rowHeight={34} headerHeight={38} theme={darkQuartzTheme} />
         </div>
       </div>
 

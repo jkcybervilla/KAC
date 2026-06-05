@@ -258,6 +258,9 @@ button {
 .ag-theme-alpine-dark {
     --ag-grid-size: 6px;
     --ag-list-item-height: 40px;
+    --ag-row-height: 36px;
+    --ag-header-height: 44px;
+    --ag-cell-horizontal-padding: 8px;
     
     /* Core Colors */
     --ag-background-color: var(--surface) !important;
@@ -268,6 +271,7 @@ button {
     --ag-selected-row-background-color: var(--accent-soft) !important;
     --ag-foreground-color: var(--text) !important;
     --ag-header-foreground-color: var(--text) !important;
+    --ag-header-text-color: var(--text) !important;
 }
 
 /* Remove Outer Borders and Shadows */
@@ -278,15 +282,25 @@ button {
     outline: none !important;
 }
 
-.ag-theme-quartz-dark .ag-root-wrapper,
-.ag-theme-quartz-dark .ag-root-wrapper-body,
-.ag-theme-alpine-dark .ag-root-wrapper,
-.ag-theme-alpine-dark .ag-root-wrapper-body {
-    border: none !important;
-    box-shadow: none !important;
-    outline: none !important;
-    background-color: var(--surface) !important;
-    border-radius: 12px;
+[class^="ag-theme-"] .ag-root-wrapper {
+  border-radius: 12px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  width: 100% !important;
+}
+
+[class^="ag-theme-"] .ag-root-wrapper-body {
+  border-radius: 0 !important;
+}
+
+/* Hide filter/menu icons by default, show on header hover */
+.ag-theme-quartz-dark .ag-header-cell-menu-button {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.ag-theme-quartz-dark .ag-header-cell:hover .ag-header-cell-menu-button {
+    opacity: 1;
 }
 
 /* Table Header Styles */
@@ -300,6 +314,35 @@ button {
 
 .ag-header-cell {
     border-right: 1px solid transparent !important;
+}
+
+/* Worker Registration page */
+.worker-register-grid .ag-header {
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+.worker-register-grid .ag-header-row {
+  height: 40px !important;
+}
+
+.worker-register-grid .ag-header-cell {
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.worker-register-grid .ag-header-cell-label {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+}
+
+.worker-register-grid .ag-root-wrapper {
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }
 
 /* Row & Cell Styles */
@@ -497,6 +540,61 @@ button {
   }
 }
 
+/* ==========================================================================
+   AG-GRID FORCED COMPACT MODE
+   ========================================================================== */
+[class^="ag-theme-"] .ag-row {
+  height: 34px !important;
+  line-height: 34px !important;
+}
+
+[class^="ag-theme-"] .ag-header {
+  min-height: 44px !important;
+}
+
+[class^="ag-theme-"] .ag-header-row {
+  min-height: 44px !important;
+}
+
+[class^="ag-theme-"] .ag-cell {
+  line-height: 34px !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+
+[class^="ag-theme-"] .ag-header-cell {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  overflow: visible !important;
+  vertical-align: middle !important;
+}
+
+[class^="ag-theme-"] .ag-header-cell-label {
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.2 !important;
+}
+
+[class^="ag-theme-"] .ag-header-cell-text {
+  overflow: visible !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  line-height: 1.2 !important;
+}
+
+/* Hide filter menu button, show only on hover */
+[class^="ag-theme-"] .ag-header-cell-menu-button {
+  opacity: 0 !important;
+  transition: opacity 0.15s ease !important;
+}
+
+[class^="ag-theme-"] .ag-header-cell:hover .ag-header-cell-menu-button {
+  opacity: 1 !important;
+}
+
 .theme-toggle-btn {
   width: 100%;
   border: 1px solid var(--border-strong);
@@ -536,4 +634,9 @@ button {
   .page-box {
     padding: 14px;
   }
+}
+
+.worker-register-grid .ag-root-wrapper {
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }

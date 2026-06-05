@@ -17,6 +17,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const WorkerRegister = () => {
@@ -177,6 +181,8 @@ const WorkerRegister = () => {
             defaultColDef={{sortable:true, filter:true, resizable:true}} 
             quickFilterText={searchText}
             animateRows={true}
+            rowHeight={34}
+            headerHeight={38}
             theme={darkQuartzTheme}
           />
         </div>

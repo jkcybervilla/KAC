@@ -19,6 +19,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const overlayBase = {
@@ -512,6 +516,8 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
             singleClickEdit
             stopEditingWhenCellsLoseFocus
             animateRows
+            rowHeight={34}
+            headerHeight={38}
             theme={darkQuartzTheme}
           />
         </div>

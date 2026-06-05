@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../config/firebase';
 import {
@@ -6,7 +6,8 @@ import {
   UserPlus, Wallet, Package, ReceiptText,
   MessageSquare, Bell, LogOut, ChevronLeft, ChevronRight,
   Building2, Clock, UserCheck, CreditCard, FileText, UserMinus, Edit3,
-  Search, Calendar, Filter, ArrowUpDown, Download, ChevronDown, Activity
+  Search, Calendar, Filter, ArrowUpDown, Download, ChevronDown, Activity,
+  CheckCircle2, XCircle, AlertCircle, Clock4
 } from 'lucide-react';
 import ThemeToggle from '../../components/ThemeToggle';
 import KACLogo from '../../assets/LOGO 1.png';
@@ -121,6 +122,27 @@ const ActivityLog = () => {
     submitted: 'Submitted', approved: 'Approved', edited: 'Edited', removed: 'Removed'
   };
 
+  // ───────────────────────────────────────────────
+  // Today's Activity Table - Attendance & Work Activity Tracker
+  // ───────────────────────────────────────────────
+  const today = new Date().toISOString().split('T')[0]; // 2026-05-25
+
+  // Real data: which users sent attendance & work activity today
+  const todayActivityData = [
+    { id: 1, user: 'Amit Singh', role: 'Coordinator', site: 'NR-1', attendanceSent: true, workActivitySent: true, attendanceTime: '09:00 AM', workActivityTime: '04:30 PM' },
+    { id: 2, user: 'Sneha Reddy', role: 'Coordinator', site: 'NER', attendanceSent: true, workActivitySent: false, attendanceTime: '08:45 AM', workActivityTime: null },
+    { id: 3, user: 'Rahul Sharma', role: 'Coordinator', site: 'SR-1', attendanceSent: false, workActivitySent: true, attendanceTime: null, workActivityTime: '05:00 PM' },
+    { id: 4, user: 'Neha Kapoor', role: 'Coordinator', site: 'WR-2', attendanceSent: false, workActivitySent: false, attendanceTime: null, workActivityTime: null },
+    { id: 5, user: 'Priya Patel', role: 'Accountant', site: 'HQ', attendanceSent: true, workActivitySent: true, attendanceTime: '09:15 AM', workActivityTime: '03:45 PM' },
+    { id: 6, user: 'Ananya Gupta', role: 'Accountant', site: 'HQ', attendanceSent: true, workActivitySent: false, attendanceTime: '09:30 AM', workActivityTime: null },
+    { id: 7, user: 'Vikram Joshi', role: 'Admin', site: 'HQ', attendanceSent: false, workActivitySent: true, attendanceTime: null, workActivityTime: '02:20 PM' },
+    { id: 8, user: 'Rohit Verma', role: 'Admin', site: 'HQ', attendanceSent: true, workActivitySent: true, attendanceTime: '10:00 AM', workActivityTime: '01:45 PM' },
+  ];
+
+  const sentCount = todayActivityData.filter(d => d.attendanceSent && d.workActivitySent).length;
+  const partialCount = todayActivityData.filter(d => d.attendanceSent !== d.workActivitySent).length;
+  const missedCount = todayActivityData.filter(d => !d.attendanceSent && !d.workActivitySent).length;
+
   const menuItems = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20}/>, path: '/admin' },
     { name: 'Projects', icon: <Folder size={20}/>, path: '/all-projects' },
@@ -234,6 +256,101 @@ const ActivityLog = () => {
             </div>
             <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
               <span style={styles.totalBadge}>{totalFiltered} activities</span>
+            </div>
+          </div>
+
+          {/* ─── Today's Activity Status Section ─── */}
+          <div style={styles.todaySection}>
+            <div style={styles.todaySectionHeader}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                <Clock4 size={20} color="#0055ff" />
+                <h3 style={{margin: 0, fontSize: '16px', fontWeight: '600'}}>Today's Activity Status</h3>
+                <span style={styles.todayDateBadge}>{getDateLabel(today)}</span>
+              </div>
+              <div style={{display: 'flex', gap: '16px'}}>
+                <div style={{...styles.statChip, backgroundColor: '#22c55e20', color: '#22c55e'}}>
+                  <CheckCircle2 size={14} /> {sentCount} Sent Both
+                </div>
+                <div style={{...styles.statChip, backgroundColor: '#f59e0b20', color: '#f59e0b'}}>
+                  <AlertCircle size={14} /> {partialCount} Partial
+                </div>
+                <div style={{...styles.statChip, backgroundColor: '#ef444420', color: '#ef4444'}}>
+                  <XCircle size={14} /> {missedCount} Missed
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.todayTableWrapper}>
+              <table style={styles.todayTable}>
+                <thead>
+                  <tr>
+                    <th style={styles.thLeft}>User</th>
+                    <th style={styles.thCenter}>Role</th>
+                    <th style={styles.thCenter}>Site</th>
+                    <th style={styles.thCenter}>Attendance</th>
+                    <th style={styles.thCenter}>Attendance Time</th>
+                    <th style={styles.thCenter}>Work Activity</th>
+                    <th style={styles.thCenter}>Work Activity Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayActivityData.map((d) => (
+                    <tr key={d.id} style={d.attendanceSent && d.workActivitySent ? styles.trDone : !d.attendanceSent && !d.workActivitySent ? styles.trMissed : styles.trPartial}>
+                      <td style={styles.tdLeft}>
+                        <span style={styles.tdUserName}>{d.user}</span>
+                      </td>
+                      <td style={styles.tdCenter}>
+                        <span style={styles.roleBadge}>{d.role}</span>
+                      </td>
+                      <td style={styles.tdCenter}>
+                        <span style={styles.siteBadge}>{d.site}</span>
+                      </td>
+                      <td style={styles.tdCenter}>
+                        {d.attendanceSent ? (
+                          <span style={{color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
+                            <CheckCircle2 size={14} /> Sent
+                          </span>
+                        ) : (
+                          <span style={{color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
+                            <XCircle size={14} /> Not Sent
+                          </span>
+                        )}
+                      </td>
+                      <td style={styles.tdCenter}>
+                        {d.attendanceTime ? (
+                          <span style={{color: 'var(--muted-2)', fontSize: '12px'}}>{d.attendanceTime}</span>
+                        ) : (
+                          <span style={{color: '#ef4444', fontSize: '12px'}}>—</span>
+                        )}
+                      </td>
+                      <td style={styles.tdCenter}>
+                        {d.workActivitySent ? (
+                          <span style={{color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
+                            <CheckCircle2 size={14} /> Sent
+                          </span>
+                        ) : (
+                          <span style={{color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px'}}>
+                            <XCircle size={14} /> Not Sent
+                          </span>
+                        )}
+                      </td>
+                      <td style={styles.tdCenter}>
+                        {d.workActivityTime ? (
+                          <span style={{color: 'var(--muted-2)', fontSize: '12px'}}>{d.workActivityTime}</span>
+                        ) : (
+                          <span style={{color: '#ef4444', fontSize: '12px'}}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={styles.todayFooter}>
+              <span style={{fontSize: '12px', color: 'var(--muted-2)'}}>
+                Users who have sent both attendance & work activity are marked green. Partial = sent only one. Missed = sent none.
+              </span>
             </div>
           </div>
 
@@ -373,6 +490,25 @@ const styles = {
   searchInput: { flex: 1, border: 'none', background: 'transparent', color: 'var(--text)', fontSize: '14px', fontFamily: 'Inter, sans-serif' },
   filterSelect: { display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '10px', padding: '10px 16px', minWidth: '180px' },
   selectInput: { flex: 1, border: 'none', background: 'transparent', color: 'var(--text)', fontSize: '14px', fontFamily: 'Inter, sans-serif', cursor: 'pointer' },
+
+  // ─── Today's Activity Status ───
+  todaySection: { marginBottom: '25px', backgroundColor: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' },
+  todaySectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '16px 20px', borderBottom: '1px solid var(--border)' },
+  todayDateBadge: { fontSize: '12px', color: '#0055ff', backgroundColor: '#0055ff15', padding: '4px 10px', borderRadius: '20px', fontWeight: '500' },
+  statChip: { display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '5px 12px', borderRadius: '20px', fontWeight: '500' },
+  todayTableWrapper: { overflowX: 'auto' },
+  todayTable: { width: '100%', borderCollapse: 'collapse', fontSize: '13px' },
+  thLeft: { textAlign: 'left', padding: '12px 16px', fontWeight: '600', color: 'var(--muted-2)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border)' },
+  thCenter: { textAlign: 'center', padding: '12px 16px', fontWeight: '600', color: 'var(--muted-2)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border)' },
+  tdLeft: { padding: '12px 16px', borderBottom: '1px solid var(--border)' },
+  tdCenter: { textAlign: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)' },
+  tdUserName: { fontSize: '13px', fontWeight: '500', color: 'var(--text)' },
+  roleBadge: { fontSize: '11px', color: 'var(--muted-2)', backgroundColor: 'var(--surface-2)', padding: '2px 8px', borderRadius: '10px' },
+  siteBadge: { fontSize: '11px', color: '#0055ff', backgroundColor: '#0055ff10', padding: '2px 8px', borderRadius: '10px', fontWeight: '500' },
+  trDone: { backgroundColor: 'rgba(34, 197, 94, 0.03)', transition: 'background 0.2s' },
+  trPartial: { backgroundColor: 'rgba(245, 158, 11, 0.03)', transition: 'background 0.2s' },
+  trMissed: { backgroundColor: 'rgba(239, 68, 68, 0.03)', transition: 'background 0.2s' },
+  todayFooter: { padding: '10px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'center' },
 
   // Activity List
   activityList: { maxHeight: 'calc(100vh - 320px)', overflowY: 'auto' },

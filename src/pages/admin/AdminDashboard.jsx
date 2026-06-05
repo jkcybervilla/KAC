@@ -225,6 +225,9 @@ const menuItems = [
         .sidebar-toggle-btn:hover { background-color: var(--border-strong) !important; transform: scale(1.05); }
         .sidebar-logout-btn { transition: all 0.25s ease !important; border-radius: 8px !important; padding: 12px 15px !important; }
         .sidebar-logout-btn:hover { background-color: rgba(239, 68, 68, 0.1) !important; transform: translateX(4px); }
+        .overview-card { transition: all 0.2s ease !important; }
+        .overview-card:hover { transform: translateY(-2px) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; border-color: #0055ff40 !important; }
+        .overview-card:active { transform: translateY(0px) !important; }
         .activity-item { transition: all 0.2s ease !important; }
         .activity-item:hover { background-color: var(--surface-2) !important; transform: translateX(4px); }
         .activity-log-container { max-height: 500px; overflow-y: auto; }
@@ -346,32 +349,32 @@ const menuItems = [
           </div>
           
           <div style={styles.statGrid}>
-            <div style={styles.card}>
+            <div style={styles.smallCard} onClick={() => navigate('/all-projects')} className="overview-card">
               <small>ACTIVE PROJECTS</small>
-              <h3>20</h3>
+              <h3 style={styles.smallCardValue}>20</h3>
             </div>
-            <div style={styles.card}>
+            <div style={styles.smallCard} onClick={() => navigate('/workforce')} className="overview-card">
               <small>ON-SITE WORKFORCE</small>
-              <h3 style={{color: '#22c55e'}}>540</h3>
+              <h3 style={{...styles.smallCardValue, color: '#22c55e'}}>540</h3>
             </div>
-            <div style={styles.card}>
+            <div style={styles.smallCard} onClick={() => navigate('/expense')} className="overview-card">
               <small>TOTAL EXPENSE (MAY)</small>
-              <h3 style={{color: '#f59e0b'}}>₹ 45,200</h3>
+              <h3 style={{...styles.smallCardValue, color: '#f59e0b'}}>₹ 45,200</h3>
             </div>
             {/* Attendance Pending Box */}
-            <div style={{...styles.card, borderLeft: '4px solid #ef4444'}}>
+            <div style={{...styles.smallCard, borderLeft: '4px solid #ef4444'}} onClick={() => navigate('/attendance-sheet')} className="overview-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <small style={{ color: '#ef4444', fontWeight: '700' }}>ATTENDANCE PENDING</small>
-                  <h3 style={{ color: '#ef4444', fontSize: '28px', margin: '8px 0 0' }}>
+                  <h3 style={{ color: '#ef4444', fontSize: '22px', margin: '6px 0 0' }}>
                     {loadingStats ? '...' : stats.attendancePending}
                   </h3>
                 </div>
-                <div style={{ backgroundColor: '#ef444415', padding: '10px', borderRadius: '10px' }}>
-                  <UserX size={24} color="#ef4444" />
+                <div style={{ backgroundColor: '#ef444415', padding: '8px', borderRadius: '8px' }}>
+                  <UserX size={20} color="#ef4444" />
                 </div>
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: '11px', color: 'var(--muted-2)' }}>
+              <p style={{ margin: '6px 0 0', fontSize: '10px', color: 'var(--muted-2)' }}>
                 out of {loadingStats ? '...' : stats.totalWorkers} active workers
                 {!loadingStats && stats.attendanceSubmitted > 0 && (
                   <span> · {stats.attendanceSubmitted} submitted</span>
@@ -379,19 +382,19 @@ const menuItems = [
               </p>
             </div>
             {/* Work Activity Pending Box */}
-            <div style={{...styles.card, borderLeft: '4px solid #f59e0b'}}>
+            <div style={{...styles.smallCard, borderLeft: '4px solid #f59e0b'}} onClick={() => navigate('/work-activity')} className="overview-card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <small style={{ color: '#f59e0b', fontWeight: '700' }}>WORK ACTIVITY PENDING</small>
-                  <h3 style={{ color: '#f59e0b', fontSize: '28px', margin: '8px 0 0' }}>
+                  <h3 style={{ color: '#f59e0b', fontSize: '22px', margin: '6px 0 0' }}>
                     {loadingStats ? '...' : stats.activityPending}
                   </h3>
                 </div>
-                <div style={{ backgroundColor: '#f59e0b15', padding: '10px', borderRadius: '10px' }}>
-                  <ClipboardList size={24} color="#f59e0b" />
+                <div style={{ backgroundColor: '#f59e0b15', padding: '8px', borderRadius: '8px' }}>
+                  <ClipboardList size={20} color="#f59e0b" />
                 </div>
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: '11px', color: 'var(--muted-2)' }}>
+              <p style={{ margin: '6px 0 0', fontSize: '10px', color: 'var(--muted-2)' }}>
                 out of {loadingStats ? '...' : stats.totalWorkers} active workers
                 {!loadingStats && stats.activitySubmitted > 0 && (
                   <span> · {stats.activitySubmitted} submitted</span>
@@ -936,8 +939,10 @@ const styles = {
   avatar: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#0055ff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' },
 
   content: { padding: '40px', overflowY: 'auto', flex: 1 },
-  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '40px' },
+  statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '30px' },
   card: { backgroundColor: 'var(--surface)', padding: '25px', borderRadius: '15px', border: '1px solid var(--border)' },
+  smallCard: { backgroundColor: 'var(--surface)', padding: '16px 18px', borderRadius: '12px', border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s ease' },
+  smallCardValue: { fontSize: '24px', margin: '6px 0 0' },
   
   chartActivityRow: { display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '20px', marginBottom: '40px' },
   chartBox: { backgroundColor: 'var(--surface)', padding: '30px', borderRadius: '15px', border: '1px solid var(--border)' },

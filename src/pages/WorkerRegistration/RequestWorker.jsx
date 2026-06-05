@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { darkQuartzTheme } from '../../utils/agGridTheme';
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
@@ -14,17 +15,6 @@ import { nextSerial } from '../../utils/serial';
 import * as XLSX from 'xlsx';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-
-const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: 'var(--surface)',
-  foregroundColor: 'var(--text-soft)',
-  headerBackgroundColor: 'var(--surface-2)',
-  headerTextColor: 'var(--text)',
-  borderColor: 'var(--border-strong)',
-  rowHoverColor: 'var(--surface-2)',
-  oddRowBackgroundColor: 'var(--surface)',
-  fontFamily: 'Inter, sans-serif',
-});
 
 const STORAGE_KEY = 'kac_request_column_visibility';
 
@@ -793,13 +783,15 @@ const RequestWorker = () => {
       </div>
 
       <div style={s.gridSection}>
-        <div style={{ height: '70vh', width: '100%' }}>
+        <div style={{ height: '70vh', width: '100%', overflow: 'visible' }}>
           <AgGridReact
             rowData={filteredRows}
             columnDefs={columnDefs}
             defaultColDef={{ resizable: true, filter: true, sortable: true }}
             quickFilterText={searchText}
             animateRows
+            headerHeight={40}
+            groupHeaderHeight={40}
             theme={darkQuartzTheme}
             onGridReady={handleGridReady}
             onFirstDataRendered={(params) => autoSizeAllColumns(params.api)}

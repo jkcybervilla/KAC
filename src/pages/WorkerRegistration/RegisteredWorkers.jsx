@@ -20,6 +20,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const STORAGE_KEY = 'kac_worker_column_visibility';
@@ -672,6 +676,8 @@ const RegisteredWorkers = () => {
             defaultColDef={{ resizable: true, filter: true, sortable: true }}
             quickFilterText={searchText}
             animateRows
+            rowHeight={34}
+            headerHeight={38}
             theme={darkQuartzTheme}
             onGridReady={handleGridReady}
             onFirstDataRendered={(params) => autoSizeAllColumns(params.api)}

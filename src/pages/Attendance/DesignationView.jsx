@@ -18,6 +18,10 @@ const darkQuartzTheme = themeQuartz.withParams({
   rowHoverColor: 'var(--surface-2)',
   oddRowBackgroundColor: 'var(--surface)',
   fontFamily: 'Inter, sans-serif',
+  rowHeight: 36,
+  headerHeight: 40,
+  wrapperBorderRadius: '12px',
+  borderRadius: 0,
 });
 
 const DesignationView = () => {
@@ -61,7 +65,7 @@ const DesignationView = () => {
       </div>
       <div style={s.gridSection}>
         <div style={{ height: '50vh', width: '100%' }}>
-          <AgGridReact rowData={rows} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} theme={darkQuartzTheme} />
+          <AgGridReact rowData={rows} columnDefs={columnDefs} defaultColDef={{ filter: true, sortable: true }} rowHeight={34} headerHeight={38} theme={darkQuartzTheme} />
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ export const pageStyles = {
   tabBar: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
   tab: { padding: '10px 18px', borderRadius: '8px', border: '1px solid var(--border-strong)', background: 'var(--surface)', color: 'var(--muted)', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
   tabActive: { padding: '10px 18px', borderRadius: '8px', border: '1px solid var(--accent)', background: 'var(--accent-soft)', color: 'var(--text)', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
-  gridSection: { borderRadius: '12px', overflow: 'hidden' },
+  gridSection: { borderRadius: '12px', overflow: 'visible' },
   gridHeader: { display: 'flex', justifyContent: 'flex-end', padding: '14px 18px 0 18px', gap: '10px', backgroundColor: 'var(--bg)', borderBottom: '1px solid var(--border)' },
   settingsBtn: { backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', color: 'var(--text)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px' },
   filterRow: { display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' },
