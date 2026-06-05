@@ -1,23 +1,34 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../config/firebase';
 import { Upload, X, Check, Loader, Crop, Scissors } from 'lucide-react';
+import { supabase } from '../config/supabase';
 
 // Reliable: uses regular canvas + Image element (works in all browsers)
-const cropToBlob = (src, crop, maxDim = 500, quality = 0.6) =>
+// Wrapped in setTimeout to yield to the UI thread so loading states render
+const cropToBlob = (src, crop, maxDim = 1024, quality = 0.7) =>
   new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const s = Math.min(maxDim / crop.width, maxDim / crop.height, 1);
-      const tw = Math.round(crop.width * s);
-      const th = Math.round(crop.height * s);
-      const c = document.createElement('canvas');
-      c.width = tw;
-      c.height = th;
-      c.getContext('2d').drawImage(img, crop.x, crop.y, crop.width, crop.height, 0, 0, tw, th);
-      c.toBlob((b) => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', quality);
-      URL.revokeObjectURL(img.src);
+      setTimeout(() => {
+        try {
+          const s = Math.min(maxDim / crop.width, maxDim / crop.height, 1);
+          const tw = Math.round(crop.width * s);
+          const th = Math.round(crop.height * s);
+          const c = document.createElement('canvas');
+          c.width = tw;
+          c.height = th;
+          const ctx = c.getContext('2d');
+          if (!ctx) return reject(new Error('Could not get canvas context'));
+          ctx.drawImage(img, crop.x, crop.y, crop.width, crop.height, 0, 0, tw, th);
+          c.toBlob((b) => {
+            URL.revokeObjectURL(img.src);
+            b ? resolve(b) : reject(new Error('toBlob failed'));
+          }, 'image/jpeg', quality);
+        } catch (err) {
+          URL.revokeObjectURL(img.src);
+          reject(err);
+        }
+      }, 0);
     };
     img.onerror = () => reject(new Error('Image failed to load'));
     img.src = URL.createObjectURL(src);
@@ -92,21 +103,36 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
     setCropProcessing(true);
 
     try {
-      // 1. Crop + compress
+      // 1. Crop + compress (max 1024px, JPEG 70%)
       const blob = await cropToBlob(selectedFile, croppedAreaPixels);
 
       // 2. Local preview — modal still shows while uploading
       const localUrl = URL.createObjectURL(blob);
       setPreview(localUrl);
 
-      // 3. Upload to Firebase Storage
+      // 3. Upload to Supabase Storage with progress
       setUploading(true);
+      setProgress(50);
 
       const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
-      const storageRef = ref(storage, `${folder}/${fileName}`);
+      const filePath = `${folder}/${fileName}`;
 
-      const snapshot = await uploadBytes(storageRef, blob);
-      const downloadUrl = await getDownloadURL(snapshot.ref);
+      const { error: uploadError } = await supabase.storage
+        .from('worker-photos')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      setProgress(100);
+
+      const { data } = supabase.storage
+        .from('worker-photos')
+        .getPublicUrl(filePath);
+
+      const downloadUrl = data.publicUrl;
 
       // 4. Done — update form state with permanent URL, close modal
       setPreview(downloadUrl);
@@ -119,10 +145,18 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
       URL.revokeObjectURL(cropSrc);
     } catch (error) {
       console.error('Crop/upload error:', error);
+      const wasCropError = !error.code && !error._isUploadError;
       setUploading(false);
       setCropProcessing(false);
+      setProgress(0);
       setPreview(value || '');
-      alert('Photo upload failed. Please try again.\n' + error.message);
+      let msg;
+      if (wasCropError) {
+        msg = `Image processing failed: ${error.message || 'Could not crop the image. Please try a different photo.'}`;
+      } else {
+        msg = `Upload failed: ${error.message}`;
+      }
+      alert(msg);
     }
   };
 
@@ -335,6 +369,26 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
         <span style={{ fontSize: 10, color: '#22c55e', display: 'flex', alignItems: 'center', gap: 4 }}>
           <Check size={10} /> Uploaded
         </span>
+      )}
+
+      {/* Processing overlay — covers screen while cropping/compressing */}
+      {cropProcessing && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 200000,
+          gap: 16,
+        }}>
+          <Loader size={40} className="spin" style={{ color: '#0055ff' }} />
+          <span style={{ color: '#fff', fontSize: 15, fontWeight: 600 }}>
+            Cropping & compressing image…
+          </span>
+        </div>
       )}
 
       {/* Crop Modal */}
