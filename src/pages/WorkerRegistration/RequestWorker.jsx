@@ -771,8 +771,8 @@ const RequestWorker = () => {
           <input type="text" placeholder="Filter..." style={s.searchInput} onChange={(e) => setSearchText(e.target.value)} />
         </div>
         <ExportToolbar rows={filteredRows} columnDefs={columnDefs} title="Worker Requests" filename="worker-requests" />
-        <button type="button" onClick={() => setShowSettings(true)} style={s.secondaryBtn}>
-          <Settings2 size={16} /> COLUMNS
+        <button type="button" onClick={() => setShowSettings(true)} style={{ ...s.secondaryBtn, padding: '6px', minWidth: 32, justifyContent: 'center' }} title="Column Settings">
+          <Settings2 size={16} />
         </button>
         <button type="button" style={{ ...s.secondaryBtn, display: 'flex', alignItems: 'center', gap: 8 }} onClick={() => setShowBulkModal(true)}>
           <Upload size={16} /> BULK UPLOAD

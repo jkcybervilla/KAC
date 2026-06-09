@@ -289,8 +289,8 @@ const WorkActivity = () => {
         <button onClick={() => { setFormData(EMPTY_FORM); setEditingId(null); setShowModal(true); }} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
           <Plus size={18} /> NEW ACTIVITY
         </button>
-        <button type="button" onClick={() => setShowSettings(true)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: '10px 16px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px' }}>
-          <Settings2 size={16} /> COLUMNS
+        <button type="button" onClick={() => setShowSettings(true)} style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text)', padding: '8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34 }} title="Column Settings">
+          <Settings2 size={16} />
         </button>
       </div>
 

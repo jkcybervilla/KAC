@@ -3,18 +3,50 @@ import { auth, db } from '../config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import {
+  isWebAuthnSupported,
+  isPlatformAuthenticatorAvailable,
+  registerBiometricCredential,
+  authenticateWithBiometric
+} from '../utils/pwa';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+  const [showBiometricSetup, setShowBiometricSetup] = useState(false);
+  const [lastUserId, setLastUserId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    async function checkBiometric() {
+      // Check if we have a stored credential and platform authenticator
+      const stored = JSON.parse(localStorage.getItem('kac_webauthn_creds') || '{}');
+      const userIds = Object.keys(stored);
+      if (userIds.length > 0) {
+        setLastUserId(userIds[0]);
+      }
+
+      const available = localStorage.getItem('kac_biometric_available') === 'true';
+      if (available) {
+        setBiometricAvailable(true);
+        return;
+      }
+
+      // Fallback to runtime check
+      const hasBiometric = await isPlatformAuthenticatorAvailable();
+      setBiometricAvailable(hasBiometric);
+    }
+    checkBiometric();
   }, []);
 
   const handleLogin = async (e) => {
@@ -26,6 +58,14 @@ const Login = () => {
       const userDoc = await getDoc(doc(db, "users", userIdText));
 
       if (userDoc.exists()) {
+        // Check if biometric is available and offer to set up
+        const hasBiometric = await isPlatformAuthenticatorAvailable();
+        if (hasBiometric) {
+          const stored = JSON.parse(localStorage.getItem('kac_webauthn_creds') || '{}');
+          if (!stored[userIdText]) {
+            setShowBiometricSetup(true);
+          }
+        }
         navigate('/dashboard');
       }
     } catch (error) {
@@ -33,6 +73,37 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBiometricLogin = async () => {
+    if (!lastUserId) return;
+    setBiometricLoading(true);
+    try {
+      const result = await authenticateWithBiometric(lastUserId);
+      if (result) {
+        // Biometric verified — now sign in with stored email
+        const stored = JSON.parse(localStorage.getItem('kac_webauthn_creds') || '{}');
+        const credData = stored[lastUserId];
+        // Re-fetch user data and navigate
+        const userDoc = await getDoc(doc(db, "users", lastUserId));
+        if (userDoc.exists()) {
+          navigate('/dashboard');
+        }
+      } else {
+        alert('Biometric authentication failed. Please use email & password.');
+      }
+    } catch (error) {
+      console.error('Biometric login error:', error);
+      alert('Biometric authentication failed.');
+    } finally {
+      setBiometricLoading(false);
+    }
+  };
+
+  const handleSetupBiometric = async () => {
+    if (!lastUserId) return;
+    await registerBiometricCredential(lastUserId, email);
+    setShowBiometricSetup(false);
   };
 
   return (
@@ -96,6 +167,34 @@ const Login = () => {
               {loading ? "VERIFYING..." : "AUTHORIZE ENTRY"}
             </button>
           </form>
+
+          {/* Biometric Login Button */}
+          {biometricAvailable && lastUserId && !showBiometricSetup && (
+            <button
+              onClick={handleBiometricLogin}
+              style={styles.biometricButton}
+              disabled={biometricLoading}
+            >
+              {biometricLoading ? 'AUTHENTICATING...' : '🔒 SIGN IN WITH BIOMETRIC'}
+            </button>
+          )}
+
+          {/* Divider */}
+          {(biometricAvailable || showBiometricSetup) && (
+            <div style={styles.divider}>
+              <span style={styles.dividerText}>OR</span>
+            </div>
+          )}
+
+          {/* Biometric Setup (shown after first login if biometric available) */}
+          {showBiometricSetup && (
+            <button
+              onClick={handleSetupBiometric}
+              style={styles.biometricSetupButton}
+            >
+              ✨ ENABLE FINGERPRINT / FACE LOGIN
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -166,7 +265,47 @@ const styles = {
     fontSize: '13px', 
     letterSpacing: '2px',
     marginTop: '20px'
-  }
+  },
+  biometricButton: {
+    width: '100%',
+    padding: '16px',
+    backgroundColor: '#0055ff',
+    color: '#fff',
+    border: 'none',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    fontSize: '13px',
+    letterSpacing: '1px',
+    marginTop: '16px',
+    borderRadius: '4px',
+  },
+  biometricSetupButton: {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: '#f0f4ff',
+    color: '#0055ff',
+    border: '1px solid #0055ff',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    fontSize: '12px',
+    letterSpacing: '1px',
+    marginTop: '8px',
+    borderRadius: '4px',
+  },
+  divider: {
+    display: 'flex',
+    alignItems: 'center',
+    margin: '16px 0',
+  },
+  dividerText: {
+    fontSize: '11px',
+    color: '#ccc',
+    letterSpacing: '2px',
+    fontWeight: 'bold',
+  },
+  form: {
+    width: '100%',
+  },
 };
 
 export default Login;

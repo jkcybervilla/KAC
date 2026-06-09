@@ -19,10 +19,17 @@ import AttendanceHub from './pages/Attendance/AttendanceHub';
 import StaffManagement from './pages/user/StaffManagement';
 import ActivityLog from './pages/admin/ActivityLog';
 import ProtectedRoute from './components/ProtectedRoute';
+import PwaInitializer from './components/PwaInitializer';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
+import { useAuth } from './context/AuthContext';
 
-function App() {
+function AppContent() {
+  const { userId, userEmail } = useAuth();
+
   return (
-    <Router>
+    <>
+      <PwaInitializer userId={userId} userEmail={userEmail} />
+      <PwaInstallPrompt />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'accountant', 'coordinator', 'hr_assistant', 'super_admin', 'executive_assistant']}><Dashboard /></ProtectedRoute>} />
@@ -43,6 +50,14 @@ function App() {
         <Route path="/vendor-management" element={<ProtectedRoute roles={['admin']}><VendorManagement /></ProtectedRoute>} />
         <Route path="/activity-log" element={<ProtectedRoute roles={['admin']}><ActivityLog /></ProtectedRoute>} />
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }

@@ -408,8 +408,8 @@ const ProjectsPage = () => {
           <button type="button" onClick={() => setShowCreateModal(true)} style={s.primaryBtn}>
             <Plus size={18} /> CREATE NEW PROJECT
           </button>
-          <button type="button" onClick={() => setShowSettings(true)} style={s.secondaryBtn}>
-            <Settings2 size={16} /> COLUMNS
+          <button type="button" onClick={() => setShowSettings(true)} style={{ ...s.secondaryBtn, padding: '6px', minWidth: 32, justifyContent: 'center' }} title="Column Settings">
+            <Settings2 size={16} />
           </button>
         </div>
       </header>

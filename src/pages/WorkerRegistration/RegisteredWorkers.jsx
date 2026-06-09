@@ -664,8 +664,8 @@ const RegisteredWorkers = () => {
           <option value="has">{attendanceLoading ? 'LOADING...' : 'HAS ATTENDANCE'}</option>
         </select>
         <ExportToolbar rows={displayedWorkers} columnDefs={columnDefs} title="Worker Register" filename="worker-register" />
-        <button type="button" onClick={() => setShowSettings(true)} style={s.secondaryBtn}>
-          <Settings2 size={16} /> COLUMNS
+        <button type="button" onClick={() => setShowSettings(true)} style={{ ...s.secondaryBtn, padding: '6px', minWidth: 32, justifyContent: 'center' }} title="Column Settings">
+          <Settings2 size={16} />
         </button>
       </div>
       <div style={s.gridSection}>

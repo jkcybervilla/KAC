@@ -55,6 +55,8 @@ export const AuthProvider = ({ children }) => {
         user,
         profile,
         loading,
+        userId: user?.uid || null,
+        userEmail: user?.email || profile?.email || null,
         isAdmin,
         isAccountant,
         isCoordinator,
