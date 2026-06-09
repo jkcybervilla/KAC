@@ -5,10 +5,11 @@ const ROUTE_STORAGE_KEY = 'kac_last_route';
 
 /**
  * Custom hook that persists the current route to sessionStorage
- * and restores it on page load/refresh.
+ * so on refresh the app can stay on the same page.
  * 
- * Also fixes Android back button behavior by using history.pushState
- * to ensure proper in-app navigation instead of closing the app.
+ * Also fixes Android back button — uses a history stack approach:
+ * pushes an extra history entry so that back button navigates
+ * within the app instead of closing it.
  */
 export function useRoutePersistence() {
   const location = useLocation();
@@ -25,46 +26,49 @@ export function useRoutePersistence() {
     }
   }, [location.pathname, location.search]);
 
-  // Restore saved route on mount (handles page refresh)
+  // Fix Android back button: use history.pushState to create in-app navigation stack
   useEffect(() => {
-    const savedRoute = getSavedRoute();
-    const currentPath = location.pathname;
-
-    // If we're on login page but user was previously on a protected page,
-    // don't redirect — let auth flow handle it.
-    // Only redirect if:
-    // 1. There's a saved route
-    // 2. Current route is root (/)
-    // 3. The saved route is not the login page
-    // 4. User is likely authenticated (check localStorage indicator)
-    if (
-      savedRoute &&
-      savedRoute !== '/' &&
-      currentPath === '/' &&
-      isAuthenticated()
-    ) {
-      navigate(savedRoute, { replace: true });
+    // Push an initial history state so back button goes here first before closing
+    if (location.pathname !== '/') {
+      window.history.pushState({ page: location.pathname }, '', location.pathname);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fix Android back button: intercept popstate to navigate within app
-  useEffect(() => {
-    // Push an extra history state so back button goes to previous app page
-    // instead of closing the app
-    const handlePopState = () => {
-      // If we're at the root, let the default behavior (closing app) happen
-      if (location.pathname === '/') return;
-
-      // Otherwise, navigate back within the app
+    const handlePopState = (event) => {
+      // When user presses back, navigate to previous page within app
       const savedRoute = getSavedRoute();
+      
+      // If at root, let back button close the app
+      if (location.pathname === '/') {
+        return;
+      }
+
+      // If there's a saved route, navigate to it (going back within app)
       if (savedRoute && savedRoute !== location.pathname) {
-        navigate(savedRoute, { replace: false });
+        event.preventDefault?.();
+        navigate(savedRoute, { replace: true });
+      } else {
+        // No saved route — navigate to login/home
+        navigate('/', { replace: true });
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [location.pathname, navigate]);
+
+  // Restore saved route on mount when user refreshes while authenticated
+  useEffect(() => {
+    const savedRoute = getSavedRoute();
+    const currentPath = location.pathname;
+
+    if (savedRoute && savedRoute !== '/' && currentPath === '/') {
+      // Check if user has a Firebase auth session
+      const hasSession = checkAuthSession();
+      if (hasSession) {
+        navigate(savedRoute, { replace: true });
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /**
@@ -79,17 +83,21 @@ export function getSavedRoute() {
 }
 
 /**
- * Check if user has an auth session (Firebase user stored)
+ * Check if user has an active Firebase auth session
  */
-function isAuthenticated() {
+function checkAuthSession() {
   try {
-    // Check if Firebase auth persistence has a user
-    const hasFirebaseUser = localStorage.getItem('firebase:authUser:AIzaSyCHe7MIUeyiaCTLQM7AN7uG8Q2DUt9XO4o:com.kac.official');
-    if (hasFirebaseUser) return true;
-    
-    // Fallback: check our own auth indicator
+    // Firebase stores indexedDB user data; also check localStorage
     const authState = localStorage.getItem('kac_auth_state');
-    return authState === 'authenticated';
+    if (authState === 'authenticated') return true;
+
+    // Check firebase indexedDB persistence
+    const firebaseKey = Object.keys(localStorage).find(k => 
+      k.startsWith('firebase:authUser')
+    );
+    if (firebaseKey && localStorage.getItem(firebaseKey)) return true;
+
+    return false;
   } catch {
     return false;
   }

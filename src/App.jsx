@@ -27,8 +27,13 @@ import { useAuth } from './context/AuthContext';
 import { useAppLock } from './context/AppLockContext';
 import { useRoutePersistence } from './hooks/useRoutePersistence';
 
+/**
+ * Inner component that uses hooks requiring AuthContext and AppLockContext.
+ * Renders LockScreen and SetupLock as OVERLAYS on top of the normal app
+ * so that auth/routing logic continues to work underneath.
+ */
 function AppContent() {
-  const { userId, userEmail } = useAuth();
+  const { userId, userEmail, loading: authLoading } = useAuth();
   const {
     isLocked,
     needsSetup,
@@ -39,8 +44,8 @@ function AppContent() {
   // Initialize route persistence (fixes refresh + back button)
   useRoutePersistence();
 
-  // Show loading while app lock initializes
-  if (appLockLoading) {
+  // Show loading while auth and app lock initialize
+  if (authLoading || appLockLoading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -50,24 +55,16 @@ function AppContent() {
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '14px',
+        fontFamily: 'sans-serif',
       }}>
         Loading...
       </div>
     );
   }
 
-  // Show app lock screen if locked (cold start or from background)
-  if (isLocked) {
-    return <LockScreen />;
-  }
-
-  // Show setup lock screen on first login
-  if (needsSetup && !setupComplete) {
-    return <SetupLock onComplete={() => setSetupComplete(true)} />;
-  }
-
   return (
     <>
+      {/* NORMAL APP CONTENT — always rendered */}
       <PwaInitializer userId={userId} userEmail={userEmail} />
       <PwaInstallPrompt />
       <Routes>
@@ -90,6 +87,14 @@ function AppContent() {
         <Route path="/vendor-management" element={<ProtectedRoute roles={['admin']}><VendorManagement /></ProtectedRoute>} />
         <Route path="/activity-log" element={<ProtectedRoute roles={['admin']}><ActivityLog /></ProtectedRoute>} />
       </Routes>
+
+      {/* APP LOCK OVERLAY — rendered on top of everything when locked */}
+      {isLocked && <LockScreen />}
+
+      {/* SETUP LOCK OVERLAY — rendered on top when first login & no lock configured */}
+      {needsSetup && !setupComplete && (
+        <SetupLock onComplete={() => setSetupComplete(true)} />
+      )}
     </>
   );
 }

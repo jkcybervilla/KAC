@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import SecuritySettings from '../../components/SecuritySettings';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, updateDoc, doc } from 'firebase/firestore';
@@ -36,6 +37,9 @@ const AdminDashboard = () => {
     activityPending: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false);
+  const userMenuRef = useRef(null);
 
   // Get current batch
   const now = new Date();
@@ -61,11 +65,14 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Close notification panel when clicking outside
+  // Close notification panel and user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setShowNotifications(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -318,9 +325,27 @@ const menuItems = [
               </div>
             )}
           </div>
-            <div style={styles.profile}>
-              <div style={styles.avatar}>A</div>
-              <span>ADMIN</span>
+            <div style={{ position: 'relative' }} ref={userMenuRef}>
+              <div
+                style={{ ...styles.profile, cursor: 'pointer' }}
+                onClick={() => setShowUserMenu(!showUserMenu)}
+              >
+                <div style={styles.avatar}>A</div>
+                <span>ADMIN</span>
+              </div>
+              {showUserMenu && (
+                <div style={styles.userMenu}>
+                  <div style={styles.userMenuItem} onClick={() => { setShowUserMenu(false); setShowSecuritySettings(true); }}>
+                    <span style={styles.userMenuIcon}>🔒</span>
+                    <span>Security Settings</span>
+                  </div>
+                  <div style={styles.userMenuDivider} />
+                  <div style={{ ...styles.userMenuItem, color: '#ef4444' }} onClick={() => { setShowUserMenu(false); handleLogout(); }}>
+                    <span style={styles.userMenuIcon}>🚪</span>
+                    <span>Logout</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -448,6 +473,9 @@ const menuItems = [
           )}
         </div>
       </div>
+      {showSecuritySettings && (
+        <SecuritySettings onClose={() => setShowSecuritySettings(false)} />
+      )}
     </div>
   );
 };
@@ -937,6 +965,32 @@ const styles = {
   notifItemMeta: { margin: '4px 0 0', fontSize: 11, color: '#666' },
   profile: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px' },
   avatar: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#0055ff', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold' },
+  userMenu: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: 12,
+    width: 220,
+    backgroundColor: '#0a0a0a',
+    border: '1px solid #1a1a1a',
+    borderRadius: 12,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+    zIndex: 1000,
+    overflow: 'hidden',
+  },
+  userMenuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '14px 16px',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#fff',
+    transition: 'background 0.2s',
+  },
+  userMenuIcon: { fontSize: 16, width: 24, textAlign: 'center' },
+  userMenuDivider: { height: 1, backgroundColor: '#1a1a1a', margin: 0 },
 
   content: { padding: '40px', overflowY: 'auto', flex: 1 },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '30px' },
