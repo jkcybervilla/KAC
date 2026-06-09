@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SecuritySettings from '../../components/SecuritySettings';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../config/firebase';
+import { isTwaMode } from '../../utils/pwa';
 import { collection, getDocs, query, orderBy, updateDoc, doc } from 'firebase/firestore';
 import {
   LayoutDashboard, Folder, Users, ClipboardCheck,
@@ -40,6 +41,7 @@ const AdminDashboard = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
   const userMenuRef = useRef(null);
+  const twaMode = isTwaMode();
 
   // Get current batch
   const now = new Date();
@@ -335,11 +337,16 @@ const menuItems = [
               </div>
               {showUserMenu && (
                 <div style={styles.userMenu}>
-                  <div style={styles.userMenuItem} onClick={() => { setShowUserMenu(false); setShowSecuritySettings(true); }}>
-                    <span style={styles.userMenuIcon}>🔒</span>
-                    <span>Security Settings</span>
-                  </div>
-                  <div style={styles.userMenuDivider} />
+                  {/* Only show Security Settings in TWA mode */}
+                  {twaMode && (
+                    <>
+                      <div style={styles.userMenuItem} onClick={() => { setShowUserMenu(false); setShowSecuritySettings(true); }}>
+                        <span style={styles.userMenuIcon}>🔒</span>
+                        <span>Security Settings</span>
+                      </div>
+                      <div style={styles.userMenuDivider} />
+                    </>
+                  )}
                   <div style={{ ...styles.userMenuItem, color: '#ef4444' }} onClick={() => { setShowUserMenu(false); handleLogout(); }}>
                     <span style={styles.userMenuIcon}>🚪</span>
                     <span>Logout</span>
@@ -473,7 +480,7 @@ const menuItems = [
           )}
         </div>
       </div>
-      {showSecuritySettings && (
+      {twaMode && showSecuritySettings && (
         <SecuritySettings onClose={() => setShowSecuritySettings(false)} />
       )}
     </div>

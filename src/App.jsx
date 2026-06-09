@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Login from './pages/login';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -25,12 +25,56 @@ import LockScreen from './components/LockScreen';
 import SetupLock from './components/SetupLock';
 import { useAuth } from './context/AuthContext';
 import { useAppLock } from './context/AppLockContext';
-import { useRoutePersistence } from './hooks/useRoutePersistence';
+import { isTwaMode } from './utils/pwa';
+
+/**
+ * Routes considered "home/dashboard" — back button on these closes the app.
+ * All other routes will navigate back in history.
+ */
+const HOME_ROUTES = new Set([
+  '/',
+  '/dashboard',
+  '/admin',
+  '/accountant',
+  '/coordinator',
+  '/hr-assistant',
+  '/super-admin',
+  '/executive-assistant',
+]);
+
+/**
+ * Custom hook that intercepts the back button (popstate) to navigate
+ * within the app using React Router instead of closing the app.
+ * When on a home/dashboard route, default browser behavior is allowed.
+ */
+function useBackButtonNavigation() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentPath = window.location.pathname;
+
+      // If on a home/dashboard page, allow default behavior (close app / go back)
+      if (HOME_ROUTES.has(currentPath)) {
+        return;
+      }
+
+      // Navigate back in React Router history
+      navigate(-1);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
+}
 
 /**
  * Inner component that uses hooks requiring AuthContext and AppLockContext.
  * Renders LockScreen and SetupLock as OVERLAYS on top of the normal app
  * so that auth/routing logic continues to work underneath.
+ *
+ * Lock/PIN features are ONLY available when running as TWA (Android app).
+ * In regular browser, all lock features are skipped entirely.
  */
 function AppContent() {
   const { userId, userEmail, loading: authLoading } = useAuth();
@@ -41,8 +85,11 @@ function AppContent() {
   } = useAppLock();
   const [setupComplete, setSetupComplete] = useState(false);
 
-  // Initialize route persistence (fixes refresh + back button)
-  useRoutePersistence();
+  // Determine if we're running as TWA / Android
+  const twaMode = useMemo(() => isTwaMode(), []);
+
+  // Initialize back button navigation (fixes refresh + back button)
+  useBackButtonNavigation();
 
   // Show loading while auth and app lock initialize
   if (authLoading || appLockLoading) {
@@ -88,11 +135,11 @@ function AppContent() {
         <Route path="/activity-log" element={<ProtectedRoute roles={['admin']}><ActivityLog /></ProtectedRoute>} />
       </Routes>
 
-      {/* APP LOCK OVERLAY — rendered on top of everything when locked */}
-      {isLocked && <LockScreen />}
+      {/* APP LOCK OVERLAY — ONLY in TWA mode on top of everything when locked */}
+      {twaMode && isLocked && <LockScreen />}
 
-      {/* SETUP LOCK OVERLAY — rendered on top when first login & no lock configured */}
-      {needsSetup && !setupComplete && (
+      {/* SETUP LOCK OVERLAY — ONLY in TWA mode when first login & no lock configured */}
+      {twaMode && needsSetup && !setupComplete && (
         <SetupLock onComplete={() => setSetupComplete(true)} />
       )}
     </>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { auth } from '../config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { isTwaMode } from '../utils/pwa';
 import {
   isWebAuthnSupported,
   isPlatformAuthenticatorAvailable,
@@ -87,6 +88,9 @@ function clearSession() {
  * - Supports biometric (WebAuthn) with PIN fallback
  * - Stores active session in sessionStorage to avoid lock on page refresh
  * - Tracks background time via visibilitychange to lock after 5 min inactivity
+ *
+ * ALL lock features are ONLY active when app runs as TWA (Android).
+ * In regular browser mode, lock is completely bypassed.
  */
 export function AppLockProvider({ children }) {
   const [isLocked, setIsLocked] = useState(false);
@@ -98,6 +102,9 @@ export function AppLockProvider({ children }) {
   const [lockType, setLockType] = useState(null);
   const [setupMode, setSetupMode] = useState(null);
 
+  // Check if app is running as TWA
+  const twaMode = isTwaMode();
+
   // Track if auth was ever detected (to avoid premature setup prompt)
   const hasAuthFired = useRef(false);
   // Timestamp when app went to background
@@ -105,8 +112,20 @@ export function AppLockProvider({ children }) {
   // Ref to check if session was already evaluated on mount
   const sessionEvaluatedRef = useRef(false);
 
+  // If NOT in TWA mode, skip all lock logic and just render children
+  // This ensures lock features are ONLY available on Android TWA
+  useEffect(() => {
+    if (!twaMode) {
+      console.debug('[AppLock] Not in TWA mode — skipping all lock features');
+      setLoading(false);
+    }
+  }, [twaMode]);
+
   // Check auth state and app lock configuration
   useEffect(() => {
+    // Skip all lock logic in non-TWA mode
+    if (!twaMode) return;
+
     console.debug('[AppLock] Subscribing to auth state changes');
     const unsub = onAuthStateChanged(auth, async (user) => {
       console.debug('[AppLock] Auth state changed. User:', user?.uid || null);
@@ -171,11 +190,14 @@ export function AppLockProvider({ children }) {
       console.debug('[AppLock] Unsubscribing auth listener');
       unsub();
     };
-  }, []);
+  }, [twaMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle app coming from background (visibility change)
   // Lock only if more than 5 minutes have passed
   useEffect(() => {
+    // Skip visibility tracking in non-TWA mode
+    if (!twaMode) return;
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         // App going to background — record the time
@@ -203,10 +225,13 @@ export function AppLockProvider({ children }) {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isSetup, currentUserId]);
+  }, [isSetup, currentUserId, twaMode]);
 
   // Check biometric availability
   useEffect(() => {
+    // Skip biometric checks in non-TWA mode
+    if (!twaMode) return;
+
     async function checkBiometric() {
       const supported = isWebAuthnSupported();
       if (!supported) {
@@ -219,7 +244,7 @@ export function AppLockProvider({ children }) {
       setBiometricAvailable(available);
     }
     checkBiometric();
-  }, []);
+  }, [twaMode]);
 
   /**
    * After successful unlock, mark session as active
@@ -334,7 +359,7 @@ export function AppLockProvider({ children }) {
   }, [currentUserId]);
 
   /**
-   * Issue #1: Change PIN — updates the PIN hash in lock state
+   * Change PIN — updates the PIN hash in lock state
    */
   const changePin = useCallback(async (newPin) => {
     if (!currentUserId) {
@@ -361,7 +386,7 @@ export function AppLockProvider({ children }) {
   }, [currentUserId, setupPinLock]);
 
   /**
-   * Issue #1: Toggle biometric — enable/disable biometric without changing PIN
+   * Toggle biometric — enable/disable biometric without changing PIN
    */
   const toggleBiometric = useCallback(async () => {
     if (!currentUserId) {
@@ -402,7 +427,7 @@ export function AppLockProvider({ children }) {
   }, [currentUserId]);
 
   /**
-   * Issue #1: Reset lock setup — clear lock state so user is prompted to set up again
+   * Reset lock setup — clear lock state so user is prompted to set up again
    */
   const resetLockSetup = useCallback(() => {
     if (!currentUserId) {
@@ -429,7 +454,28 @@ export function AppLockProvider({ children }) {
     return true;
   }, [currentUserId]);
 
-  const value = {
+  // Provide default lock state when not in TWA mode
+  const lockState = !twaMode ? {
+    isLocked: false,
+    isSetup: false,
+    needsSetup: false,
+    biometricAvailable: false,
+    loading: false,
+    lockType: null,
+    setupMode: null,
+    setSetupMode: () => {},
+    setupPinLock: async () => false,
+    setupBiometricLock: async () => false,
+    setupFullLock: async () => false,
+    unlockWithBiometric: async () => false,
+    unlockWithPin: async () => false,
+    changePin: async () => false,
+    toggleBiometric: async () => false,
+    resetLockSetup: () => false,
+    markSessionAfterUnlock: () => {},
+  } : null;
+
+  const value = lockState || {
     isLocked,
     isSetup,
     needsSetup,
@@ -443,11 +489,9 @@ export function AppLockProvider({ children }) {
     setupFullLock,
     unlockWithBiometric,
     unlockWithPin,
-    // New methods for Issue #1
     changePin,
     toggleBiometric,
     resetLockSetup,
-    // Expose markSessionAfterUnlock for external unlock handlers
     markSessionAfterUnlock,
   };
 

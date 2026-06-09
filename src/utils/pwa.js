@@ -270,7 +270,33 @@ export function onOnlineStatus(callback) {
 }
 
 // ──────────────────────────────────────────────
-// 5. UTILITY HELPERS
+// 5. TWA MODE DETECTION
+// ──────────────────────────────────────────────
+
+/**
+ * Detect if the app is running as a Trusted Web Activity (TWA) / Android app.
+ * TWA runs in standalone mode with `display-mode: standalone`.
+ * Also checks `document.referrer` for android-app protocol as fallback.
+ * @returns {boolean}
+ */
+export function isTwaMode() {
+  try {
+    // Primary check: standalone display mode (used by TWA)
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      return true;
+    }
+    // Fallback: check referrer for android-app protocol
+    if (document.referrer && document.referrer.includes('android-app://')) {
+      return true;
+    }
+  } catch {
+    // Ignore errors
+  }
+  return false;
+}
+
+// ──────────────────────────────────────────────
+// 6. UTILITY HELPERS
 // ──────────────────────────────────────────────
 
 function arrayBufferToBase64(buffer) {
