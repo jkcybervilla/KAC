@@ -490,4 +490,11 @@ export const useAppLock = () => {
   return ctx;
 };
 
+/**
+ * Export markSessionActive for external use (e.g., from login page)
+ * so that after successful login, the session is marked active.
+ * This prevents PIN screen on refresh — only shows on cold start.
+ */
+export { markSessionActive, clearSession };
+
 export default AppLockContext;

@@ -1,55 +1,77 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const ROUTE_STORAGE_KEY = 'kac_last_route';
+const HISTORY_STACK_KEY = 'kac_history_stack';
 
 /**
- * Custom hook that persists the current route to sessionStorage
- * so on refresh the app can stay on the same page.
- * 
- * Also fixes Android back button — uses a history stack approach:
- * pushes an extra history entry so that back button navigates
- * within the app instead of closing it.
+ * Routes considered "home/dashboard" — back button on these closes the app.
+ * All other routes will navigate back in history.
+ */
+const HOME_ROUTES = new Set([
+  '/',
+  '/dashboard',
+  '/admin',
+  '/accountant',
+  '/coordinator',
+  '/hr-assistant',
+  '/super-admin',
+  '/executive-assistant',
+]);
+
+/**
+ * Custom hook that:
+ * 1. Persists the current route to sessionStorage (for refresh restore)
+ * 2. Intercepts back button (popstate) to navigate(-1) within the app
+ *    instead of closing it, unless user is on a home/dashboard page.
  */
 export function useRoutePersistence() {
   const location = useLocation();
   const navigate = useNavigate();
+  const historyStack = useRef([]);
 
-  // Save current route whenever it changes (excluding login page)
+  // Track navigation history in sessionStorage
   useEffect(() => {
     if (location.pathname !== '/') {
+      // Save current route for refresh restore
       try {
         sessionStorage.setItem(ROUTE_STORAGE_KEY, location.pathname + location.search);
-      } catch {
-        // sessionStorage may not be available
-      }
+      } catch { /* ignore */ }
     }
+
+    // Maintain a simple history stack in sessionStorage
+    try {
+      const prev = JSON.parse(sessionStorage.getItem(HISTORY_STACK_KEY) || '[]');
+      const last = prev[prev.length - 1];
+      if (last !== location.pathname + location.search) {
+        prev.push(location.pathname + location.search);
+        // Keep max 50 entries
+        if (prev.length > 50) prev.shift();
+        sessionStorage.setItem(HISTORY_STACK_KEY, JSON.stringify(prev));
+      }
+      historyStack.current = prev;
+    } catch { /* ignore */ }
   }, [location.pathname, location.search]);
 
-  // Fix Android back button: use history.pushState to create in-app navigation stack
+  // Intercept back button — use navigate(-1) to go to previous route
   useEffect(() => {
-    // Push an initial history state so back button goes here first before closing
-    if (location.pathname !== '/') {
-      window.history.pushState({ page: location.pathname }, '', location.pathname);
+    // Push a dummy state so popstate fires on back press
+    // Only push if not already on a home route to avoid stacking
+    if (!HOME_ROUTES.has(location.pathname)) {
+      window.history.pushState({ from: location.pathname }, '');
     }
 
-    const handlePopState = (event) => {
-      // When user presses back, navigate to previous page within app
-      const savedRoute = getSavedRoute();
-      
-      // If at root, let back button close the app
-      if (location.pathname === '/') {
+    const handlePopState = () => {
+      const currentPath = location.pathname;
+
+      // If on a home/dashboard page, let the back button close the app
+      if (HOME_ROUTES.has(currentPath)) {
+        // Allow default behavior (browser closes app / goes back)
         return;
       }
 
-      // If there's a saved route, navigate to it (going back within app)
-      if (savedRoute && savedRoute !== location.pathname) {
-        event.preventDefault?.();
-        navigate(savedRoute, { replace: true });
-      } else {
-        // No saved route — navigate to login/home
-        navigate('/', { replace: true });
-      }
+      // Navigate back in history using React Router
+      navigate(-1);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -62,7 +84,6 @@ export function useRoutePersistence() {
     const currentPath = location.pathname;
 
     if (savedRoute && savedRoute !== '/' && currentPath === '/') {
-      // Check if user has a Firebase auth session
       const hasSession = checkAuthSession();
       if (hasSession) {
         navigate(savedRoute, { replace: true });
@@ -87,11 +108,9 @@ export function getSavedRoute() {
  */
 function checkAuthSession() {
   try {
-    // Firebase stores indexedDB user data; also check localStorage
     const authState = localStorage.getItem('kac_auth_state');
     if (authState === 'authenticated') return true;
 
-    // Check firebase indexedDB persistence
     const firebaseKey = Object.keys(localStorage).find(k => 
       k.startsWith('firebase:authUser')
     );
