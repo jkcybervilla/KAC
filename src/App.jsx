@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/login';
 import Dashboard from './pages/Dashboard';
@@ -21,10 +21,50 @@ import ActivityLog from './pages/admin/ActivityLog';
 import ProtectedRoute from './components/ProtectedRoute';
 import PwaInitializer from './components/PwaInitializer';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import LockScreen from './components/LockScreen';
+import SetupLock from './components/SetupLock';
 import { useAuth } from './context/AuthContext';
+import { useAppLock } from './context/AppLockContext';
+import { useRoutePersistence } from './hooks/useRoutePersistence';
 
 function AppContent() {
   const { userId, userEmail } = useAuth();
+  const {
+    isLocked,
+    needsSetup,
+    loading: appLockLoading,
+  } = useAppLock();
+  const [setupComplete, setSetupComplete] = useState(false);
+
+  // Initialize route persistence (fixes refresh + back button)
+  useRoutePersistence();
+
+  // Show loading while app lock initializes
+  if (appLockLoading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#050505',
+        color: '#666',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '14px',
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  // Show app lock screen if locked (cold start or from background)
+  if (isLocked) {
+    return <LockScreen />;
+  }
+
+  // Show setup lock screen on first login
+  if (needsSetup && !setupComplete) {
+    return <SetupLock onComplete={() => setSetupComplete(true)} />;
+  }
 
   return (
     <>

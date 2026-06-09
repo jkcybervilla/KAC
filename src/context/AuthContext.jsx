@@ -16,10 +16,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setProfile(null);
         setLoading(false);
+        try {
+          localStorage.setItem('kac_auth_state', 'unauthenticated');
+        } catch { /* ignore */ }
         return;
       }
       setUser(firebaseUser);
       try {
+        localStorage.setItem('kac_auth_state', 'authenticated');
         const snap = await getDoc(doc(db, 'users', String(firebaseUser.uid)));
         if (snap.exists()) {
           const data = snap.data();

@@ -3,18 +3,29 @@ import { useState, useEffect } from 'react';
 /**
  * PwaInstallPrompt — shows an "Install App" banner when the beforeinstallprompt
  * event fires (Chrome on Android / some desktop browsers).
+ * Only shows on mobile devices (screen width < 768px).
  */
 export default function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const handler = (e) => {
       // Prevent the mini-infobar from appearing
       e.preventDefault();
-      // Save the event so we can trigger it later
-      setDeferredPrompt(e);
-      setShowPrompt(true);
+      // Only show on mobile devices (screen width < 768px)
+      if (window.innerWidth < 768) {
+        // Save the event so we can trigger it later
+        setDeferredPrompt(e);
+        setShowPrompt(true);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -38,7 +49,7 @@ export default function PwaInstallPrompt() {
     setDeferredPrompt(null);
   };
 
-  if (!showPrompt) return null;
+  if (!showPrompt || !isMobile) return null;
 
   return (
     <div style={styles.overlay}>
