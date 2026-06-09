@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg', 'LOGO 1.png'],
+      includeAssets: ['favicon.svg', 'icons.svg'],
       manifest: {
         name: 'KAC OFFICIAL',
         short_name: 'KAC',
@@ -20,19 +20,19 @@ export default defineConfig({
         orientation: 'portrait-primary',
         icons: [
           {
-            src: '/LOGO 1.png',
+            src: '/icons/icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/LOGO 1.png',
+            src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/LOGO 1.png',
+            src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'

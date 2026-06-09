@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import ThemeToggle from '../../components/ThemeToggle';
 import AdminChat from '../../components/AdminChat';
 import { useAuth } from '../../context/AuthContext';
-import KACLogo from '../../assets/LOGO 1.png';
+import KACLogo from '../../assets/logo.png';
 
 const AdminDashboard = () => {
   const { profile } = useAuth();

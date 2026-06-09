@@ -10,7 +10,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Clock4
 } from 'lucide-react';
 import ThemeToggle from '../../components/ThemeToggle';
-import KACLogo from '../../assets/LOGO 1.png';
+import KACLogo from '../../assets/logo.png';
 
 const ActivityLog = () => {
   const navigate = useNavigate();
