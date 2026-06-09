@@ -3,6 +3,7 @@ import {
   registerSW,
   subscribeToPush,
   isPlatformAuthenticatorAvailable,
+  getRegistration,
 } from '../utils/pwa';
 import { db } from '../config/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -12,7 +13,7 @@ const VAPID_PUBLIC_KEY = 'BKxvVuqIGoY1c66eJ1rsfaGH4UlVmq7uhyg3aA6hF047qzL1DtD_NE
 
 /**
  * PwaInitializer — mounts once to:
- *   1. Register the service worker
+ *   1. Register the service worker (via vite-plugin-pwa virtual module)
  *   2. Sync existing push subscription
  *   3. Check WebAuthn availability
  *
@@ -26,12 +27,11 @@ export default function PwaInitializer({ userId, userEmail }) {
     initialized.current = true;
 
     async function init() {
-      // 1. Register service worker
-      const registration = await registerSW();
-      if (!registration) return;
+      // 1. Register service worker via vite-plugin-pwa virtual module
+      const { registration } = await registerSW();
 
       // 2. Subscribe to push notifications if user is logged in
-      if (userId && VAPID_PUBLIC_KEY) {
+      if (userId && VAPID_PUBLIC_KEY && registration) {
         const subscription = await subscribeToPush(registration, VAPID_PUBLIC_KEY);
         if (subscription) {
           // Send subscription to Firebase Firestore

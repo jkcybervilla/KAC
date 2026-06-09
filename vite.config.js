@@ -7,7 +7,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      injectRegister: null,
+      includeAssets: ['favicon.svg', 'icons.svg', 'icons/icon-192x192.png', 'icons/icon-512x512.png'],
       manifest: {
         name: 'KAC OFFICIAL',
         short_name: 'KAC',
