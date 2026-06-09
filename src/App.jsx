@@ -133,6 +133,10 @@ function AppContent() {
         <Route path="/register-worker" element={<ProtectedRoute roles={['admin']}><WorkerRegisterHub /></ProtectedRoute>} />
         <Route path="/vendor-management" element={<ProtectedRoute roles={['admin']}><VendorManagement /></ProtectedRoute>} />
         <Route path="/activity-log" element={<ProtectedRoute roles={['admin']}><ActivityLog /></ProtectedRoute>} />
+        {/* Catch /sw.js silently — the service worker auto-update module may trigger
+            a navigation to this path. Without a matching route, React Router shows
+            a blank screen with "No routes matched location /sw.js". */}
+        <Route path="/sw.js" element={null} />
       </Routes>
 
       {/* APP LOCK OVERLAY — ONLY in TWA mode on top of everything when locked */}
