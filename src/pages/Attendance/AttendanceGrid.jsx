@@ -385,53 +385,8 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
 
   return (
     <div>
-      <div style={{ ...s.filterRow, marginBottom: 16 }}>
-        <select style={s.select} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
-          {MONTHS.map((m, i) => (
-            <option key={m} value={i + 1}>
-              {m}
-            </option>
-          ))}
-        </select>
-        <select style={s.select} value={year} onChange={(e) => setYear(Number(e.target.value))}>
-          {[2025, 2026, 2027].map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </select>
-        <select style={s.select} value={project} onChange={(e) => setProject(e.target.value)}>
-          <option value="">All Projects</option>
-          {projects.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        <select style={s.select} value={designation} onChange={(e) => setDesignation(e.target.value)}>
-          <option value="">All Designations</option>
-          {designations.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-        <div style={s.searchBox}>
-          <Search size={16} color="#444" />
-          <input type="text" placeholder="Quick filter..." style={s.searchInput} onChange={(e) => setSearchText(e.target.value)} />
-        </div>
-        <button
-          type="button"
-          style={{
-            ...s.secondaryBtn,
-            borderColor: expandDays ? '#0055ff' : '#222',
-            color: expandDays ? '#fff' : '#888',
-          }}
-          onClick={() => setExpandDays(!expandDays)}
-        >
-          {expandDays ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          {expandDays ? 'HIDE DAYS' : 'SHOW DAYS'}
-        </button>
+      {/* Control bar — always visible */}
+      <div style={{ ...s.filterRow, marginBottom: 4 }}>
         <div ref={settingsRef} style={{ position: 'relative' }}>
           <button
             type="button"
@@ -511,6 +466,77 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
         <ExportToolbar rows={rowData} columnDefs={columnDefs} title={`${type} Attendance ${batchId}`} filename={`attendance-${type}-${batchId}`} />
         <button type="button" style={s.primaryBtn} onClick={saveSheet}>
           <Save size={16} /> SAVE
+        </button>
+      </div>
+
+      {/* Filter bar — toggled by settings panel checkbox */}
+      <div
+        style={{
+          display: showFilterBar ? 'flex' : 'none',
+          gap: '8px',
+          padding: '8px 12px',
+          borderBottom: '1px solid #eee',
+          marginBottom: 12,
+        }}
+      >
+        <input
+          placeholder="Filter..."
+          style={{ flex: 1, padding: '6px 8px', border: '1px solid #ddd', borderRadius: '6px' }}
+        />
+        <select style={{ padding: '6px 8px', border: '1px solid #ddd', borderRadius: '6px' }}>
+          <option>All</option>
+          <option>Present</option>
+          <option>Absent</option>
+        </select>
+      </div>
+
+      {/* Month controls, Quick filter, Show Days — always visible */}
+      <div style={{ ...s.filterRow, marginBottom: 12 }}>
+        <select style={s.select} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
+          {MONTHS.map((m, i) => (
+            <option key={m} value={i + 1}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <select style={s.select} value={year} onChange={(e) => setYear(Number(e.target.value))}>
+          {[2025, 2026, 2027].map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+        <select style={s.select} value={project} onChange={(e) => setProject(e.target.value)}>
+          <option value="">All Projects</option>
+          {projects.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <select style={s.select} value={designation} onChange={(e) => setDesignation(e.target.value)}>
+          <option value="">All Designations</option>
+          {designations.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+        <div style={s.searchBox}>
+          <Search size={16} color="#444" />
+          <input type="text" placeholder="Quick filter..." style={s.searchInput} onChange={(e) => setSearchText(e.target.value)} />
+        </div>
+        <button
+          type="button"
+          style={{
+            ...s.secondaryBtn,
+            borderColor: expandDays ? '#0055ff' : '#222',
+            color: expandDays ? '#fff' : '#888',
+          }}
+          onClick={() => setExpandDays(!expandDays)}
+        >
+          {expandDays ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {expandDays ? 'HIDE DAYS' : 'SHOW DAYS'}
         </button>
       </div>
 

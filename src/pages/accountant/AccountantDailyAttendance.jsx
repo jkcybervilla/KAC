@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/fi
 import { db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import { Search, Save, Eye, EyeOff } from 'lucide-react';
+import { Search, Save } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, countPresent } from '../../utils/attendance';
@@ -130,11 +130,14 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     DESIGNATION: false,
     CLOSE_DATE: false,
   });
-  const [columnDropdownOpen, setColumnDropdownOpen] = useState(false);
   const [savedDates, setSavedDates] = useState(new Set());
   const [fullMonthData, setFullMonthData] = useState([]);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFilterBar, setShowFilterBar] = useState(false);
+  const [columnFiltersEnabled, setColumnFiltersEnabled] = useState(false);
+  const [gridApi, setGridApi] = useState(null);
+  const settingsRef = useRef(null);
   const gridRef = useRef(null);
-  const columnApiRef = useRef(null);
   const workersRef = useRef([]);
   const attMapRef = useRef({});
 
@@ -338,29 +341,50 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     [isEditable, selectedDate, firstDayStr, lastDayStr, canEditThisDate, columnVisibility]
   );
 
-  const subtotal = rows.reduce((s, r) => s + (Number(r.TOTAL_DAY) || 0), 0);
+  const subtotal = rows.reduce((sum, row) => {
+    const totalDay = Number(row.TOTAL_DAY);
+    return Number.isFinite(totalDay) ? sum + totalDay : sum;
+  }, 0);
   const footerRowData = useMemo(() => [{
-    SLNO: '',
-    EMP_ID: '',
+    SLNO: null,
+    EMP_ID: null,
     WORKER_NAME: 'TOTAL',
-    FATHER_NAME: '',
-    REFFERENCE: '',
-    DESIGNATION: '',
-    CLOSE_DATE: '',
-    ATTENDANCE: '',
+    FATHER_NAME: null,
+    REFFERENCE: null,
+    DESIGNATION: null,
+    CLOSE_DATE: null,
+    ATTENDANCE: null,
     TOTAL_DAY: subtotal,
   }], [subtotal]);
+
+  const setGridColumnVisible = useCallback((colId, visible, providedApi) => {
+    const api = providedApi || gridRef?.current?.api || gridApi;
+    if (!api) return;
+
+    if (typeof api.setColumnVisible === 'function') {
+      api.setColumnVisible(colId, visible);
+      return;
+    }
+
+    if (typeof api.setColumnsVisible === 'function') {
+      api.setColumnsVisible([colId], visible);
+      return;
+    }
+
+    if (typeof api.applyColumnState === 'function') {
+      api.applyColumnState({
+        state: [{ colId, hide: !visible }],
+      });
+    }
+  }, [gridApi]);
 
   const toggleColumn = useCallback((field) => {
     setColumnVisibility((prev) => {
       const nextVisible = !prev[field];
-      // Also update AG Grid column API if available
-      if (columnApiRef.current) {
-        columnApiRef.current.setColumnVisible(field, nextVisible);
-      }
+      setGridColumnVisible(field, nextVisible);
       return { ...prev, [field]: nextVisible };
     });
-  }, []);
+  }, [setGridColumnVisible]);
 
   const setAllAttendance = (value) => {
     if (!canEditThisDate) {
@@ -447,37 +471,56 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     }
   };
 
+  // Close settings panel on outside click
+  // Toggle ag-grid column header filters when filter bar is toggled
+  useEffect(() => {
+    setColumnFiltersEnabled(showFilterBar);
+    if (gridApi && typeof gridApi.setGridOption === 'function') {
+      gridApi.setGridOption('filter', showFilterBar);
+    }
+  }, [showFilterBar, gridApi]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setShowSettings(false);
+      }
+    };
+    if (showSettings) {
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+  }, [showSettings]);
+
   if (!projectName) return <p style={{ color: '#666' }}>Select a project from the header.</p>;
   if (loading) return <p style={{ color: '#666' }}>Loading...</p>;
 
   return (
     <>
-      <div style={{ ...s.filterRow, marginBottom: 8 }}>
-        <div style={{ ...s.searchBox, padding: '2px 6px', gap: '4px' }}>
-          <Search size={10} color="#444" />
-          <input type="text" placeholder="Filter..." style={{ ...s.searchInput, fontSize: '10px', width: '70px' }} onChange={(e) => setSearchText(e.target.value)} />
-        </div>
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+      {/* Control bar — always visible */}
+      <div style={{ ...s.filterRow, marginBottom: showFilterBar ? 0 : 8 }}>
+        <div ref={settingsRef} style={{ position: 'relative' }}>
           <button
             type="button"
-            onClick={() => setColumnDropdownOpen((prev) => !prev)}
             style={{
               padding: '6px 14px',
               borderRadius: 6,
-              border: '1px solid var(--border)',
+              border: showSettings ? '1px solid #0055ff' : '1px solid var(--border)',
               background: 'var(--surface)',
               cursor: 'pointer',
               fontSize: 12,
               fontWeight: 600,
-              color: 'var(--text-soft)',
+              color: showSettings ? '#fff' : 'var(--text-soft)',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
             }}
+            onClick={() => setShowSettings(!showSettings)}
+            title="Settings"
           >
-            <Eye size={14} /> Columns
+            <span style={{ fontSize: 16, lineHeight: 1 }}>⚙️</span>
           </button>
-          {columnDropdownOpen && (
+          {showSettings && (
             <div
               style={{
                 position: 'absolute',
@@ -488,11 +531,28 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                 border: '1px solid var(--border)',
                 borderRadius: 8,
                 padding: '6px 0',
-                zIndex: 100,
-                minWidth: 180,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                zIndex: 9999,
+                minWidth: 190,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
               }}
             >
+              <label
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '7px 14px', cursor: 'pointer', fontSize: 12, color: '#ddd',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span>Filter bar</span>
+                <input
+                  type="checkbox"
+                  checked={showFilterBar}
+                  onChange={() => setShowFilterBar(!showFilterBar)}
+                  style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                />
+              </label>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
               {[
                 { field: 'EMP_ID', label: 'EMP ID' },
                 { field: 'FATHER_NAME', label: 'FATHER NAME' },
@@ -505,28 +565,22 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    padding: '6px 14px',
-                    fontSize: 12,
+                    justifyContent: 'space-between',
+                    padding: '7px 14px',
                     cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'background 0.15s',
+                    fontSize: 12,
+                    color: columnVisibility[c.field] !== false ? '#fff' : '#666',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-soft)'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
+                  <span>{c.label}</span>
                   <input
                     type="checkbox"
-                    checked={!!columnVisibility[c.field]}
+                    checked={columnVisibility[c.field] !== false}
                     onChange={() => toggleColumn(c.field)}
-                    style={{ accentColor: '#0055ff' }}
+                    style={{ accentColor: '#0055ff', cursor: 'pointer' }}
                   />
-                  <span style={{ fontWeight: columnVisibility[c.field] ? 600 : 400 }}>
-                    {c.label}
-                  </span>
-                  <span style={{ marginLeft: 'auto', fontSize: 10, color: '#888' }}>
-                    {columnVisibility[c.field] ? <Eye size={12} /> : <EyeOff size={12} />}
-                  </span>
                 </label>
               ))}
             </div>
@@ -534,17 +588,34 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         </div>
         <ExportToolbar rows={rows} columnDefs={columnDefs} title={`${type} ${selectedDate}`} filename={`${type}-${selectedDate}`} fullMonthRows={fullMonthData} month={month} year={year} projectName={projectName} />
       </div>
+
+      {/* Collapsible filter bar — slides down when toggled ON */}
+      <div
+        style={{
+          display: showFilterBar ? 'flex' : 'none',
+          marginBottom: showFilterBar ? 12 : 0,
+        }}
+      >
+        <div style={{ ...s.filterRow, marginBottom: 0 }}>
+          <div style={{ ...s.searchBox, padding: '2px 6px', gap: '4px' }}>
+            <Search size={10} color="#444" />
+            <input type="text" placeholder="Filter..." style={{ ...s.searchInput, fontSize: '10px', width: '70px' }} onChange={(e) => setSearchText(e.target.value)} />
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Quick:</span>
+          <Select
+            options={attendanceOptions}
+            placeholder="Set all to..."
+            isClearable
+            onChange={(option) => {
+              if (option) setAllAttendance(option.value);
+            }}
+            styles={customSelectStyles}
+          />
+        </div>
+      </div>
+
+      {/* Status messages + Save button — always visible */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Quick Actions:</span>
-        <Select
-          options={attendanceOptions}
-          placeholder="Set all to..."
-          isClearable
-          onChange={(option) => {
-            if (option) setAllAttendance(option.value);
-          }}
-          styles={customSelectStyles}
-        />
         <div style={{ flex: 1 }} />
         {isDateSaved && (
           <span style={{ fontSize: 11, color: '#ffaa00', fontWeight: 600, marginRight: 8 }}>
@@ -577,18 +648,18 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
             ref={gridRef}
             rowData={rows}
             columnDefs={columnDefs}
-            defaultColDef={{ filter: true, sortable: true, editable: false, flex: 1, minWidth: 80, resizable: true }}
+            defaultColDef={{ filter: columnFiltersEnabled, sortable: true, editable: false, flex: 1, minWidth: 80, resizable: true }}
             quickFilterText={searchText}
             theme={darkQuartzTheme}
             pinnedBottomRowData={footerRowData}
             rowHeight={34}
             headerHeight={38}
             onGridReady={(params) => {
-              columnApiRef.current = params.columnApi;
-              Object.entries(columnVisibility).forEach(([field, visible]) => {
-                params.columnApi.setColumnVisible(field, visible);
-              });
+              setGridApi(params.api);
               setTimeout(() => {
+                Object.entries(columnVisibility).forEach(([field, visible]) => {
+                  setGridColumnVisible(field, visible, params.api);
+                });
                 params.api.sizeColumnsToFit();
               }, 200);
             }}
