@@ -137,6 +137,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   const [columnFiltersEnabled, setColumnFiltersEnabled] = useState(false);
   const [gridApi, setGridApi] = useState(null);
   const settingsRef = useRef(null);
+  const filterBarRef = useRef(null);
   const gridRef = useRef(null);
   const workersRef = useRef([]);
   const attMapRef = useRef({});
@@ -471,7 +472,6 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     }
   };
 
-  // Close settings panel on outside click
   // Toggle ag-grid column header filters when filter bar is toggled
   useEffect(() => {
     setColumnFiltersEnabled(showFilterBar);
@@ -483,6 +483,10 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   useEffect(() => {
     const handleClick = (e) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        // Don't close settings if clicking inside the filter bar
+        if (filterBarRef.current && filterBarRef.current.contains(e.target)) {
+          return;
+        }
         setShowSettings(false);
       }
     };
@@ -591,8 +595,9 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
 
       {/* Collapsible filter bar — slides down when toggled ON */}
       <div
+        ref={filterBarRef}
         style={{
-          display: showFilterBar ? 'flex' : 'none',
+          display: 'flex',
           marginBottom: showFilterBar ? 12 : 0,
         }}
       >

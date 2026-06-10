@@ -64,7 +64,9 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const [expandDays, setExpandDays] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showFilterBar, setShowFilterBar] = useState(false);
+  const [columnFiltersEnabled, setColumnFiltersEnabled] = useState(false);
   const settingsRef = useRef(null);
+  const filterBarRef = useRef(null);
   const dayColsRef = useRef([]);
   // Column visibility state
   const allBaseCols = useMemo(() => [
@@ -131,10 +133,25 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
     });
   }, [columnVisibility, gridApi, allBaseCols]);
 
+  // Toggle ag-grid column header filters when filter bar is toggled
+  useEffect(() => {
+    setColumnFiltersEnabled(showFilterBar);
+    if (gridApi && typeof gridApi.setGridOption === 'function') {
+      gridApi.setGridOption('filter', showFilterBar);
+    } else if (gridApi) {
+      // Fallback: update column defs filter property
+      gridApi.setColumnsVisible(['_dummy_'], true);
+    }
+  }, [showFilterBar, gridApi]);
+
   // Close settings panel on outside click
   useEffect(() => {
     const handleClick = (e) => {
       if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        // Don't close settings if clicking inside the filter bar
+        if (filterBarRef.current && filterBarRef.current.contains(e.target)) {
+          return;
+        }
         setShowSettings(false);
       }
     };
@@ -471,6 +488,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
 
       {/* Filter bar — toggled by settings panel checkbox */}
       <div
+        ref={filterBarRef}
         style={{
           display: showFilterBar ? 'flex' : 'none',
           gap: '8px',
@@ -482,11 +500,20 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
         <input
           placeholder="Filter..."
           style={{ flex: 1, padding: '6px 8px', border: '1px solid #ddd', borderRadius: '6px' }}
+          onChange={(e) => setSearchText(e.target.value)}
         />
-        <select style={{ padding: '6px 8px', border: '1px solid #ddd', borderRadius: '6px' }}>
-          <option>All</option>
-          <option>Present</option>
-          <option>Absent</option>
+        <select
+          style={{ padding: '6px 8px', border: '1px solid #ddd', borderRadius: '6px' }}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === 'All') setSearchText('');
+            else if (val === 'Present') setSearchText('P');
+            else if (val === 'Absent') setSearchText('A');
+          }}
+        >
+          <option value="All">All</option>
+          <option value="Present">Present</option>
+          <option value="Absent">Absent</option>
         </select>
       </div>
 
@@ -545,7 +572,7 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
           <AgGridReact
             rowData={rowData}
             columnDefs={columnDefs}
-            defaultColDef={{ resizable: true, filter: true, sortable: true }}
+            defaultColDef={{ resizable: true, filter: columnFiltersEnabled, sortable: true }}
             pinnedBottomRowData={pinnedBottomRowData}
             onGridReady={(p) => {
               setGridApi(p.api);
