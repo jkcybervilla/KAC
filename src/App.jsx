@@ -97,8 +97,12 @@ function useBackButtonNavigation({ profile, authLoading }) {
   const location = useLocation();
 
   // Save current route to localStorage on every navigation (Fix #1)
+  // Also push a history state so popstate events fire correctly for back navigation
   useEffect(() => {
     saveLastRoute(location.pathname);
+    // Push a history state so the back button can navigate back through app history
+    // without closing the app. This ensures popstate events are fired correctly.
+    window.history.pushState(null, '', location.pathname);
   }, [location.pathname]);
 
   // Refs for double-back-to-exit (Fix #3)

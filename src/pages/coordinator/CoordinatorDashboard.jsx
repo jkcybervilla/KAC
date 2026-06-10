@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
-import { auth, db } from '../../config/firebase';
+import { db } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 import { LogOut, Bell } from 'lucide-react';
@@ -72,7 +73,7 @@ const CoordinatorDashboard = () => {
   useSwipeToOpenSidebar(() => setMenuOpen(true));
 
   const logout = () => {
-    auth.signOut();
+    performLogout();
     navigate('/');
   };
 

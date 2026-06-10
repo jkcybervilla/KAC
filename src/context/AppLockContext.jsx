@@ -13,9 +13,9 @@ const AppLockContext = createContext(null);
 
 const APP_LOCK_STATE_KEY = 'kac_app_lock_state';
 
-// SESSION STORAGE keys for Issue #2: PIN asked on every refresh fix
-const SESSION_ACTIVE_KEY = 'kac_session_active';
-const SESSION_TIMESTAMP_KEY = 'kac_session_timestamp';
+// TWA SESSION keys — uses localStorage (not sessionStorage) so session persists
+// across app close/reopen until explicit logout.
+const TWA_SESSION_KEY = 'kac_twa_session';
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -31,23 +31,25 @@ async function hashPin(pin) {
 }
 
 /**
- * Check if there's a valid session in sessionStorage.
+ * Check if there's a valid TWA session in localStorage.
  * Returns true if session is active and not expired (within 5 min of last activity).
+ * Uses localStorage so the session persists across app close/reopen until explicit logout.
  */
 function isSessionActive() {
   try {
-    const active = sessionStorage.getItem(SESSION_ACTIVE_KEY);
-    if (active !== 'true') return false;
+    const value = localStorage.getItem(TWA_SESSION_KEY);
+    if (value !== 'active') return false;
 
-    const timestamp = parseInt(sessionStorage.getItem(SESSION_TIMESTAMP_KEY), 10);
+    // Also check the timestamp for inactivity timeout
+    const timestamp = parseInt(localStorage.getItem(TWA_SESSION_KEY + '_ts'), 10);
     if (!timestamp) return false;
 
     const elapsed = Date.now() - timestamp;
     // If session is older than INACTIVITY_TIMEOUT_MS, it's expired
     if (elapsed > INACTIVITY_TIMEOUT_MS) {
       // Clear expired session
-      sessionStorage.removeItem(SESSION_ACTIVE_KEY);
-      sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+      localStorage.removeItem(TWA_SESSION_KEY);
+      localStorage.removeItem(TWA_SESSION_KEY + '_ts');
       return false;
     }
 
@@ -58,24 +60,27 @@ function isSessionActive() {
 }
 
 /**
- * Mark the session as active in sessionStorage.
+ * Mark the TWA session as active in localStorage.
+ * Sets kac_twa_session = 'active' and stores the current timestamp.
  */
 function markSessionActive() {
   try {
-    sessionStorage.setItem(SESSION_ACTIVE_KEY, 'true');
-    sessionStorage.setItem(SESSION_TIMESTAMP_KEY, String(Date.now()));
+    localStorage.setItem(TWA_SESSION_KEY, 'active');
+    localStorage.setItem(TWA_SESSION_KEY + '_ts', String(Date.now()));
   } catch {
-    // sessionStorage may not be available
+    // localStorage may not be available
   }
 }
 
 /**
- * Clear the session markers.
+ * Clear the TWA session markers from localStorage.
+ * This is called on explicit logout (via performLogout utility)
+ * and on auth state becoming null.
  */
 function clearSession() {
   try {
-    sessionStorage.removeItem(SESSION_ACTIVE_KEY);
-    sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+    localStorage.removeItem(TWA_SESSION_KEY);
+    localStorage.removeItem(TWA_SESSION_KEY + '_ts');
   } catch {
     // ignore
   }
@@ -86,7 +91,8 @@ function clearSession() {
  * - On first login after auth, prompts to set up lock
  * - Locks app when coming from background / cold start (with 5 min grace)
  * - Supports biometric (WebAuthn) with PIN fallback
- * - Stores active session in sessionStorage to avoid lock on page refresh
+ * - Stores active session in localStorage (kac_twa_session) so session persists
+ *   across app close/reopen until explicit logout (TWA permanent session)
  * - Tracks background time via visibilitychange to lock after 5 min inactivity
  *
  * ALL lock features are ONLY active when app runs as TWA (Android).
@@ -157,7 +163,7 @@ export function AppLockProvider({ children }) {
         setNeedsSetup(false);
         setLockType(lockState.biometric ? 'biometric' : 'pin');
 
-        // Issue #2: Check sessionStorage — only lock if no valid session
+        // Issue #2: Check localStorage (kac_twa_session) — only lock if no valid session
         if (!sessionEvaluatedRef.current) {
           sessionEvaluatedRef.current = true;
           const sessionOk = isSessionActive();
@@ -177,10 +183,27 @@ export function AppLockProvider({ children }) {
         }
       } else {
         setIsSetup(false);
-        setNeedsSetup(true);
-        setLockType(null);
         setIsLocked(false);
-        console.debug('[AppLock] No lock configured — needs setup');
+        setLockType(null);
+
+        // Check if user already completed or skipped setup this session
+        const setupDoneInSession = (() => {
+          try { return sessionStorage.getItem('kac_setup_done') === 'true'; } catch { return false; }
+        })();
+
+        // Check if lock config exists in localStorage (kac_lock_config)
+        const hasLockConfig = (() => {
+          try { return localStorage.getItem('kac_lock_config') !== null; } catch { return false; }
+        })();
+
+        if (setupDoneInSession || hasLockConfig) {
+          // Already completed or skipped setup — don't show SetupLock
+          setNeedsSetup(false);
+          console.debug('[AppLock] Setup already done (session or config) — skipping setup prompt');
+        } else {
+          setNeedsSetup(true);
+          console.debug('[AppLock] No lock configured — needs setup');
+        }
       }
 
       setLoading(false);

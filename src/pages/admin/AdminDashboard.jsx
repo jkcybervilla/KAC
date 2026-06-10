@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SecuritySettings from '../../components/SecuritySettings';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../../config/firebase';
+import { db } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import { isTwaMode } from '../../utils/pwa';
 import useSwipeToOpenSidebar from '../../hooks/useSwipeToOpenSidebar';
 import { collection, getDocs, query, orderBy, updateDoc, doc } from 'firebase/firestore';
@@ -195,8 +196,8 @@ const AdminDashboard = () => {
     { id: 8, user: 'Neha Kapoor', action: 'removed', target: 'Worker Reg.', detail: 'Removed worker: Sunil Yadav', time: '5 hr ago', icon: <UserMinus size={14} />, color: '#ef4444' },
   ];
 
-  const handleLogout = () => {
-    auth.signOut();
+const handleLogout = () => {
+    performLogout();
     navigate('/');
   };
 

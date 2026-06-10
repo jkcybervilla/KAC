@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { auth } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import { Calendar, FileText, Mail, MessageSquare, LogOut, Clock, CheckSquare, AlertCircle, Users } from 'lucide-react';
 
 const ExecutiveAssistantDashboard = () => {
@@ -9,7 +9,7 @@ const ExecutiveAssistantDashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    auth.signOut();
+    performLogout();
     navigate('/');
   };
 

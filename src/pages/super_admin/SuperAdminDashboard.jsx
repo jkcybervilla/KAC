@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { auth } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import { Shield, Users, Settings, LogOut, Activity, Database, Globe, Sliders, Bell, MessageSquare, Folder } from 'lucide-react';
 
 const SuperAdminDashboard = () => {
@@ -9,7 +9,7 @@ const SuperAdminDashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    auth.signOut();
+    performLogout();
     navigate('/');
   };
 

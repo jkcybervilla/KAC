@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Fingerprint, Hash, ShieldCheck } from 'lucide-react';
 import { useAppLock } from '../context/AppLockContext';
 import { useAuth } from '../context/AuthContext';
 
 /**
  * SetupLock — shown on first login after auth when no lock is configured.
  * Guides user through biometric + PIN setup.
+ * Dark minimal design (Style A).
  */
 export default function SetupLock({ onComplete }) {
   const {
@@ -21,6 +23,12 @@ export default function SetupLock({ onComplete }) {
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [step, setStep] = useState('choose'); // 'choose' | 'setup-pin' | 'setup-biometric' | 'complete'
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChooseBiometric = () => {
     setSetupMode('biometric');
@@ -57,6 +65,7 @@ export default function SetupLock({ onComplete }) {
     }
     setStep('complete');
     setTimeout(() => {
+      try { sessionStorage.setItem('kac_setup_done', 'true'); } catch { /* ignore */ }
       if (onComplete) onComplete();
     }, 1500);
   };
@@ -67,6 +76,7 @@ export default function SetupLock({ onComplete }) {
     if (success) {
       setStep('complete');
       setTimeout(() => {
+        try { sessionStorage.setItem('kac_setup_done', 'true'); } catch { /* ignore */ }
         if (onComplete) onComplete();
       }, 1500);
     } else {
@@ -84,56 +94,68 @@ export default function SetupLock({ onComplete }) {
     if (digits.length <= 6) setConfirmPin(digits);
   };
 
+  const handleSkip = () => {
+    try { sessionStorage.setItem('kac_setup_done', 'true'); } catch { /* ignore */ }
+    if (onComplete) onComplete();
+  };
+
   return (
-    <div style={styles.container}>
+    <div style={{
+      ...styles.container,
+      opacity: visible ? 1 : 0,
+      transition: 'opacity 0.5s ease',
+    }}>
       <div style={styles.card}>
         {/* Step: Choose method */}
         {step === 'choose' && (
           <>
             <div style={styles.logoContainer}>
               <div style={styles.logo}>
-                <span style={styles.logoText}>🔒</span>
+                <Lock size={28} color="#0055ff" strokeWidth={2} />
               </div>
             </div>
-            <h2 style={styles.title}>Secure Your App</h2>
+            <h2 style={styles.title}>Secure your app</h2>
             <p style={styles.subtitle}>
-              Protect your KAC OFFICIAL account with app lock
+              Choose how to unlock KAC OFFICIAL
             </p>
 
             <div style={styles.options}>
               {biometricAvailable && (
                 <button onClick={handleChooseBiometric} style={styles.optionButton}>
-                  <span style={styles.optionIcon}>🖐️</span>
+                  <div style={styles.optionIconBox}>
+                    <Fingerprint size={18} color="#aaa" strokeWidth={1.5} />
+                  </div>
                   <div style={styles.optionContent}>
-                    <span style={styles.optionTitle}>Biometric Only</span>
-                    <span style={styles.optionDesc}>Use fingerprint or face to unlock</span>
+                    <span style={styles.optionTitle}>Biometric</span>
+                    <span style={styles.optionSubtitle}>Use fingerprint or face to unlock</span>
                   </div>
                 </button>
               )}
 
               <button onClick={handleChoosePin} style={styles.optionButton}>
-                <span style={styles.optionIcon}>#️⃣</span>
+                <div style={styles.optionIconBox}>
+                  <Hash size={18} color="#aaa" strokeWidth={1.5} />
+                </div>
                 <div style={styles.optionContent}>
-                  <span style={styles.optionTitle}>PIN Only</span>
-                  <span style={styles.optionDesc}>Use a 4-6 digit PIN to unlock</span>
+                  <span style={styles.optionTitle}>PIN</span>
+                  <span style={styles.optionSubtitle}>Use a 4-6 digit PIN to unlock</span>
                 </div>
               </button>
 
               {biometricAvailable && (
                 <button onClick={handleChooseBoth} style={{...styles.optionButton, ...styles.recommended}}>
-                  <span style={styles.optionIcon}>⭐</span>
+                  <div style={{...styles.optionIconBox, ...styles.recommendedIconBox}}>
+                    <ShieldCheck size={18} color="#0055ff" strokeWidth={1.5} />
+                  </div>
                   <div style={styles.optionContent}>
-                    <span style={styles.optionTitle}>Both (Recommended)</span>
-                    <span style={styles.optionDesc}>Biometric with PIN backup</span>
+                    <span style={styles.optionTitle}>Both</span>
+                    <span style={styles.optionSubtitle}>Biometric with PIN backup</span>
                   </div>
                   <span style={styles.recommendedBadge}>BEST</span>
                 </button>
               )}
 
-              <button
-                onClick={() => { if (onComplete) onComplete(); }}
-                style={styles.skipButton}
-              >
+              <button onClick={handleSkip} style={styles.skipButton}>
                 Skip for now
               </button>
             </div>
@@ -196,7 +218,7 @@ export default function SetupLock({ onComplete }) {
           <div style={styles.biometricSetup}>
             <div style={styles.logoContainer}>
               <div style={{...styles.logo, backgroundColor: '#0055ff'}}>
-                <span style={styles.logoText}>🖐️</span>
+                <Fingerprint size={28} color="#fff" strokeWidth={1.5} />
               </div>
             </div>
             <h2 style={styles.title}>Enable Biometric</h2>
@@ -225,9 +247,9 @@ export default function SetupLock({ onComplete }) {
         {/* Step: Complete */}
         {step === 'complete' && (
           <div style={styles.completeSection}>
-            <div style={{...styles.logoContainer}}>
+            <div style={styles.logoContainer}>
               <div style={{...styles.logo, backgroundColor: '#22c55e'}}>
-                <span style={styles.logoText}>✓</span>
+                <ShieldCheck size={28} color="#fff" strokeWidth={1.5} />
               </div>
             </div>
             <h2 style={{...styles.title, color: '#22c55e'}}>App Lock Enabled</h2>
@@ -246,14 +268,14 @@ const styles = {
     position: 'fixed',
     inset: 0,
     zIndex: 99998,
-    backgroundColor: '#000',
+    backgroundColor: '#0d0d0d',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '20px',
   },
   card: {
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#0d0d0d',
     borderRadius: '20px',
     padding: '36px 28px',
     width: '100%',
@@ -268,27 +290,21 @@ const styles = {
     width: '64px',
     height: '64px',
     borderRadius: '16px',
-    backgroundColor: '#111',
+    backgroundColor: '#1a1a2e',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     margin: '0 auto',
-    fontSize: '28px',
-  },
-  logoText: {
-    color: '#fff',
-    fontSize: '24px',
-    fontWeight: '900',
   },
   title: {
     color: '#fff',
     fontSize: '20px',
-    fontWeight: '700',
+    fontWeight: 600,
     margin: '0 0 6px',
   },
   subtitle: {
-    color: '#888',
-    fontSize: '13px',
+    color: '#666',
+    fontSize: '12px',
     margin: '0 0 28px',
     lineHeight: '1.4',
   },
@@ -298,22 +314,37 @@ const styles = {
     gap: '10px',
   },
   optionButton: {
-    padding: '16px',
-    backgroundColor: '#111',
-    border: '1px solid #222',
-    borderRadius: '14px',
+    padding: '14px',
+    backgroundColor: 'transparent',
+    border: '1px solid #1a1a1a',
+    borderRadius: '10px',
     color: '#fff',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    gap: '14px',
+    gap: '12px',
     textAlign: 'left',
     transition: 'border-color 0.2s, background-color 0.2s',
     position: 'relative',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  optionIconBox: {
+    width: '36px',
+    height: '36px',
+    borderRadius: '8px',
+    backgroundColor: '#1a1a1a',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   recommended: {
     borderColor: '#0055ff',
     backgroundColor: '#0a1628',
+  },
+  recommendedIconBox: {
+    backgroundColor: '#0a1a3a',
   },
   recommendedBadge: {
     position: 'absolute',
@@ -322,38 +353,37 @@ const styles = {
     backgroundColor: '#0055ff',
     color: '#fff',
     fontSize: '9px',
-    fontWeight: '800',
-    padding: '2px 8px',
-    borderRadius: '6px',
-    letterSpacing: '1px',
-  },
-  optionIcon: {
-    fontSize: '24px',
-    width: '40px',
-    textAlign: 'center',
+    fontWeight: 700,
+    padding: '2px 6px',
+    borderRadius: '4px',
   },
   optionContent: {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
+    flex: 1,
   },
   optionTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#fff',
   },
-  optionDesc: {
+  optionSubtitle: {
     fontSize: '11px',
-    color: '#888',
+    color: '#555',
   },
   skipButton: {
-    marginTop: '8px',
+    marginTop: '16px',
     padding: '12px',
     backgroundColor: 'transparent',
     border: 'none',
-    color: '#555',
-    fontSize: '13px',
+    color: '#444',
+    fontSize: '12px',
     cursor: 'pointer',
     textDecoration: 'underline',
+    textAlign: 'center',
+    display: 'block',
+    width: '100%',
   },
   form: {
     display: 'flex',
@@ -366,7 +396,7 @@ const styles = {
   label: {
     color: '#888',
     fontSize: '11px',
-    fontWeight: '600',
+    fontWeight: 600,
     letterSpacing: '1px',
     marginBottom: '8px',
     display: 'block',
@@ -399,9 +429,10 @@ const styles = {
     border: 'none',
     borderRadius: '12px',
     fontSize: '15px',
-    fontWeight: '600',
+    fontWeight: 600,
     cursor: 'pointer',
     transition: 'background-color 0.2s, opacity 0.2s',
+    width: '100%',
   },
   secondaryButton: {
     padding: '14px',
@@ -411,7 +442,7 @@ const styles = {
     borderRadius: '10px',
     fontSize: '13px',
     cursor: 'pointer',
-    fontWeight: '500',
+    fontWeight: 500,
     marginTop: '8px',
     width: '100%',
   },

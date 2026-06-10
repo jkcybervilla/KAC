@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
-import { auth, db } from '../../config/firebase';
+import { db } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import {
   Home,
   UserPlus,
@@ -164,7 +165,7 @@ const AccountantDashboard = () => {
   }, [project, batchId, day]);
 
   const logout = () => {
-    auth.signOut();
+    performLogout();
     navigate('/');
   };
 

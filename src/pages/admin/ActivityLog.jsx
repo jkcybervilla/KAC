@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import {
   LayoutDashboard, Folder, Users, ClipboardCheck,
   UserPlus, Wallet, Package, ReceiptText,
@@ -160,7 +160,7 @@ const ActivityLog = () => {
   ];
 
   const handleLogout = () => {
-    auth.signOut();
+    performLogout();
     navigate('/');
   };
 

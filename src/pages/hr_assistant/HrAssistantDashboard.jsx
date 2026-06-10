@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { auth } from '../../config/firebase';
+import { performLogout } from '../../utils/logout';
 import { Users, ClipboardCheck, UserPlus, LogOut, ArrowLeft, BarChart3, Clock, UserCheck, FileText } from 'lucide-react';
 
 const HrAssistantDashboard = () => {
@@ -9,7 +9,7 @@ const HrAssistantDashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    auth.signOut();
+    performLogout();
     navigate('/');
   };
 

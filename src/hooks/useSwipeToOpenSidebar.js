@@ -2,6 +2,21 @@ import { useEffect, useRef } from 'react';
 import { isTwaMode } from '../utils/pwa';
 
 /**
+ * Check if the app is running in standalone display mode (PWA installed / TWA).
+ * Falls back to matchMedia if isTwaMode() returns false.
+ */
+function isStandaloneMode() {
+  // Primary check: isTwaMode() uses referrer + matchMedia internally
+  if (isTwaMode()) return true;
+  // Fallback: directly check display-mode standalone (catches PWA installed mode)
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Hook to detect right swipe gesture from the left edge to open the sidebar.
  * Only activates in TWA mode (Android app / standalone display mode).
  * Does not interfere with horizontal scrolling in tables or AG Grid components.
@@ -17,8 +32,8 @@ export default function useSwipeToOpenSidebar(onOpenSidebar, options = {}) {
   const touchStartYRef = useRef(null);
 
   useEffect(() => {
-    // Only enable in TWA / Android mode
-    if (!isTwaMode() || typeof onOpenSidebar !== 'function') return;
+    // Only enable in TWA / Android / standalone PWA mode
+    if (!isStandaloneMode() || typeof onOpenSidebar !== 'function') return;
 
     const handleTouchStart = (e) => {
       const touch = e.touches[0];
