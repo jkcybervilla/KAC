@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/login';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -27,9 +27,12 @@ import { useAuth } from './context/AuthContext';
 import { useAppLock } from './context/AppLockContext';
 import { isTwaMode } from './utils/pwa';
 
+const ROUTE_STORAGE_KEY = 'kac_last_route';
+const EXIT_TOAST_DURATION = 2000; // 2 seconds
+
 /**
- * Routes considered "home/dashboard" — back button on these closes the app.
- * All other routes will navigate back in history.
+ * Routes considered "home/dashboard" — back button on these triggers
+ * "Press back again to exit" toast.
  */
 const HOME_ROUTES = new Set([
   '/',
@@ -43,29 +46,180 @@ const HOME_ROUTES = new Set([
 ]);
 
 /**
- * Custom hook that intercepts the back button (popstate) to navigate
- * within the app using React Router instead of closing the app.
- * When on a home/dashboard route, default browser behavior is allowed.
+ * Map each role to its dashboard/home route.
  */
-function useBackButtonNavigation() {
-  const navigate = useNavigate();
+const ROLE_HOME_MAP = {
+  admin: '/admin',
+  accountant: '/accountant',
+  coordinator: '/coordinator',
+  hr_assistant: '/hr-assistant',
+  super_admin: '/super-admin',
+  executive_assistant: '/executive-assistant',
+};
 
+/**
+ * Save the current route to localStorage (except login page).
+ */
+function saveLastRoute(pathname) {
+  if (pathname === '/' || pathname === '/login') return;
+  try {
+    localStorage.setItem(ROUTE_STORAGE_KEY, pathname);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Get the saved route from localStorage.
+ */
+function getLastSavedRoute() {
+  try {
+    return localStorage.getItem(ROUTE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the user's role-based home route.
+ */
+function getRoleHome(role) {
+  return ROLE_HOME_MAP[role] || '/dashboard';
+}
+
+/**
+ * Custom hook that:
+ * 1. Saves current route to localStorage on every navigation (Fix #1)
+ * 2. Intercepts back button with double-back-to-exit on home routes (Fix #3)
+ * 3. Blocks back navigation to '/' when authenticated — redirects to dashboard (Fix #2)
+ */
+function useBackButtonNavigation({ profile, authLoading }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Save current route to localStorage on every navigation (Fix #1)
+  useEffect(() => {
+    saveLastRoute(location.pathname);
+  }, [location.pathname]);
+
+  // Refs for double-back-to-exit (Fix #3)
+  const backPressCountRef = useRef(0);
+  const backPressTimerRef = useRef(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (backPressTimerRef.current) {
+        clearTimeout(backPressTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Intercept back button (popstate)
   useEffect(() => {
     const handlePopState = () => {
       const currentPath = window.location.pathname;
 
-      // If on a home/dashboard page, allow default behavior (close app / go back)
-      if (HOME_ROUTES.has(currentPath)) {
+      // --- Fix #2: Block '/' and '/login' when authenticated ---
+      if ((currentPath === '/' || currentPath === '/login') && profile) {
+        const role = profile.role;
+        const homeRoute = getRoleHome(role);
+        // Replace the current history entry with the dashboard
+        window.history.pushState(null, '', homeRoute);
+        navigate(homeRoute, { replace: true });
         return;
       }
 
-      // Navigate back in React Router history
+      // --- Fix #3: Double back to exit on home/dashboard routes ---
+      if (HOME_ROUTES.has(currentPath)) {
+        backPressCountRef.current += 1;
+
+        if (backPressCountRef.current === 1) {
+          // First back press — show toast and set timer
+          showExitToast();
+          // Push a dummy state so we catch the second back press
+          window.history.pushState(null, '');
+          backPressTimerRef.current = setTimeout(() => {
+            backPressCountRef.current = 0;
+          }, EXIT_TOAST_DURATION);
+          return;
+        }
+
+        if (backPressCountRef.current >= 2) {
+          // Second back press within 2 seconds — close app
+          backPressCountRef.current = 0;
+          if (backPressTimerRef.current) {
+            clearTimeout(backPressTimerRef.current);
+            backPressTimerRef.current = null;
+          }
+          closeApp();
+          return;
+        }
+        return;
+      }
+
+      // On non-home routes, navigate back in React Router history
       navigate(-1);
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [navigate]);
+  }, [navigate, profile]);
+}
+
+/**
+ * Show a toast message for "Press back again to exit"
+ */
+function showExitToast() {
+  try {
+    // Create a toast element
+    const existing = document.getElementById('kac-exit-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'kac-exit-toast';
+    toast.textContent = 'Press back again to exit';
+    Object.assign(toast.style, {
+      position: 'fixed',
+      bottom: '80px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#333',
+      color: '#fff',
+      padding: '12px 24px',
+      borderRadius: '8px',
+      fontSize: '14px',
+      fontFamily: 'sans-serif',
+      zIndex: '99999',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      transition: 'opacity 0.3s ease',
+      opacity: '1',
+    });
+    document.body.appendChild(toast);
+
+    // Auto-remove after 2 seconds
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, EXIT_TOAST_DURATION - 300);
+  } catch { /* ignore */ }
+}
+
+/**
+ * Close the app — use TWA close if available, otherwise go back in history
+ */
+function closeApp() {
+  try {
+    // Check if running inside TWA (Android) — try to close via Activity
+    if (isTwaMode()) {
+      // For TWA: navigate back as far as possible
+      window.history.go(-window.history.length);
+    } else {
+      // Browser: try to close or go back
+      window.history.go(-window.history.length);
+    }
+  } catch {
+    // Fallback: try window.close()
+    try { window.close(); } catch { /* ignore */ }
+  }
 }
 
 /**
@@ -77,19 +231,43 @@ function useBackButtonNavigation() {
  * In regular browser, all lock features are skipped entirely.
  */
 function AppContent() {
-  const { userId, userEmail, loading: authLoading } = useAuth();
+  const { userId, userEmail, loading: authLoading, profile } = useAuth();
   const {
     isLocked,
     needsSetup,
     loading: appLockLoading,
   } = useAppLock();
   const [setupComplete, setSetupComplete] = useState(false);
+  const [initialRedirectDone, setInitialRedirectDone] = useState(false);
 
   // Determine if we're running as TWA / Android
   const twaMode = useMemo(() => isTwaMode(), []);
 
-  // Initialize back button navigation (fixes refresh + back button)
-  useBackButtonNavigation();
+  // Initialize back button navigation (Fix #1, #2, #3)
+  useBackButtonNavigation({ profile, authLoading });
+
+  // --- Fix #1: On auth state restore, redirect to saved route ---
+  useEffect(() => {
+    // Wait for auth to finish loading and a profile to be available
+    if (authLoading || !profile || initialRedirectDone) return;
+
+    const savedRoute = getLastSavedRoute();
+    const currentPath = window.location.pathname;
+
+    // If user is on '/' or '/login' and authenticated, redirect
+    if (currentPath === '/' || currentPath === '/login') {
+      const targetRoute = savedRoute && savedRoute !== '/' ? savedRoute : getRoleHome(profile.role);
+      // Use window.location to force a full redirect that React Router picks up
+      window.history.replaceState(null, '', targetRoute);
+      // Trigger a popstate so React Router navigates
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      setInitialRedirectDone(true);
+      return;
+    }
+
+    // If user is on a regular page, just ensure initialRedirectDone is set
+    setInitialRedirectDone(true);
+  }, [authLoading, profile, initialRedirectDone]);
 
   // Show loading while auth and app lock initialize
   if (authLoading || appLockLoading) {
