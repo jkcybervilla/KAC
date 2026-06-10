@@ -3,7 +3,7 @@ import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-communi
 import { db } from '../../config/firebase';
 import { collection, getDocs, query, orderBy, doc, setDoc } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
-import { Save, Search, X, User, Hash, Building, List, Calendar, MapPin, ChevronDown, ChevronUp, Columns } from 'lucide-react';
+import { Save, Search, X, User, Hash, Building, List, Calendar, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, getDaysInMonth, defaultDayMap, MONTHS } from '../../utils/attendance';
@@ -62,8 +62,9 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
   const [workerHistory, setWorkerHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [expandDays, setExpandDays] = useState(false);
-  const [showColumnMenu, setShowColumnMenu] = useState(false);
-  const columnMenuRef = useRef(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFilterBar, setShowFilterBar] = useState(false);
+  const settingsRef = useRef(null);
   const dayColsRef = useRef([]);
   // Column visibility state
   const allBaseCols = useMemo(() => [
@@ -130,18 +131,18 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
     });
   }, [columnVisibility, gridApi, allBaseCols]);
 
-  // Close column menu on outside click
+  // Close settings panel on outside click
   useEffect(() => {
     const handleClick = (e) => {
-      if (columnMenuRef.current && !columnMenuRef.current.contains(e.target)) {
-        setShowColumnMenu(false);
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        setShowSettings(false);
       }
     };
-    if (showColumnMenu) {
+    if (showSettings) {
       document.addEventListener('mousedown', handleClick);
       return () => document.removeEventListener('mousedown', handleClick);
     }
-  }, [showColumnMenu]);
+  }, [showSettings]);
 
   // Toggle day columns visibility
   useEffect(() => {
@@ -431,19 +432,20 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
           {expandDays ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           {expandDays ? 'HIDE DAYS' : 'SHOW DAYS'}
         </button>
-        <div ref={columnMenuRef} style={{ position: 'relative' }}>
+        <div ref={settingsRef} style={{ position: 'relative' }}>
           <button
             type="button"
             style={{
               ...s.secondaryBtn,
-              borderColor: showColumnMenu ? '#0055ff' : '#222',
-              color: showColumnMenu ? '#fff' : '#888',
+              borderColor: showSettings ? '#0055ff' : '#222',
+              color: showSettings ? '#fff' : '#888',
             }}
-            onClick={() => setShowColumnMenu(!showColumnMenu)}
+            onClick={() => setShowSettings(!showSettings)}
+            title="Settings"
           >
-            <Columns size={14} /> COLUMNS
+            <span style={{ fontSize: 16, lineHeight: 1 }}>⚙️</span>
           </button>
-          {showColumnMenu && (
+          {showSettings && (
             <div
               style={{
                 position: 'absolute',
@@ -453,28 +455,43 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
                 backgroundColor: '#0a0a0a',
                 border: '1px solid #1a1a1a',
                 borderRadius: 8,
-                padding: '8px 0',
+                padding: '6px 0',
                 minWidth: 190,
                 zIndex: 9999,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
               }}
             >
+              <label
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '8px 14px', cursor: 'pointer', fontSize: 12, color: '#ddd',
+                }}
+              >
+                <span>Filter bar</span>
+                <input
+                  type="checkbox"
+                  checked={showFilterBar}
+                  onChange={() => setShowFilterBar(!showFilterBar)}
+                  style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                />
+              </label>
+              <div style={{ borderTop: '1px solid #1a1a1a', margin: '4px 0' }} />
               {allBaseCols.map((col) => (
                 <label
                   key={col.field}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 10,
-                    padding: '7px 16px',
+                    justifyContent: 'space-between',
+                    padding: '7px 14px',
                     cursor: 'pointer',
                     fontSize: 12,
                     color: columnVisibility[col.field] !== false ? '#fff' : '#666',
-                    transition: 'background 0.1s',
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
+                  <span>{col.headerName}</span>
                   <input
                     type="checkbox"
                     checked={columnVisibility[col.field] !== false}
@@ -486,7 +503,6 @@ const AttendanceGrid = ({ type = 'client', projectFilter = '' }) => {
                     }}
                     style={{ accentColor: '#0055ff', cursor: 'pointer' }}
                   />
-                  {col.headerName}
                 </label>
               ))}
             </div>
