@@ -3,7 +3,7 @@ import { auth, db } from '../config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { markSessionActive } from '../context/AppLockContext';
+import { clearTwaLocked } from '../context/AppLockContext';
 import {
   isWebAuthnSupported,
   isPlatformAuthenticatorAvailable,
@@ -59,8 +59,8 @@ const Login = () => {
       const userDoc = await getDoc(doc(db, "users", userIdText));
 
       if (userDoc.exists()) {
-        // Mark session as active — prevents PIN on refresh
-        markSessionActive();
+        // Clear the TWA locked flag so PIN isn't required after login
+        clearTwaLocked();
 
         // Check if biometric is available and offer to set up
         const hasBiometric = await isPlatformAuthenticatorAvailable();

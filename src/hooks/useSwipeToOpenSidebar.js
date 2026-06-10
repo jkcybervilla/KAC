@@ -1,16 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { isTwaMode } from '../utils/pwa';
 
 /**
  * Check if the app is running in standalone display mode (PWA installed / TWA).
- * Falls back to matchMedia if isTwaMode() returns false.
+ * Covers both TWA (Android Trusted Web Activity) and installed PWA.
  */
 function isStandaloneMode() {
-  // Primary check: isTwaMode() uses referrer + matchMedia internally
-  if (isTwaMode()) return true;
-  // Fallback: directly check display-mode standalone (catches PWA installed mode)
   try {
-    return window.matchMedia('(display-mode: standalone)').matches;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true
+    );
   } catch {
     return false;
   }

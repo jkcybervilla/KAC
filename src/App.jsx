@@ -91,18 +91,20 @@ function getRoleHome(role) {
  * 1. Saves current route to localStorage on every navigation (Fix #1)
  * 2. Intercepts back button with double-back-to-exit on home routes (Fix #3)
  * 3. Blocks back navigation to '/' when authenticated — redirects to dashboard (Fix #2)
+ * 4. Pushes a history state on every route change to keep the history stack
+ *    populated — prevents back button from closing the app prematurely (Fix #3b)
  */
 function useBackButtonNavigation({ profile, authLoading }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   // Save current route to localStorage on every navigation (Fix #1)
-  // Also push a history state so popstate events fire correctly for back navigation
+  // On every route change, push a new history state with location data so
+  // the browser history stack never empties — back button navigates our states
+  // instead of closing the app.
   useEffect(() => {
     saveLastRoute(location.pathname);
-    // Push a history state so the back button can navigate back through app history
-    // without closing the app. This ensures popstate events are fired correctly.
-    window.history.pushState(null, '', location.pathname);
+    window.history.pushState({ page: location.pathname }, '', location.pathname);
   }, [location.pathname]);
 
   // Refs for double-back-to-exit (Fix #3)
@@ -127,8 +129,7 @@ function useBackButtonNavigation({ profile, authLoading }) {
       if ((currentPath === '/' || currentPath === '/login') && profile) {
         const role = profile.role;
         const homeRoute = getRoleHome(role);
-        // Replace the current history entry with the dashboard
-        window.history.pushState(null, '', homeRoute);
+        window.history.pushState({ page: homeRoute }, '', homeRoute);
         navigate(homeRoute, { replace: true });
         return;
       }
@@ -161,8 +162,14 @@ function useBackButtonNavigation({ profile, authLoading }) {
         return;
       }
 
-      // On non-home routes, navigate back in React Router history
+      // On non-home routes: navigate back in React Router history, then push
+      // a new state to keep the history stack populated so the next back press
+      // doesn't close the app.
       navigate(-1);
+      // Push a fresh state immediately so history stack never empties out.
+      // This means the back button will always find our synthetic states
+      // rather than falling through to the browser/twa closing the app.
+      window.history.pushState({ page: currentPath }, '', currentPath);
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -234,6 +241,12 @@ function closeApp() {
  *
  * Lock/PIN features are ONLY available when running as TWA (Android app).
  * In regular browser, all lock features are skipped entirely.
+ *
+ * Loading sequence (TWA mode):
+ *   1. App opens → SplashScreen plays FIRST (2.5 seconds)
+ *   2. During splash, Firebase auth state restores in background
+ *   3. After splash completes → check auth → show dashboard or login
+ *   4. sessionStorage 'kac_splash_shown' prevents showing again on refresh
  */
 function AppContent() {
   const { userId, userEmail, loading: authLoading, profile } = useAuth();
@@ -244,19 +257,18 @@ function AppContent() {
   } = useAppLock();
   const [setupComplete, setSetupComplete] = useState(false);
   const [initialRedirectDone, setInitialRedirectDone] = useState(false);
-  const [splashVisible, setSplashVisible] = useState(true);
-  const [splashChecked, setSplashChecked] = useState(false);
+
+  // Synchronous check: if sessionStorage already has 'kac_splash_shown', skip splash
+  const [splashVisible, setSplashVisible] = useState(() => {
+    try {
+      return !sessionStorage.getItem('kac_splash_shown');
+    } catch {
+      return true;
+    }
+  });
 
   // Determine if we're running as TWA / Android
   const twaMode = useMemo(() => isTwaMode(), []);
-
-  // Check sessionStorage once for splash — skip if already shown this session
-  useEffect(() => {
-    if (sessionStorage.getItem('kac_splash_shown')) {
-      setSplashVisible(false);
-    }
-    setSplashChecked(true);
-  }, []);
 
   const handleSplashComplete = useCallback(() => {
     try {
@@ -291,7 +303,22 @@ function AppContent() {
     setInitialRedirectDone(true);
   }, [authLoading, profile, initialRedirectDone]);
 
-  // Show loading while auth and app lock initialize
+  // ============================================================
+  // LOADING SEQUENCE:
+  // 1. TWA mode + splash visible → show ONLY SplashScreen (no loading)
+  // 2. Auth/app lock still loading → show minimal "Loading..." screen
+  // 3. Otherwise → normal app (dashboard, login, etc.)
+  // ============================================================
+
+  // In TWA mode, SplashScreen is ALWAYS the first thing shown.
+  // Auth initialization happens in the background during splash display.
+  // No "Loading..." screen should appear before or during splash.
+  if (twaMode && splashVisible) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
+  // Show loading ONLY after splash is done (or not needed in non-TWA mode).
+  // This is the fallback while auth/appLock still initializing after splash.
   if (authLoading || appLockLoading) {
     return (
       <div style={{
@@ -309,15 +336,9 @@ function AppContent() {
     );
   }
 
-  // Show splash if TWA mode, splash hasn't been shown yet, and sessionStorage check is done
-  const showSplash = twaMode && splashChecked && splashVisible;
-
   return (
     <>
-      {/* SPLASH SCREEN — shown on cold start in TWA mode only */}
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-
-      {/* NORMAL APP CONTENT — always rendered (hidden behind splash if visible) */}
+      {/* NORMAL APP CONTENT */}
       <PwaInitializer userId={userId} userEmail={userEmail} />
       <PwaInstallPrompt />
       <Routes>
