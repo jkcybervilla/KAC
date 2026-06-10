@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Search } from 'lucide-react';
 import { collection, getDocs, query, orderBy, addDoc, where } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { AgGridReact } from 'ag-grid-react';
@@ -227,6 +228,72 @@ const ActivityTab = ({ project, profile }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFilterBar, setShowFilterBar] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [columnVisibility, setColumnVisibility] = useState({
+    LINE_NAME: true,
+    PKG: true,
+    START_DATE: true,
+    CLOSE_DATE: true,
+  });
+  const settingsRef = useRef(null);
+  const filterBarRef = useRef(null);
+  const gridRef = useRef(null);
+  const [gridApi, setGridApi] = useState(null);
+  const [columnFiltersEnabled, setColumnFiltersEnabled] = useState(false);
+
+  const setGridColumnVisible = useCallback((colId, visible, providedApi) => {
+    const api = providedApi || gridRef?.current?.api || gridApi;
+    if (!api) return;
+
+    if (typeof api.setColumnVisible === 'function') {
+      api.setColumnVisible(colId, visible);
+      return;
+    }
+
+    if (typeof api.setColumnsVisible === 'function') {
+      api.setColumnsVisible([colId], visible);
+      return;
+    }
+
+    if (typeof api.applyColumnState === 'function') {
+      api.applyColumnState({
+        state: [{ colId, hide: !visible }],
+      });
+    }
+  }, [gridApi]);
+
+  const toggleColumn = useCallback((field) => {
+    setColumnVisibility((prev) => {
+      const nextVisible = !prev[field];
+      setGridColumnVisible(field, nextVisible);
+      return { ...prev, [field]: nextVisible };
+    });
+  }, [setGridColumnVisible]);
+
+  // Toggle ag-grid column header filters when filter bar is toggled
+  useEffect(() => {
+    setColumnFiltersEnabled(showFilterBar);
+    if (gridApi && typeof gridApi.setGridOption === 'function') {
+      gridApi.setGridOption('filter', showFilterBar);
+    }
+  }, [showFilterBar, gridApi]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+        if (filterBarRef.current && filterBarRef.current.contains(e.target)) {
+          return;
+        }
+        setShowSettings(false);
+      }
+    };
+    if (showSettings) {
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }
+  }, [showSettings]);
 
   const loadActivities = async () => {
     setLoading(true);
@@ -246,23 +313,23 @@ const ActivityTab = ({ project, profile }) => {
   useEffect(() => { loadActivities(); }, [profile]);
 
   const columnDefs = useMemo(() => [
-    { headerName: "SL", width: 60, pinned: 'left', valueGetter: (p) => (p.node ? p.node.rowIndex + 1 : '') },
-    { field: "LINE_NAME", headerName: "LINE NAME", width: 130 },
-    { field: "PKG", headerName: "PKG", width: 110 },
-    { field: "START_DATE", headerName: "START DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "CLOSE_DATE", headerName: "CLOSE DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "DISTRICT", headerName: "DISTRICT", width: 120 },
-    { field: "LOC_NO", headerName: "LOC NO", width: 110 },
-    { field: "TOWER_TYPE", headerName: "TOWER TYPE", width: 110 },
-    { field: "WORKING_DATE", headerName: "DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "MISTRI", headerName: "MISTRI", width: 150 },
-    { field: "WORKING_TYPE", headerName: "WORK TYPE", width: 110 },
-    { field: "WORK_DETAILS", headerName: "WORK DETAILS", width: 250, wrapText: true, autoHeight: true },
-    { field: "QTY", headerName: "QTY", width: 80 },
-    { field: "MANPOWER", headerName: "MANPOWER", width: 200, cellRenderer: (p) => Array.isArray(p.value) ? p.value.join(', ') : p.value || '' },
-    { field: "DETAILS", headerName: "DETAILS", width: 200, wrapText: true, autoHeight: true },
-    { field: "CREATED_BY_NAME", headerName: "SENT BY", width: 130 },
-  ], []);
+    { headerName: "SL", minWidth: 50, width: 60, pinned: 'left', valueGetter: (p) => (p.node ? p.node.rowIndex + 1 : '') },
+    { field: "LINE_NAME", headerName: "LINE NAME", minWidth: 120, width: 130, hide: !columnVisibility.LINE_NAME },
+    { field: "PKG", headerName: "PKG", minWidth: 80, width: 110, hide: !columnVisibility.PKG },
+    { field: "START_DATE", headerName: "START DATE", minWidth: 100, width: 110, hide: !columnVisibility.START_DATE, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
+    { field: "CLOSE_DATE", headerName: "CLOSE DATE", minWidth: 100, width: 110, hide: !columnVisibility.CLOSE_DATE, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
+    { field: "DISTRICT", headerName: "DISTRICT", minWidth: 80, width: 120 },
+    { field: "LOC_NO", headerName: "LOC NO", minWidth: 80, width: 110 },
+    { field: "TOWER_TYPE", headerName: "TOWER TYPE", minWidth: 80, width: 110 },
+    { field: "WORKING_DATE", headerName: "DATE", minWidth: 80, width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
+    { field: "MISTRI", headerName: "MISTRI", minWidth: 80, width: 150 },
+    { field: "WORKING_TYPE", headerName: "WORK TYPE", minWidth: 80, width: 110 },
+    { field: "WORK_DETAILS", headerName: "WORK DETAILS", minWidth: 80, width: 250, wrapText: true, autoHeight: true },
+    { field: "QTY", headerName: "QTY", minWidth: 80, width: 80 },
+    { field: "MANPOWER", headerName: "MANPOWER", minWidth: 80, width: 200, cellRenderer: (p) => Array.isArray(p.value) ? p.value.join(', ') : p.value || '' },
+    { field: "DETAILS", headerName: "DETAILS", minWidth: 80, width: 200, wrapText: true, autoHeight: true },
+    { field: "CREATED_BY_NAME", headerName: "SENT BY", minWidth: 80, width: 130 },
+  ], [columnVisibility]);
 
   if (loading) {
     return <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 60 }}>Loading Activities...</div>;
@@ -270,22 +337,154 @@ const ActivityTab = ({ project, profile }) => {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: showFilterBar ? 0 : 20, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => setShowForm(true)} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
           <Plus size={16} /> SEND ACTIVITY
         </button>
+        <div ref={settingsRef} style={{ position: 'relative' }}>
+          <button
+            type="button"
+            style={{
+              padding: '6px 14px',
+              borderRadius: 6,
+              border: showSettings ? '1px solid #0055ff' : '1px solid var(--border)',
+              background: 'var(--surface)',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 600,
+              color: showSettings ? '#fff' : 'var(--text-soft)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            onClick={() => setShowSettings(!showSettings)}
+            title="Settings"
+          >
+            <span style={{ fontSize: 16, lineHeight: 1 }}>⚙️</span>
+          </button>
+          {showSettings && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                marginTop: 4,
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '6px 0',
+                zIndex: 9999,
+                minWidth: 190,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '7px 14px', cursor: 'pointer', fontSize: 12, color: '#ddd',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+              >
+                <span>Filter bar</span>
+                <input
+                  type="checkbox"
+                  checked={showFilterBar}
+                  onChange={() => setShowFilterBar(!showFilterBar)}
+                  style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                />
+              </label>
+              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
+              {[
+                { field: 'LINE_NAME', label: 'LINE NAME' },
+                { field: 'PKG', label: 'PKG' },
+                { field: 'START_DATE', label: 'START DATE' },
+                { field: 'CLOSE_DATE', label: 'CLOSE DATE' },
+              ].map((c) => (
+                <label
+                  key={c.field}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '7px 14px',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    color: columnVisibility[c.field] !== false ? '#fff' : '#666',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span>{c.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={columnVisibility[c.field] !== false}
+                    onChange={() => toggleColumn(c.field)}
+                    style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Collapsible filter bar — slides down when toggled ON */}
+      <div
+        ref={filterBarRef}
+        style={{
+          display: 'flex',
+          marginBottom: showFilterBar ? 12 : 0,
+        }}
+      >
+        <div style={{ display: 'flex', gap: 16, marginBottom: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 6px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }}>
+            <Search size={10} color="#444" />
+            <input
+              type="text"
+              placeholder="Search..."
+              style={{
+                padding: '6px 0',
+                backgroundColor: 'transparent',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--text)',
+                fontSize: 10,
+                width: 120,
+                fontFamily: 'inherit',
+              }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       <div style={{ borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ height: '60vh', width: '100%' }}>
+        <div style={{ height: '60vh', width: '100%', overflowX: 'auto' }}>
           <AgGridReact
+            ref={gridRef}
             rowData={activities}
             columnDefs={columnDefs}
-            defaultColDef={{ sortable: true, filter: true, resizable: true }}
+            defaultColDef={{ sortable: true, filter: columnFiltersEnabled, resizable: true, headerWrapText: false }}
             animateRows={true}
             rowHeight={34}
             headerHeight={38}
             theme={darkQuartzTheme}
+            quickFilterText={searchText}
+            suppressColumnVirtualisation={false}
+            onGridReady={(params) => {
+              setGridApi(params.api);
+              setTimeout(() => {
+                Object.entries(columnVisibility).forEach(([field, visible]) => {
+                  setGridColumnVisible(field, visible, params.api);
+                });
+                params.api.sizeColumnsToFit();
+              }, 200);
+            }}
+            onGridSizeChanged={(params) => {
+              params.api.sizeColumnsToFit();
+            }}
           />
         </div>
       </div>

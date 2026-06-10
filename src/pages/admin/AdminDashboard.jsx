@@ -3,6 +3,7 @@ import SecuritySettings from '../../components/SecuritySettings';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../config/firebase';
 import { isTwaMode } from '../../utils/pwa';
+import useSwipeToOpenSidebar from '../../hooks/useSwipeToOpenSidebar';
 import { collection, getDocs, query, orderBy, updateDoc, doc } from 'firebase/firestore';
 import {
   LayoutDashboard, Folder, Users, ClipboardCheck,
@@ -42,6 +43,13 @@ const AdminDashboard = () => {
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
   const userMenuRef = useRef(null);
   const twaMode = isTwaMode();
+
+  // Right swipe from left edge opens/expands sidebar (Android TWA only)
+  useSwipeToOpenSidebar(() => {
+    if (isCollapsed) {
+      setIsCollapsed(false);
+    }
+  });
 
   // Get current batch
   const now = new Date();

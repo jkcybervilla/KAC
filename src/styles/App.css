@@ -396,7 +396,7 @@ button {
 }
 
 .page-aside {
-  width: 260px;
+  width: 200px;
   border-right: 1px solid var(--sidebar-border);
   padding: 16px 12px;
   display: flex;
@@ -470,7 +470,7 @@ button {
     position: static;
     transform: translateX(0);
     box-shadow: none;
-    width: 260px;
+    width: 200px;
   }
 
   .slidebar-backdrop {

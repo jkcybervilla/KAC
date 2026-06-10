@@ -11,6 +11,7 @@ import { pageStyles as s } from '../../styles/pageStyles';
 import ThemeToggle from '../../components/ThemeToggle';
 import SecuritySettings from '../../components/SecuritySettings';
 import { isTwaMode } from '../../utils/pwa';
+import useSwipeToOpenSidebar from '../../hooks/useSwipeToOpenSidebar';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -66,6 +67,9 @@ const CoordinatorDashboard = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showSecuritySettings, setShowSecuritySettings] = useState(false);
   const twaMode = isTwaMode();
+
+  // Right swipe from left edge opens sidebar (Android TWA only)
+  useSwipeToOpenSidebar(() => setMenuOpen(true));
 
   const logout = () => {
     auth.signOut();

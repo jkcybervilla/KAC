@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 import { darkQuartzTheme } from '../../utils/agGridTheme';
 import { db } from '../../config/firebase';
-import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { AgGridReact } from 'ag-grid-react';
 import { UserPlus, Search, Settings2, X, Eye, CheckCircle, XCircle, Trash2, Upload, Edit2 } from 'lucide-react';
 import { createNotification } from '../../utils/notifications';
@@ -356,6 +356,22 @@ const RequestWorker = () => {
       project: row.PROJECT || '',
       performedBy: profile?.name || profile?.email || 'ADMIN',
     });
+
+    // Send notification to the accountant who requested this worker
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        recipientRole: 'accountant',
+        recipientProject: row.PROJECT || '',
+        type: 'worker_status',
+        message: `Worker "${row.WORKER_NAME}" has been APPROVED by admin`,
+        workerName: row.WORKER_NAME,
+        status: 'APPROVED',
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('Accountant notification error:', err);
+    }
     
     alert(`Approved — EMP ID: ${empid}`);
     load();
@@ -401,6 +417,22 @@ const RequestWorker = () => {
       project: row.PROJECT || '',
       performedBy: profile?.name || profile?.email || 'ADMIN',
     });
+
+    // Send notification to the accountant who requested this worker
+    try {
+      await addDoc(collection(db, 'notifications'), {
+        recipientRole: 'accountant',
+        recipientProject: row.PROJECT || '',
+        type: 'worker_status',
+        message: `Worker "${row.WORKER_NAME}" has been REJECTED by admin`,
+        workerName: row.WORKER_NAME,
+        status: 'REJECTED',
+        read: false,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('Accountant notification error:', err);
+    }
     
     setConfirmState(null);
     alert(`Request from ${row.WORKER_NAME} has been rejected.`);

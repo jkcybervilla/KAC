@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/login';
 import Dashboard from './pages/Dashboard';
@@ -22,6 +22,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PwaInitializer from './components/PwaInitializer';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
 import LockScreen from './components/LockScreen';
+import SplashScreen from './components/SplashScreen';
 import SetupLock from './components/SetupLock';
 import { useAuth } from './context/AuthContext';
 import { useAppLock } from './context/AppLockContext';
@@ -239,9 +240,26 @@ function AppContent() {
   } = useAppLock();
   const [setupComplete, setSetupComplete] = useState(false);
   const [initialRedirectDone, setInitialRedirectDone] = useState(false);
+  const [splashVisible, setSplashVisible] = useState(true);
+  const [splashChecked, setSplashChecked] = useState(false);
 
   // Determine if we're running as TWA / Android
   const twaMode = useMemo(() => isTwaMode(), []);
+
+  // Check sessionStorage once for splash — skip if already shown this session
+  useEffect(() => {
+    if (sessionStorage.getItem('kac_splash_shown')) {
+      setSplashVisible(false);
+    }
+    setSplashChecked(true);
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    try {
+      sessionStorage.setItem('kac_splash_shown', 'true');
+    } catch { /* ignore */ }
+    setSplashVisible(false);
+  }, []);
 
   // Initialize back button navigation (Fix #1, #2, #3)
   useBackButtonNavigation({ profile, authLoading });
@@ -287,9 +305,15 @@ function AppContent() {
     );
   }
 
+  // Show splash if TWA mode, splash hasn't been shown yet, and sessionStorage check is done
+  const showSplash = twaMode && splashChecked && splashVisible;
+
   return (
     <>
-      {/* NORMAL APP CONTENT — always rendered */}
+      {/* SPLASH SCREEN — shown on cold start in TWA mode only */}
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+
+      {/* NORMAL APP CONTENT — always rendered (hidden behind splash if visible) */}
       <PwaInitializer userId={userId} userEmail={userEmail} />
       <PwaInstallPrompt />
       <Routes>
