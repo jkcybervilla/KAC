@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ThemeToggle from '../../components/ThemeToggle';
+import SecuritySettings from '../../components/SecuritySettings';
+import { isTwaMode } from '../../utils/pwa';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -62,6 +64,8 @@ const CoordinatorDashboard = () => {
   );
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false);
+  const twaMode = isTwaMode();
 
   const logout = () => {
     auth.signOut();
@@ -102,6 +106,34 @@ const CoordinatorDashboard = () => {
             {p.PROJECT_NAME}
           </button>
         ))}
+        {twaMode && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowSecuritySettings(true);
+              setMenuOpen(false);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 14px',
+              marginBottom: 4,
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              background: 'transparent',
+              color: 'var(--text-soft)',
+              fontWeight: 'bold',
+              fontSize: 12,
+              textAlign: 'left',
+              width: '100%',
+            }}
+          >
+            <span role="img" aria-label="security">🔒</span>
+            Security
+          </button>
+        )}
         <ThemeToggle style={{ marginTop: 'auto' }} />
         <button type="button" onClick={logout} style={{ ...s.secondaryBtn, width: '100%' }}>
           <LogOut size={14} /> Logout
@@ -154,6 +186,9 @@ const CoordinatorDashboard = () => {
           </div>
         </div>
       </main>
+      {twaMode && showSecuritySettings && (
+        <SecuritySettings onClose={() => setShowSecuritySettings(false)} />
+      )}
     </div>
   );
 };

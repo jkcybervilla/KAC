@@ -19,6 +19,8 @@ import { filterProjectsByUser } from '../../utils/projectAccess';
 import { getBatchId } from '../../utils/attendance';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ThemeToggle from '../../components/ThemeToggle';
+import SecuritySettings from '../../components/SecuritySettings';
+import { isTwaMode } from '../../utils/pwa';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
 import AccountantWorkActivity from './AccountantWorkActivity';
@@ -52,6 +54,8 @@ const AccountantDashboard = () => {
   const [clientMp, setClientMp] = useState(0);
   const [officeMp, setOfficeMp] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showSecuritySettings, setShowSecuritySettings] = useState(false);
+  const twaMode = isTwaMode();
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
@@ -202,6 +206,35 @@ const AccountantDashboard = () => {
           </button>
         ))}
 
+        {twaMode && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowSecuritySettings(true);
+              setMenuOpen(false);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 14px',
+              marginBottom: 4,
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              background: 'transparent',
+              color: 'var(--text-soft)',
+              fontWeight: 'bold',
+              fontSize: 12,
+              textAlign: 'left',
+              width: '100%',
+            }}
+          >
+            <span role="img" aria-label="security">🔒</span>
+            Security
+          </button>
+        )}
+
         <ThemeToggle style={{ marginTop: 'auto' }} />
 
         <button type="button" onClick={logout} style={{ ...s.secondaryBtn, width: '100%' }}>
@@ -241,6 +274,9 @@ const AccountantDashboard = () => {
 
         <div className="page-box">{renderContent()}</div>
       </main>
+      {twaMode && showSecuritySettings && (
+        <SecuritySettings onClose={() => setShowSecuritySettings(false)} />
+      )}
     </div>
   );
 };

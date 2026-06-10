@@ -83,28 +83,28 @@ const getNextUnsavedDate = (savedDatesSet, year, month) => {
 
 const DateHeaderComponent = ({ setDate, selectedDate, minDate, maxDate }) => {
   const headerRef = useRef(null);
+  const dayOnly = selectedDate ? new Date(selectedDate + 'T00:00:00').getDate() : '';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', height: '100%' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
+      onClick={() => headerRef.current?.showPicker?.()}
+    >
+      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{dayOnly}</span>
+<span style={{ fontSize: 11, color: '#888', marginLeft: 3 }}>📅</span>
       <input
         ref={headerRef}
         type="date"
         value={selectedDate}
+       
         min={minDate}
         max={maxDate}
         onChange={(e) => setDate(e.target.value)}
-        style={{
-          width: '100%',
-          border: 'none',
-          background: 'transparent',
-          color: 'var(--text)',
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
-          outline: 'none',
-          padding: '2px 0',
-          fontFamily: 'Inter, sans-serif',
-        }}
-        onClick={(e) => e.stopPropagation()}
+       style={{
+  position: 'absolute',
+  opacity: 0,
+  width: 0,
+  height: 0,
+  pointerEvents: 'none',
+}}
       />
     </div>
   );
