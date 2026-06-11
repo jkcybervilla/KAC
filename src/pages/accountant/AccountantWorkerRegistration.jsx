@@ -152,6 +152,10 @@ const styles = {
     color: '#64748b',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+    background: 'var(--color-background-primary)',
   },
   listBody: {
     borderRadius: '0 0 10px 10px',
