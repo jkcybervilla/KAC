@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { UserPlus, Search, X, Check, Clock, Eye, Bell } from 'lucide-react';
+import { UserPlus, Search, X, Check, Clock, Eye, Bell, ChevronLeft, ChevronRight, SkipForward, Building, User, CreditCard, Camera } from 'lucide-react';
 import PhotoUpload from '../../components/PhotoUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createNotification } from '../../utils/notifications';
@@ -273,6 +273,7 @@ const EMPTY = {
   AADHAR_NO: '',
   PHOTO: '',
   AADHAR_PHOTO: '',
+  AADHAR_BACK_PHOTO: '',
   JOINING_DATE_CLIENT: '',
   JOINING_DATE_OFFICE: '',
   ADDRESS: '',
@@ -299,6 +300,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [statusDropdownId, setStatusDropdownId] = useState(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const dropdownRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -487,6 +489,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
     });
     setShowModal(false);
     setForm(EMPTY);
+    setCurrentStep(0);
     load();
     alert('Worker request submitted for approval.');
   };
@@ -522,6 +525,89 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   };
 
   const isStatusOpen = (id) => statusDropdownId === id;
+
+  // Wizard navigation
+  const handleNextStep = () => {
+    if (currentStep === 0) {
+      if (!form.REFFERENCE) {
+        alert('Please select a vendor (reference).');
+        return;
+      }
+      if (!form.JOINING_DATE_CLIENT && !form.JOINING_DATE_OFFICE) {
+        alert('At least one joining date (Client or Office) is required.');
+        return;
+      }
+    }
+    if (currentStep === 1) {
+      if (!form.AADHAR_NO || form.AADHAR_NO.length !== 12) {
+        alert('Please enter a valid 12-digit Aadhaar number.');
+        return;
+      }
+      if (!form.WORKER_NAME) {
+        alert('Please enter the worker name.');
+        return;
+      }
+      if (!form.FATHER_NAME) {
+        alert('Please enter the father name.');
+        return;
+      }
+      if (!form.DOB) {
+        alert('Please select date of birth.');
+        return;
+      }
+      if (!form.MOBILE_NO) {
+        alert('Please enter phone number.');
+        return;
+      }
+      if (!form.ADDRESS) {
+        alert('Please enter the address.');
+        return;
+      }
+    }
+    setCurrentStep((prev) => Math.min(prev + 1, 3));
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
+  };
+
+  const handleSkipStep = () => {
+    setCurrentStep(3);
+  };
+
+  const handleWizardSubmit = (e) => {
+    e.preventDefault();
+    handleSubmit(e);
+  };
+
+
+  const inputBase = {
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    padding: '11px',
+    borderRadius: '8px',
+    color: '#1e293b',
+    fontSize: '13px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'Inter, sans-serif',
+  };
+
+  const labelStyle = {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#475569',
+    marginBottom: '4px',
+    display: 'block',
+  };
+
+  const steps = [
+    { label: 'Joining', icon: 'Building' },
+    { label: 'Personal', icon: 'User' },
+    { label: 'Bank', icon: 'CreditCard' },
+    { label: 'Photos', icon: 'Camera' },
+  ];
 
   if (!projectName) return <p style={styles.loadingState}>Select a project from the header.</p>;
   if (loading) return <p style={styles.loadingState}>Loading...</p>;
@@ -569,7 +655,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
             </button>
           )}
         </div>
-        <button type="button" style={styles.addBtn} onClick={() => setShowModal(true)}>
+        <button type="button" style={styles.addBtn} onClick={() => { setShowModal(true); setCurrentStep(0); setForm(EMPTY); }}>
           <UserPlus size={16} /> Add
         </button>
       </div>
@@ -925,7 +1011,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
         </div>
       )}
 
-      {/* Add Worker Modal */}
+      {/* Add Worker Modal — 4-Step Wizard */}
       {showModal && (
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
@@ -934,117 +1020,340 @@ const AccountantWorkerRegistration = ({ projectName }) => {
         }}>
           <div style={{
             backgroundColor: '#fff', color: '#1e293b', padding: '24px',
-            borderRadius: '16px', width: '100%', maxWidth: '500px',
+            borderRadius: '16px', width: '100%', maxWidth: '520px',
             border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto',
           }}>
+            {/* Header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px',
+              marginBottom: '20px',
             }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>ADD WORKER</h3>
-              <X size={20} style={{ cursor: 'pointer', color: '#64748b' }} onClick={() => setShowModal(false)} />
+              <X size={20} style={{ cursor: 'pointer', color: '#64748b' }} onClick={() => { setShowModal(false); setCurrentStep(0); }} />
             </div>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <select required style={{
-                width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-              }}
-                value={form.REFFERENCE} onChange={(e) => setForm({ ...form, REFFERENCE: e.target.value })}>
-                <option value="">SELECT VENDOR (REFERENCE) *</option>
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.vendorName}>{v.vendorName}</option>
-                ))}
-              </select>
-              <input required placeholder="AADHAAR NO (12 digit) *"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.AADHAR_NO} onChange={(e) => setForm({ ...form, AADHAR_NO: e.target.value })} />
-              <input required placeholder="NAME *"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.WORKER_NAME} onChange={(e) => setForm({ ...form, WORKER_NAME: e.target.value.toUpperCase() })} />
-              <input required placeholder="FATHER NAME *"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.FATHER_NAME} onChange={(e) => setForm({ ...form, FATHER_NAME: e.target.value.toUpperCase() })} />
-              <select style={{
-                width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-              }}
-                value={form.DESIGNATION} onChange={(e) => setForm({ ...form, DESIGNATION: e.target.value })}>
-                <option value="LABOUR">LABOUR</option>
-                <option value="SKILLED">SKILLED</option>
-                <option value="SUPERVISOR">SUPERVISOR</option>
-              </select>
-              <input required type="date"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                onChange={(e) => setForm({ ...form, DOB: e.target.value })} />
-              <input required placeholder="PH NUMBER *"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.MOBILE_NO} onChange={(e) => setForm({ ...form, MOBILE_NO: e.target.value })} />
-              <PhotoUpload label="AADHAAR PHOTO *" value={form.AADHAR_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
-              <PhotoUpload label="WORKER PHOTO (optional)" value={form.PHOTO} onChange={(val) => setForm({ ...form, PHOTO: val })} folder="worker-photos" aspect={1} />
-              <input required placeholder="ADDRESS *"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.ADDRESS} onChange={(e) => setForm({ ...form, ADDRESS: e.target.value })} />
-              <input type="date" placeholder="JOINING CLIENT"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                onChange={(e) => setForm({ ...form, JOINING_DATE_CLIENT: e.target.value })} />
-              <input type="date" placeholder="JOINING OFFICE"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                onChange={(e) => setForm({ ...form, JOINING_DATE_OFFICE: e.target.value })} />
-              <input placeholder="PAN (optional)"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                onChange={(e) => setForm({ ...form, PAN_NO: e.target.value })} />
-              <PhotoUpload label="PAN PHOTO (optional)" value={form.PAN_PHOTO} onChange={(val) => setForm({ ...form, PAN_PHOTO: val })} folder="pan-photos" aspect={1.4} />
-              <input placeholder="BANK (optional)"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.BANK} onChange={(e) => setForm({ ...form, BANK: e.target.value })} />
-              <input placeholder="ACCOUNT NO (optional)"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.ACCOUNT_NO} onChange={(e) => setForm({ ...form, ACCOUNT_NO: e.target.value })} />
-              <input placeholder="IFSC (optional)"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                }}
-                value={form.IFSC} onChange={(e) => setForm({ ...form, IFSC: e.target.value })} />
-              <PhotoUpload label="BANK PHOTO (optional)" value={form.BANK_PHOTO} onChange={(val) => setForm({ ...form, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
-              <button type="submit" style={{
-                backgroundColor: '#2563eb', color: '#fff', border: 'none',
-                padding: '14px', borderRadius: '8px', fontWeight: 700,
-                cursor: 'pointer', marginTop: '4px', fontSize: '13px', fontFamily: 'Inter, sans-serif',
-              }}>SUBMIT REQUEST</button>
+
+            {/* Stepper */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: '24px', padding: '0 4px',
+            }}>
+              {steps.map((step, idx) => (
+                <React.Fragment key={idx}>
+                  {/* Step Circle + Label */}
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    flex: idx < steps.length - 1 ? 1 : undefined,
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontWeight: 700, fontSize: '13px',
+                      backgroundColor: currentStep === idx ? '#2563eb' : currentStep > idx ? '#22c55e' : '#e2e8f0',
+                      color: currentStep >= idx ? '#fff' : '#94a3b8',
+                      transition: 'all 0.2s ease',
+                    }}>
+                      {currentStep > idx ? <Check size={16} /> : idx + 1}
+                    </div>
+                    <span style={{
+                      fontSize: '10px', fontWeight: 600,
+                      color: currentStep === idx ? '#2563eb' : currentStep > idx ? '#22c55e' : '#94a3b8',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {step.label}
+                    </span>
+                  </div>
+                  {/* Connector line */}
+                  {idx < steps.length - 1 && (
+                    <div style={{
+                      flex: 1, height: 2,
+                      backgroundColor: currentStep > idx ? '#22c55e' : '#e2e8f0',
+                      margin: '0 4px', marginBottom: 22,
+                      borderRadius: 1,
+                      transition: 'background 0.2s ease',
+                    }} />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+
+            <form style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* ===== STEP 1: JOINING DETAILS ===== */}
+              {currentStep === 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Vendor Dropdown */}
+                  <div>
+                    <label style={labelStyle}>Vendor (Reference) *</label>
+                    <select required style={inputBase}
+                      value={form.REFFERENCE} onChange={(e) => setForm({ ...form, REFFERENCE: e.target.value })}>
+                      <option value="">SELECT VENDOR (REFERENCE) *</option>
+                      {vendors.map((v) => (
+                        <option key={v.id} value={v.vendorName}>{v.vendorName}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Joining Dates */}
+                  <div>
+                    <label style={labelStyle}>Client joining date</label>
+                    <input type="date" style={inputBase}
+                      value={form.JOINING_DATE_CLIENT} onChange={(e) => setForm({ ...form, JOINING_DATE_CLIENT: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Office joining date</label>
+                    <input type="date" style={inputBase}
+                      value={form.JOINING_DATE_OFFICE} onChange={(e) => setForm({ ...form, JOINING_DATE_OFFICE: e.target.value })} />
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '-4px' }}>
+                    At least one joining date (Client or Office) must be filled.
+                  </div>
+                </div>
+              )}
+
+              {/* ===== STEP 2: PERSONAL DETAILS ===== */}
+              {currentStep === 1 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div>
+                    <label style={labelStyle}>Aadhaar Number *</label>
+                    <input required placeholder="AADHAAR NO (12 digit) *" style={inputBase}
+                      value={form.AADHAR_NO} onChange={(e) => setForm({ ...form, AADHAR_NO: e.target.value })} maxLength={12} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Name *</label>
+                    <input required placeholder="NAME *" style={inputBase}
+                      value={form.WORKER_NAME} onChange={(e) => setForm({ ...form, WORKER_NAME: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Father Name *</label>
+                    <input required placeholder="FATHER NAME *" style={inputBase}
+                      value={form.FATHER_NAME} onChange={(e) => setForm({ ...form, FATHER_NAME: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Designation *</label>
+                    <select style={inputBase}
+                      value={form.DESIGNATION} onChange={(e) => setForm({ ...form, DESIGNATION: e.target.value })}>
+                      <option value="LABOUR">LABOUR</option>
+                      <option value="SKILLED">SKILLED</option>
+                      <option value="SUPERVISOR">SUPERVISOR</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Date of Birth *</label>
+                    <input required type="date" style={inputBase}
+                      value={form.DOB} onChange={(e) => setForm({ ...form, DOB: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Phone Number *</label>
+                    <input required placeholder="PH NUMBER *" style={inputBase}
+                      value={form.MOBILE_NO} onChange={(e) => setForm({ ...form, MOBILE_NO: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Address *</label>
+                    <input required placeholder="ADDRESS *" style={inputBase}
+                      value={form.ADDRESS} onChange={(e) => setForm({ ...form, ADDRESS: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#94a3b8' }}>PAN (optional)</label>
+                    <input placeholder="PAN (optional)" style={inputBase}
+                      value={form.PAN_NO} onChange={(e) => setForm({ ...form, PAN_NO: e.target.value })} />
+                  </div>
+                </div>
+              )}
+
+              {/* ===== STEP 3: BANK DETAILS (OPTIONAL) ===== */}
+              {currentStep === 2 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{
+                    backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0',
+                    borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#166534',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                  }}>
+                    <Check size={16} color="#22c55e" />
+                    <span>Bank details are optional. You can skip this step.</span>
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#94a3b8' }}>Bank Name (optional)</label>
+                    <input placeholder="BANK NAME" style={inputBase}
+                      value={form.BANK} onChange={(e) => setForm({ ...form, BANK: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#94a3b8' }}>Account Number (optional)</label>
+                    <input placeholder="ACCOUNT NO" style={inputBase}
+                      value={form.ACCOUNT_NO} onChange={(e) => setForm({ ...form, ACCOUNT_NO: e.target.value })} />
+                  </div>
+                  <div>
+                    <label style={{ ...labelStyle, color: '#94a3b8' }}>IFSC Code (optional)</label>
+                    <input placeholder="IFSC" style={inputBase}
+                      value={form.IFSC} onChange={(e) => setForm({ ...form, IFSC: e.target.value })} />
+                  </div>
+                </div>
+              )}
+
+              {/* ===== STEP 4: PHOTO UPLOADS ===== */}
+              {currentStep === 3 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {/* Worker Photo */}
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '14px',
+                    padding: '14px', borderRadius: '12px',
+                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                  }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '10px',
+                      backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <Camera size={22} color="#2563eb" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Worker Photo *</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Upload a recent photo of the worker</div>
+                      <PhotoUpload variant="light" label="" value={form.PHOTO} onChange={(val) => setForm({ ...form, PHOTO: val })} folder="worker-photos" aspect={1} />
+                    </div>
+                  </div>
+
+                  {/* Aadhaar Front */}
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '14px',
+                    padding: '14px', borderRadius: '12px',
+                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                  }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '10px',
+                      backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <User size={22} color="#ef4444" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Aadhaar Front *</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Front side of Aadhaar card</div>
+                      <PhotoUpload variant="light" label="" value={form.AADHAR_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
+                    </div>
+                  </div>
+
+                  {/* Aadhaar Back */}
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '14px',
+                    padding: '14px', borderRadius: '12px',
+                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                  }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '10px',
+                      backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <User size={22} color="#ef4444" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Aadhaar Back *</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Back side of Aadhaar card</div>
+                      <PhotoUpload variant="light" label="" value={form.AADHAR_BACK_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_BACK_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
+                    </div>
+                  </div>
+
+                  {/* PAN Photo (optional) */}
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '14px',
+                    padding: '14px', borderRadius: '12px',
+                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                  }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '10px',
+                      backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <CreditCard size={22} color="#22c55e" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>PAN Photo (optional)</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Upload PAN card image if available</div>
+                      <PhotoUpload variant="light" label="" value={form.PAN_PHOTO} onChange={(val) => setForm({ ...form, PAN_PHOTO: val })} folder="pan-photos" aspect={1.4} />
+                    </div>
+                  </div>
+
+                  {/* Bank Passbook (optional) */}
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '14px',
+                    padding: '14px', borderRadius: '12px',
+                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                  }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: '10px',
+                      backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0,
+                    }}>
+                      <CreditCard size={22} color="#22c55e" />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Bank Passbook (optional)</div>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Upload bank passbook or cheque copy</div>
+                      <PhotoUpload variant="light" label="" value={form.BANK_PHOTO} onChange={(val) => setForm({ ...form, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ===== FOOTER NAVIGATION ===== */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                marginTop: '20px', paddingTop: '16px',
+                borderTop: '1px solid #e2e8f0',
+              }}>
+                {/* Back Button — hidden on step 0 */}
+                <div>
+                  {currentStep > 0 && (
+                    <button type="button" onClick={handlePrevStep} style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '10px 18px', borderRadius: '8px',
+                      border: '1px solid #e2e8f0', backgroundColor: '#fff',
+                      color: '#475569', fontWeight: 600, fontSize: '13px',
+                      cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                    }}>
+                      <ChevronLeft size={16} /> Back
+                    </button>
+                  )}
+                </div>
+
+                {/* Right side buttons */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {/* Step 3 (Bank) shows Skip button */}
+                  {currentStep === 2 && (
+                    <button type="button" onClick={handleSkipStep} style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '10px 18px', borderRadius: '8px',
+                      border: '1px solid #e2e8f0', backgroundColor: '#fff',
+                      color: '#64748b', fontWeight: 600, fontSize: '13px',
+                      cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                    }}>
+                      <SkipForward size={16} /> Skip
+                    </button>
+                  )}
+
+                  {/* Next or Submit */}
+                  {currentStep < 3 ? (
+                    <button type="button" onClick={handleNextStep} style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '10px 22px', borderRadius: '8px',
+                      border: 'none', backgroundColor: '#2563eb',
+                      color: '#fff', fontWeight: 700, fontSize: '13px',
+                      cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                    }}>
+                      Next <ChevronRight size={16} />
+                    </button>
+                  ) : (
+                    <button type="button" onClick={handleSubmit} style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: '10px 22px', borderRadius: '8px',
+                      border: 'none', backgroundColor: '#2563eb',
+                      color: '#fff', fontWeight: 700, fontSize: '13px',
+                      cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+                    }}>
+                      <Check size={16} /> Submit
+                    </button>
+                  )}
+                </div>
+              </div>
             </form>
           </div>
         </div>

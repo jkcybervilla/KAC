@@ -56,7 +56,7 @@ const cropContainer = {
   overflow: 'hidden',
 };
 
-const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'worker-photos', aspect = 1 }) => {
+const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'worker-photos', aspect = 1, variant = 'dark' }) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [preview, setPreview] = useState(value || '');
@@ -71,7 +71,9 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [cropProcessing, setCropProcessing] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null); // original File for crop processing
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const isLight = variant === 'light';
 
   const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -103,14 +105,10 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
     setCropProcessing(true);
 
     try {
-      // 1. Crop + compress (max 1024px, JPEG 70%)
       const blob = await cropToBlob(selectedFile, croppedAreaPixels);
-
-      // 2. Local preview — modal still shows while uploading
       const localUrl = URL.createObjectURL(blob);
       setPreview(localUrl);
 
-      // 3. Upload to Supabase Storage with progress
       setUploading(true);
       setProgress(50);
 
@@ -134,7 +132,6 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
 
       const downloadUrl = data.publicUrl;
 
-      // 4. Done — update form state with permanent URL, close modal
       setPreview(downloadUrl);
       setUploading(false);
       setCropProcessing(false);
@@ -166,11 +163,30 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // Light variant: uploaded badge replaces button
+  if (isLight && value && !uploading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {label && <label style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>{label}</label>}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '6px 12px', borderRadius: 6,
+          backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0',
+          fontSize: 12, fontWeight: 600, color: '#16a34a',
+          width: 'fit-content',
+        }}>
+          <Check size={14} />
+          Uploaded ✓
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: '#888' }}>{label}</label>}
 
-      {preview ? (
+      {preview && !value && (
         <div style={{ position: 'relative', display: 'inline-block', maxWidth: 120 }}>
           <img
             src={preview}
@@ -180,7 +196,7 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
               height: 80,
               objectFit: 'cover',
               borderRadius: 6,
-              border: '1px solid #222',
+              border: isLight ? '1px solid #e2e8f0' : '1px solid #222',
             }}
             onError={() => setPreview('')}
           />
@@ -222,128 +238,181 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
             </div>
           )}
         </div>
-      ) : (
-        <>
-          <div
-            onClick={() => setShowPicker(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: '8px 12px',
-              border: '1px dashed #333',
-              borderRadius: 6,
-              cursor: 'pointer',
-              color: uploading ? '#00ff88' : '#666',
-              fontSize: 12,
-              backgroundColor: '#050505',
-              minHeight: 36,
-              transition: 'border-color 0.2s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = '#555'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = '#333'}
-          >
-            {uploading ? (
-              <>
-                <Loader size={14} className="spin" />
-                Uploading... {progress}%
-              </>
-            ) : (
-              <>
-                <Scissors size={14} />
-                {value ? 'Change Photo' : 'Select & Crop'}
-              </>
-            )}
-          </div>
+      )}
 
-          {/* Camera / Gallery Picker Modal */}
-          {showPicker && (
+      {/* Upload button - light variant */}
+      {isLight ? (
+        <>
+          {!value && !uploading && (
+            <button
+              type="button"
+              onClick={() => setShowPicker(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                padding: '7px 14px',
+                border: '0.5px solid #d1d5db',
+                borderRadius: 6,
+                cursor: 'pointer',
+                color: '#0055ff',
+                fontSize: 12,
+                fontWeight: 600,
+                backgroundColor: '#f1f5f9',
+                fontFamily: 'Inter, sans-serif',
+                transition: 'background 0.15s',
+                width: 'fit-content',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+            >
+              <Upload size={14} />
+              Upload
+            </button>
+          )}
+          {uploading && (
             <div style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0,0,0,0.9)',
               display: 'flex',
-              justifyContent: 'center',
               alignItems: 'center',
-              zIndex: 100001,
+              gap: 6,
+              padding: '7px 14px',
+              borderRadius: 6,
+              backgroundColor: '#f1f5f9',
+              fontSize: 12,
+              color: '#64748b',
+              width: 'fit-content',
             }}>
-              <div style={{
-                backgroundColor: '#0a0a0a',
-                border: '1px solid #1a1a1a',
-                borderRadius: 16,
-                padding: 24,
-                maxWidth: 340,
-                width: '90%',
-                textAlign: 'center',
-              }}>
-                <h4 style={{ color: '#fff', margin: '0 0 20px 0', fontSize: 16 }}>
-                  CHOOSE PHOTO SOURCE
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <button
-                    type="button"
-                    onClick={() => cameraInputRef.current?.click()}
-                    style={{
-                      backgroundColor: '#111',
-                      border: '1px solid #333',
-                      color: '#fff',
-                      padding: '14px 20px',
-                      borderRadius: 10,
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    📷 TAKE PHOTO (CAMERA)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      backgroundColor: '#111',
-                      border: '1px solid #333',
-                      color: '#fff',
-                      padding: '14px 20px',
-                      borderRadius: 10,
-                      cursor: 'pointer',
-                      fontSize: 13,
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                    }}
-                  >
-                    🖼️ SELECT FROM GALLERY
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPicker(false)}
-                    style={{
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      color: '#666',
-                      padding: '10px',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      marginTop: 8,
-                    }}
-                  >
-                    CANCEL
-                  </button>
-                </div>
-              </div>
+              <Loader size={14} className="spin" />
+              Uploading... {progress}%
+            </div>
+          )}
+        </>
+      ) : (
+        /* Dark variant - original */
+        <>
+          {!preview && (
+            <div
+              onClick={() => setShowPicker(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                border: '1px dashed #333',
+                borderRadius: 6,
+                cursor: 'pointer',
+                color: uploading ? '#00ff88' : '#666',
+                fontSize: 12,
+                backgroundColor: '#050505',
+                minHeight: 36,
+                transition: 'border-color 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#555'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#333'}
+            >
+              {uploading ? (
+                <>
+                  <Loader size={14} className="spin" />
+                  Uploading... {progress}%
+                </>
+              ) : (
+                <>
+                  <Scissors size={14} />
+                  {value ? 'Change Photo' : 'Select & Crop'}
+                </>
+              )}
             </div>
           )}
         </>
       )}
 
-      {/* Hidden file input for gallery select */}
+      {/* Camera / Gallery Picker Modal */}
+      {showPicker && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.9)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 100001,
+        }}>
+          <div style={{
+            backgroundColor: '#0a0a0a',
+            border: '1px solid #1a1a1a',
+            borderRadius: 16,
+            padding: 24,
+            maxWidth: 340,
+            width: '90%',
+            textAlign: 'center',
+          }}>
+            <h4 style={{ color: '#fff', margin: '0 0 20px 0', fontSize: 16 }}>
+              CHOOSE PHOTO SOURCE
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                style={{
+                  backgroundColor: '#111',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  padding: '14px 20px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}
+              >
+                📷 TAKE PHOTO (CAMERA)
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  backgroundColor: '#111',
+                  border: '1px solid #333',
+                  color: '#fff',
+                  padding: '14px 20px',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}
+              >
+                🖼️ SELECT FROM GALLERY
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPicker(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: '#666',
+                  padding: '10px',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  marginTop: 8,
+                }}
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
@@ -353,8 +422,6 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
         onChange={(e) => handleFileSelect(e, false)}
         disabled={uploading}
       />
-
-      {/* Hidden file input for camera capture */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -365,13 +432,13 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
         disabled={uploading}
       />
 
-      {value && !uploading && (
+      {value && !uploading && !isLight && (
         <span style={{ fontSize: 10, color: '#22c55e', display: 'flex', alignItems: 'center', gap: 4 }}>
           <Check size={10} /> Uploaded
         </span>
       )}
 
-      {/* Processing overlay — covers screen while cropping/compressing */}
+      {/* Processing overlay */}
       {cropProcessing && (
         <div style={{
           position: 'fixed',
@@ -424,7 +491,6 @@ const PhotoUpload = ({ label, value, onChange, accept = 'image/*', folder = 'wor
               />
             </div>
 
-            {/* Zoom slider */}
             <div style={{ marginTop: 10, marginBottom: 14 }}>
               <input
                 type="range"
