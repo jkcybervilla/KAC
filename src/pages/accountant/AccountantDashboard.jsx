@@ -307,28 +307,15 @@ const AccountantDashboard = () => {
 
       <main className="page-main">
         <header className="page-header" style={{ position: 'relative' }}>
-          <div className="page-header-inner" style={{ position: 'relative' }}>
-            <button className="slidebar-toggle-btn" type="button" onClick={() => setMenuOpen(true)}>
+          <div className="page-header-inner" style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', gap: 0, overflow: 'hidden', justifyContent: 'flex-start' }}>
+            <button className="slidebar-toggle-btn" type="button" onClick={() => setMenuOpen(true)} style={{ flexShrink: 0 }}>
               ☰
             </button>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ margin: '0 0 8px', color: 'var(--muted)', fontSize: 12 }}>
-                {dateStr}
-              </p>
-              <h1 style={{ margin: 0, fontSize: 20 }}>{project?.PROJECT_NAME || 'No project assigned'}</h1>
-              <p style={{ margin: '8px 0 2px', color: 'var(--muted)', fontSize: 12 }}>
-                Line: {project?.LINE_NAME || '—'}
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, fontSize: 12, marginTop: 8, flexWrap: 'wrap' }}>
-                <div>
-                  Client MP: <strong style={{ color: '#22c55e' }}>{clientMp}</strong>
-                </div>
-                <div>
-                  Office MP: <strong style={{ color: '#0055ff' }}>{officeMp}</strong>
-                </div>
-              </div>
-            </div>
-            <div style={{ position: 'absolute', right: 16, top: 16, display: 'flex', alignItems: 'center', gap: 10 }} ref={notifRef}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginLeft: 10, flexShrink: 1, minWidth: 0 }}>
+              {project?.PROJECT_NAME || ''}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto', flexShrink: 0 }} ref={notifRef}>
+              <span style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>{dateStr}</span>
               <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={22} color="var(--muted)" />
                 {unreadCount > 0 && (

@@ -1,65 +1,10 @@
 import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import { Search, Save } from 'lucide-react';
+import { Search, Save, ChevronDown, Zap, Settings } from 'lucide-react';
 import { pageStyles as s } from '../../styles/pageStyles';
 import ExportToolbar from '../../components/ExportToolbar';
 import { getBatchId, countPresent } from '../../utils/attendance';
-import Select from 'react-select';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: 'var(--surface)',
-  foregroundColor: 'var(--text-soft)',
-  headerBackgroundColor: 'var(--surface-2)',
-  headerTextColor: 'var(--text)',
-  borderColor: 'var(--border-strong)',
-  rowHoverColor: 'var(--surface-2)',
-  oddRowBackgroundColor: 'var(--surface)',
-  fontFamily: 'Inter, sans-serif',
-  rowHeight: 36,
-  headerHeight: 40,
-  wrapperBorderRadius: '12px',
-  borderRadius: 0,
-});
-
-const customSelectStyles = {
-  control: (base) => ({
-    ...base,
-    minHeight: 32,
-    minWidth: 140,
-    fontSize: 12,
-    fontWeight: 600,
-    border: '1px solid var(--border)',
-    borderRadius: 6,
-    background: 'var(--surface)',
-    cursor: 'pointer',
-    boxShadow: 'none',
-    '&:hover': { borderColor: 'var(--accent)' },
-  }),
-  menu: (base) => ({
-    ...base,
-    fontSize: 12,
-    zIndex: 200,
-  }),
-  option: (base, { isFocused, isSelected }) => ({
-    ...base,
-    background: isSelected ? '#0055ff' : isFocused ? 'var(--accent-soft)' : 'transparent',
-    color: isSelected ? '#fff' : 'var(--text)',
-    cursor: 'pointer',
-  }),
-  singleValue: (base) => ({ ...base, color: 'var(--text)' }),
-  dropdownIndicator: (base) => ({ ...base, padding: '0 4px' }),
-};
-
-const attendanceOptions = [
-  { value: 'P', label: 'All Present' },
-  { value: 'A', label: 'All Absent' },
-  { value: 'C', label: 'All Close' },
-];
 
 /** Helper to convert Date to YYYY-MM-DD */
 const toDateStr = (d) => {
@@ -81,34 +26,23 @@ const getNextUnsavedDate = (savedDatesSet, year, month) => {
   return null; // all dates saved
 };
 
-const DateHeaderComponent = ({ setDate, selectedDate, minDate, maxDate }) => {
-  const headerRef = useRef(null);
-  const dayOnly = selectedDate ? new Date(selectedDate + 'T00:00:00').getDate() : '';
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
-      onClick={() => headerRef.current?.showPicker?.()}
-    >
-      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{dayOnly}</span>
-<span style={{ fontSize: 11, color: '#888', marginLeft: 3 }}>📅</span>
-      <input
-        ref={headerRef}
-        type="date"
-        value={selectedDate}
-       
-        min={minDate}
-        max={maxDate}
-        onChange={(e) => setDate(e.target.value)}
-       style={{
-  position: 'absolute',
-  opacity: 0,
-  width: 0,
-  height: 0,
-  pointerEvents: 'none',
-}}
-      />
-    </div>
-  );
+const STATUS_OPTIONS = [
+  { value: 'P', label: 'P', color: '#22c55e' },
+  { value: 'A', label: 'A', color: '#ef4444' },
+  { value: 'H', label: 'H', color: '#f59e0b' },
+  { value: 'C', label: 'C', color: '#6b7280' },
+];
+
+const STATUS_COLORS = {
+  P: { bg: 'rgba(34,197,94,0.15)', text: '#22c55e' },
+  A: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444' },
+  H: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b' },
+  C: { bg: 'rgba(107,114,128,0.15)', text: '#9ca3af' },
 };
+
+/** Generate a unique ID for each status dropdown portal */
+let dropdownIdCounter = 0;
+const getNextDropdownId = () => `status-dd-${++dropdownIdCounter}`;
 
 const AccountantDailyAttendance = ({ type, projectName }) => {
   const now = new Date();
@@ -116,8 +50,6 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   const currentYear = now.getFullYear();
   const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1);
   const todayStr = toDateStr(now);
-  const firstDayStr = toDateStr(firstDayOfMonth);
-  const lastDayStr = todayStr; // max = today, no future dates
   const [selectedDate, setSelectedDate] = useState(() => todayStr);
   const [rows, setRows] = useState([]);
   const [searchText, setSearchText] = useState('');
@@ -134,13 +66,16 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   const [fullMonthData, setFullMonthData] = useState([]);
   const [showSettings, setShowSettings] = useState(false);
   const [showFilterBar, setShowFilterBar] = useState(false);
-  const [columnFiltersEnabled, setColumnFiltersEnabled] = useState(false);
-  const [gridApi, setGridApi] = useState(null);
+  const [showQuickAction, setShowQuickAction] = useState(false);
+  const [openStatusDropdown, setOpenStatusDropdown] = useState(null); // worker id
   const settingsRef = useRef(null);
-  const filterBarRef = useRef(null);
-  const gridRef = useRef(null);
+  const quickActionRef = useRef(null);
+  const dateStripRef = useRef(null);
   const workersRef = useRef([]);
   const attMapRef = useRef({});
+  // Use a Set ref to track all status dropdown button elements for outside-click detection
+  const statusDropdownBtnRefs = useRef({});
+  const statusDropdownPanelRefs = useRef({});
 
   const dateObj = new Date(selectedDate + 'T00:00:00');
   const month = dateObj.getMonth() + 1;
@@ -148,12 +83,17 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   const day = dateObj.getDate();
   const batchId = getBatchId(month, year);
   const coll = type === 'office' ? 'attendance_office' : 'attendance_client';
+  const subtitleLabel = type === 'office' ? 'Office MP' : 'Client MP';
 
   const isDateSaved = savedDates.has(selectedDate);
 
   // Find which is the next unsaved date (sequential order)
   const nextUnsavedDate = getNextUnsavedDate(savedDates, currentYear, currentMonth);
   const canEditThisDate = selectedDate === nextUnsavedDate || nextUnsavedDate === null;
+
+  // Generate month days for date strip
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const monthDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   useEffect(() => {
     if (!projectName) return;
@@ -229,8 +169,8 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         // Store full month data for export
         workersRef.current = workers;
         attMapRef.current = attMap;
-        const monthDays = new Date(year, month, 0).getDate();
-        const lastExportDay = Math.min(monthDays, now.getDate());
+        const monthDaysCount = new Date(year, month, 0).getDate();
+        const lastExportDay = Math.min(monthDaysCount, now.getDate());
         const exportRows = workers.map((w, i) => {
           const days = attMap[w.EMPID]?.days || {};
           const row = {
@@ -260,133 +200,6 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     })();
   }, [selectedDate, projectName, coll, batchId, day, year, month, currentYear, currentMonth]);
 
-  const isEditable = useCallback(
-    (params) => {
-      if (params.colDef.field !== 'ATTENDANCE') return false;
-      if (isDateSaved) return false;
-      if (!canEditThisDate) return false;
-      // If this specific worker is closed, lock their cell
-      if (params.data?._isClosed) return false;
-      // If date is before joining date, not editable
-      if (params.data?._isBeforeJoining) return false;
-      // Future dates not editable
-      if (params.data?._isFutureDate) return false;
-      return true;
-    },
-    [isDateSaved, canEditThisDate]
-  );
-
-  const columnDefs = useMemo(
-    () => [
-      { field: 'SLNO', headerName: 'SL NO', width: 80, editable: false, suppressAutoSize: false },
-      { 
-        field: 'EMP_ID', headerName: 'EMP ID', flex: 1, editable: false,
-        hide: !columnVisibility.EMP_ID,
-      },
-      { field: 'WORKER_NAME', headerName: 'NAME', flex: 2, editable: false },
-      { 
-        field: 'FATHER_NAME', headerName: 'FATHER NAME', flex: 1, editable: false,
-        hide: !columnVisibility.FATHER_NAME,
-      },
-      { 
-        field: 'REFFERENCE', headerName: 'REFFERENCE', flex: 1, editable: false,
-        hide: !columnVisibility.REFFERENCE,
-      },
-      { 
-        field: 'DESIGNATION', headerName: 'DESIGNATION', flex: 1, editable: false,
-        hide: !columnVisibility.DESIGNATION,
-      },
-      { 
-        field: 'CLOSE_DATE', headerName: 'CLOSE DATE', flex: 1, editable: false,
-        hide: !columnVisibility.CLOSE_DATE,
-      },
-      { 
-        field: 'ATTENDANCE', headerName: '', flex: 1,
-        editable: isEditable,
-        singleClickEdit: true,
-        headerComponent: DateHeaderComponent,
-        headerComponentParams: { 
-          setDate: (val) => {
-            setSelectedDate(val);
-          },
-          selectedDate: selectedDate,
-          minDate: firstDayStr,
-          maxDate: lastDayStr,
-        },
-        cellEditor: 'agSelectCellEditor',
-        cellEditorParams: { values: ['P', 'A', 'C'] },
-        cellStyle: (params) => {
-          const base = { display: 'flex', justifyContent: 'center', cursor: 'pointer', fontWeight: 'bold', borderRadius: 4 };
-          if (params.data?._isFutureDate) {
-            return { ...base, color: 'transparent', background: 'rgba(255,255,255,0.02)', cursor: 'default' };
-          }
-          if (params.data?._isBeforeJoining) {
-            return { ...base, color: 'transparent', background: 'rgba(255,255,255,0.02)', cursor: 'default' };
-          }
-          if (params.data?._isSaved) {
-            return { ...base, color: '#888', background: 'rgba(255,255,255,0.02)' };
-          }
-          if (!canEditThisDate) {
-            return { ...base, color: '#666', background: 'rgba(255,255,255,0.02)' };
-          }
-          if (params.data?._isClosed) {
-            return { ...base, color: '#cc8800', background: 'rgba(255,170,0,0.1)', cursor: 'not-allowed' };
-          }
-          if (params.value === 'A') return { ...base, color: '#ff4444', background: 'rgba(255,255,255,0.05)' };
-          if (params.value === 'C') return { ...base, color: '#ffaa00', background: 'rgba(255,255,255,0.05)' };
-          return { ...base, color: '#22c55e', background: 'rgba(255,255,255,0.05)' };
-        }
-      },
-      { field: 'TOTAL_DAY', headerName: 'TOTAL', flex: 1, editable: false },
-    ],
-    [isEditable, selectedDate, firstDayStr, lastDayStr, canEditThisDate, columnVisibility]
-  );
-
-  const subtotal = rows.reduce((sum, row) => {
-    const totalDay = Number(row.TOTAL_DAY);
-    return Number.isFinite(totalDay) ? sum + totalDay : sum;
-  }, 0);
-  const footerRowData = useMemo(() => [{
-    SLNO: null,
-    EMP_ID: null,
-    WORKER_NAME: 'TOTAL',
-    FATHER_NAME: null,
-    REFFERENCE: null,
-    DESIGNATION: null,
-    CLOSE_DATE: null,
-    ATTENDANCE: null,
-    TOTAL_DAY: subtotal,
-  }], [subtotal]);
-
-  const setGridColumnVisible = useCallback((colId, visible, providedApi) => {
-    const api = providedApi || gridRef?.current?.api || gridApi;
-    if (!api) return;
-
-    if (typeof api.setColumnVisible === 'function') {
-      api.setColumnVisible(colId, visible);
-      return;
-    }
-
-    if (typeof api.setColumnsVisible === 'function') {
-      api.setColumnsVisible([colId], visible);
-      return;
-    }
-
-    if (typeof api.applyColumnState === 'function') {
-      api.applyColumnState({
-        state: [{ colId, hide: !visible }],
-      });
-    }
-  }, [gridApi]);
-
-  const toggleColumn = useCallback((field) => {
-    setColumnVisibility((prev) => {
-      const nextVisible = !prev[field];
-      setGridColumnVisible(field, nextVisible);
-      return { ...prev, [field]: nextVisible };
-    });
-  }, [setGridColumnVisible]);
-
   const setAllAttendance = (value) => {
     if (!canEditThisDate) {
       alert('Please save the current date first before editing another date.');
@@ -396,24 +209,21 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
       const updated = prev.map((r) => ({ ...r, ATTENDANCE: value }));
       return updated;
     });
+    setShowQuickAction(false);
   };
 
-  const onCellValueChanged = useCallback((params) => {
-    const field = params.colDef.field;
-    if (field === 'ATTENDANCE') {
-      setRows((prev) => {
-        const updated = prev.map((r) => {
-          if (r.id === params.data.id) {
-            // If setting to 'C', mark as closed (locked) forever
-            const newVal = params.newValue;
-            return { ...r, ATTENDANCE: newVal, _isClosed: newVal === 'C' };
-          }
-          return r;
-        });
-        return updated;
+  const updateWorkerAttendance = (workerId, newValue) => {
+    setRows((prev) => {
+      const updated = prev.map((r) => {
+        if (r.id === workerId) {
+          return { ...r, ATTENDANCE: newValue, _isClosed: newValue === 'C' };
+        }
+        return r;
       });
-    }
-  }, []);
+      return updated;
+    });
+    setOpenStatusDropdown(null);
+  };
 
   const saveAttendance = async () => {
     if (!projectName) return;
@@ -472,80 +282,402 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     }
   };
 
-  // Toggle ag-grid column header filters when filter bar is toggled
-  useEffect(() => {
-    setColumnFiltersEnabled(showFilterBar);
-    if (gridApi && typeof gridApi.setGridOption === 'function') {
-      gridApi.setGridOption('filter', showFilterBar);
-    }
-  }, [showFilterBar, gridApi]);
-
+  // Close dropdowns when clicking outside — fixed to handle multiple status dropdowns
   useEffect(() => {
     const handleClick = (e) => {
+      // Settings dropdown
       if (settingsRef.current && !settingsRef.current.contains(e.target)) {
-        // Don't close settings if clicking inside the filter bar
-        if (filterBarRef.current && filterBarRef.current.contains(e.target)) {
-          return;
-        }
         setShowSettings(false);
       }
+      // Quick action dropdown
+      if (quickActionRef.current && !quickActionRef.current.contains(e.target)) {
+        setShowQuickAction(false);
+      }
+      // Status dropdowns — check if click is outside ALL status dropdown buttons and panels
+      if (openStatusDropdown !== null) {
+        const btnRef = statusDropdownBtnRefs.current[openStatusDropdown];
+        const panelRef = statusDropdownPanelRefs.current[openStatusDropdown];
+        const clickedBtn = btnRef && btnRef.contains(e.target);
+        const clickedPanel = panelRef && panelRef.contains(e.target);
+        if (!clickedBtn && !clickedPanel) {
+          setOpenStatusDropdown(null);
+        }
+      }
     };
-    if (showSettings) {
-      document.addEventListener('mousedown', handleClick);
-      return () => document.removeEventListener('mousedown', handleClick);
-    }
-  }, [showSettings]);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [openStatusDropdown]);
 
-  if (!projectName) return <p style={{ color: '#666' }}>Select a project from the header.</p>;
-  if (loading) return <p style={{ color: '#666' }}>Loading...</p>;
+  const toggleColumn = useCallback((field) => {
+    setColumnVisibility((prev) => {
+      const nextVisible = !prev[field];
+      return { ...prev, [field]: nextVisible };
+    });
+  }, []);
+
+  // Filtered + searched rows
+  const filteredRows = useMemo(() => {
+    if (!searchText.trim()) return rows;
+    const q = searchText.toLowerCase();
+    return rows.filter((r) => {
+      const name = (r.WORKER_NAME || '').toLowerCase();
+      const empId = (r.EMP_ID || '').toLowerCase();
+      const desig = (r.DESIGNATION || '').toLowerCase();
+      const father = (r.FATHER_NAME || '').toLowerCase();
+      return name.includes(q) || empId.includes(q) || desig.includes(q) || father.includes(q);
+    });
+  }, [rows, searchText]);
+
+  const presentCount = filteredRows.filter((r) => r.ATTENDANCE === 'P' && !r._isBeforeJoining && !r._isFutureDate).length;
+  const absentCount = filteredRows.filter((r) => r.ATTENDANCE === 'A' && !r._isBeforeJoining && !r._isFutureDate).length;
+
+  // Build column defs for export toolbar (keeps export working)
+  const exportColumnDefs = useMemo(
+    () => [
+      { field: 'SLNO', headerName: 'SL NO' },
+      { field: 'EMP_ID', headerName: 'EMP ID' },
+      { field: 'WORKER_NAME', headerName: 'NAME' },
+      { field: 'FATHER_NAME', headerName: 'FATHER NAME' },
+      { field: 'REFFERENCE', headerName: 'REFFERENCE' },
+      { field: 'DESIGNATION', headerName: 'DESIGNATION' },
+      { field: 'CLOSE_DATE', headerName: 'CLOSE DATE' },
+      { field: 'ATTENDANCE', headerName: 'ATTENDANCE' },
+      { field: 'TOTAL_DAY', headerName: 'TOTAL' },
+    ],
+    []
+  );
+
+  const isRowInteractive = !isDateSaved && canEditThisDate;
+
+  // Build subtitle string for a worker row based on column visibility
+  const buildSubtitle = (row) => {
+    const parts = [];
+    if (columnVisibility.EMP_ID !== false && row.EMP_ID) {
+      parts.push(row.EMP_ID);
+    }
+    if (columnVisibility.DESIGNATION !== false && row.DESIGNATION !== '—') {
+      parts.push(row.DESIGNATION);
+    }
+    if (columnVisibility.FATHER_NAME !== false && row.FATHER_NAME) {
+      parts.push(row.FATHER_NAME);
+    }
+    if (columnVisibility.REFFERENCE !== false && row.REFFERENCE !== '—') {
+      parts.push(row.REFFERENCE);
+    }
+    if (columnVisibility.CLOSE_DATE !== false && row.CLOSE_DATE !== '—') {
+      parts.push(`Close: ${row.CLOSE_DATE}`);
+    }
+    return parts.length > 0 ? parts.join(' · ') : '—';
+  };
+
+  if (!projectName) return <p style={{ color: '#666', padding: 24 }}>Select a project from the header.</p>;
+  if (loading) return <p style={{ color: '#666', padding: 24 }}>Loading...</p>;
 
   return (
-    <>
-      {/* Control bar — always visible */}
-      <div style={{ ...s.filterRow, marginBottom: showFilterBar ? 0 : 8 }}>
-        <div ref={settingsRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      overflow: 'hidden',
+      background: 'var(--surface)',
+    }}>
+      {/* ============= DATE STRIP ============= */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '6px 12px 4px 12px',
+      }}>
+        <div ref={dateStripRef} style={{
+          flex: 1,
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          whiteSpace: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          paddingBottom: 4,
+        }}>
+          <div style={{ display: 'flex', gap: 4, paddingBottom: 2 }}>
+            {monthDays.map((d) => {
+              const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+              const isActive = dateStr === selectedDate;
+              const isSaved = savedDates.has(dateStr);
+              const isToday = dateStr === todayStr;
+              const isFutureDate = dateStr > todayStr;
+
+              return (
+                <button
+                  key={d}
+                  onClick={() => !isFutureDate && setSelectedDate(dateStr)}
+                  disabled={isFutureDate}
+                  style={{
+                    minWidth: 34,
+                    height: 42,
+                    borderRadius: 8,
+                    border: isActive
+                      ? '2px solid #0055ff'
+                      : isSaved
+                        ? '2px solid rgba(34,197,94,0.5)'
+                        : '2px solid transparent',
+                    background: isActive
+                      ? '#0055ff'
+                      : 'var(--surface-2)',
+                    color: isActive
+                      ? '#ffffff'
+                      : isSaved
+                        ? '#22c55e'
+                        : isFutureDate
+                          ? 'var(--muted-2)'
+                          : 'var(--text-soft)',
+                    cursor: isFutureDate ? 'not-allowed' : 'pointer',
+                    fontSize: 11,
+                    fontWeight: isActive ? 800 : 600,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                    opacity: isFutureDate ? 0.4 : 1,
+                    padding: '2px 4px',
+                    position: 'relative',
+                    transition: 'all 0.15s ease',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <span style={{
+                    lineHeight: 1.1,
+                    fontSize: isActive ? 12 : 11,
+                  }}>{d}</span>
+                  {isSaved && (
+                    <span style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      background: isActive ? '#ffffff' : '#22c55e',
+                      display: 'block',
+                      marginTop: 1,
+                    }} />
+                  )}
+                  {isToday && !isActive && (
+                    <span style={{
+                      position: 'absolute',
+                      top: 1,
+                      right: 3,
+                      fontSize: 7,
+                      color: '#0055ff',
+                      fontWeight: 800,
+                    }}>•</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ============= STATS ROW: Present + Absent ============= */}
+      <div style={{ display: 'flex', gap: 8, padding: '8px 12px' }}>
+        <div style={{
+          flex: 1,
+          background: 'rgba(34,197,94,0.1)',
+          border: '1px solid rgba(34,197,94,0.25)',
+          borderRadius: 10,
+          padding: '8px 10px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#22c55e', lineHeight: 1.2 }}>
+            {presentCount}
+          </div>
+          <div style={{
+            fontSize: 9,
+            color: '#22c55e',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            marginTop: 2,
+          }}>
+            Present
+          </div>
+        </div>
+        <div style={{
+          flex: 1,
+          background: 'rgba(239,68,68,0.1)',
+          border: '1px solid rgba(239,68,68,0.25)',
+          borderRadius: 10,
+          padding: '8px 10px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#ef4444', lineHeight: 1.2 }}>
+            {absentCount}
+          </div>
+          <div style={{
+            fontSize: 9,
+            color: '#ef4444',
+            fontWeight: 600,
+            letterSpacing: '0.5px',
+            textTransform: 'uppercase',
+            marginTop: 2,
+          }}>
+            Absent
+          </div>
+        </div>
+      </div>
+
+      {/* ============= TOOLBAR: Search + Quick action + Settings + Download ============= */}
+      <div style={{
+        display: 'flex',
+        gap: 6,
+        padding: '0 12px 8px 12px',
+        flexWrap: 'nowrap',
+        alignItems: 'center',
+      }}>
+        {/* Search */}
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '7px 8px',
+        }}>
+          <Search size={14} color="var(--muted)" style={{ flexShrink: 0 }} />
+          <input
+            type="text"
+            placeholder="Search workers..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
             style={{
-              padding: '6px 14px',
-              borderRadius: 6,
-              border: showSettings ? '1px solid #0055ff' : '1px solid var(--border)',
-              background: 'var(--surface)',
-              cursor: 'pointer',
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              outline: 'none',
+              color: 'var(--text)',
               fontSize: 12,
-              fontWeight: 600,
-              color: showSettings ? '#fff' : 'var(--text-soft)',
+              fontFamily: 'inherit',
+              minWidth: 0,
+            }}
+          />
+        </div>
+
+        {/* Quick Action */}
+        <div ref={quickActionRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setShowQuickAction(!showQuickAction)}
+            style={{
+              padding: '7px 10px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: showQuickAction ? 'rgba(0,85,255,0.1)' : 'var(--surface)',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6,
+              gap: 4,
+              color: showQuickAction ? '#0055ff' : 'var(--text-soft)',
+              fontSize: 12,
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease',
             }}
+            title="Quick action"
+          >
+            <Zap size={14} />
+            <ChevronDown size={12} />
+          </button>
+          {showQuickAction && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 4,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              zIndex: 1000,
+              minWidth: 140,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              overflow: 'hidden',
+            }}>
+              {[
+                { label: 'All Present', value: 'P' },
+                { label: 'All Absent', value: 'A' },
+                { label: 'All Close', value: 'C' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setAllAttendance(opt.value)}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '10px 16px',
+                    border: 'none',
+                    background: 'transparent',
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Settings */}
+        <div ref={settingsRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
             onClick={() => setShowSettings(!showSettings)}
+            style={{
+              padding: '7px 10px',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: showSettings ? 'rgba(0,85,255,0.1)' : 'var(--surface)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              color: showSettings ? '#0055ff' : 'var(--text-soft)',
+              fontSize: 12,
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease',
+            }}
             title="Settings"
           >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>⚙️</span>
+            <Settings size={14} />
           </button>
           {showSettings && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: 4,
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                padding: '6px 0',
-                zIndex: 9999,
-                minWidth: 190,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 4,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              zIndex: 1000,
+              minWidth: 180,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              overflow: 'hidden',
+            }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                cursor: 'pointer',
+                fontSize: 12,
+                color: 'var(--text)',
+                borderBottom: '1px solid var(--border)',
               }}
-            >
-              <label
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '7px 14px', cursor: 'pointer', fontSize: 12, color: '#ddd',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
               >
                 <span>Filter bar</span>
@@ -556,13 +688,11 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                   style={{ accentColor: '#0055ff', cursor: 'pointer' }}
                 />
               </label>
-              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
               {[
-                { field: 'EMP_ID', label: 'EMP ID' },
-                { field: 'FATHER_NAME', label: 'FATHER NAME' },
-                { field: 'REFFERENCE', label: 'REFFERENCE' },
-                { field: 'DESIGNATION', label: 'DESIGNATION' },
-                { field: 'CLOSE_DATE', label: 'CLOSE DATE' },
+                { field: 'FATHER_NAME', label: 'Father name' },
+                { field: 'REFFERENCE', label: 'Reference' },
+                { field: 'DESIGNATION', label: 'Designation' },
+                { field: 'CLOSE_DATE', label: 'Close date' },
               ].map((c) => (
                 <label
                   key={c.field}
@@ -570,12 +700,13 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '7px 14px',
+                    padding: '10px 14px',
                     cursor: 'pointer',
                     fontSize: 12,
-                    color: columnVisibility[c.field] !== false ? '#fff' : '#666',
+                    color: columnVisibility[c.field] !== false ? 'var(--text)' : 'var(--muted-2)',
+                    borderBottom: '1px solid var(--border)',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <span>{c.label}</span>
@@ -590,92 +721,364 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
             </div>
           )}
         </div>
-        <ExportToolbar rows={rows} columnDefs={columnDefs} title={`${type} ${selectedDate}`} filename={`${type}-${selectedDate}`} fullMonthRows={fullMonthData} month={month} year={year} projectName={projectName} />
+
+        {/* Download / Export */}
+        <div style={{ flexShrink: 0 }}>
+          <ExportToolbar
+            rows={rows}
+            columnDefs={exportColumnDefs}
+            title={`${type} ${selectedDate}`}
+            filename={`${type}-${selectedDate}`}
+            fullMonthRows={fullMonthData}
+            month={month}
+            year={year}
+            projectName={projectName}
+          />
+        </div>
       </div>
 
-      {/* Collapsible filter bar — slides down when toggled ON */}
-      <div
-        ref={filterBarRef}
-        style={{
-          display: 'flex',
-          marginBottom: showFilterBar ? 12 : 0,
-        }}
-      >
-        <div style={{ ...s.filterRow, marginBottom: 0 }}>
-          <div style={{ ...s.searchBox, padding: '2px 6px', gap: '4px' }}>
-            <Search size={10} color="#444" />
-            <input type="text" placeholder="Filter..." style={{ ...s.searchInput, fontSize: '10px', width: '70px' }} onChange={(e) => setSearchText(e.target.value)} />
+      {/* ============= FILTER BAR (optional) ============= */}
+      {showFilterBar && (
+        <div style={{ padding: '0 12px 8px 12px' }}>
+          <div style={{
+            display: 'flex',
+            gap: 8,
+            alignItems: 'center',
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '7px 10px',
+          }}>
+            <Search size={14} color="var(--muted)" />
+            <input
+              type="text"
+              placeholder="Filter..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'none',
+                border: 'none',
+                outline: 'none',
+                color: 'var(--text)',
+                fontSize: 11,
+                fontFamily: 'inherit',
+              }}
+            />
           </div>
-          <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>Quick:</span>
-          <Select
-            options={attendanceOptions}
-            placeholder="Set all to..."
-            isClearable
-            onChange={(option) => {
-              if (option) setAllAttendance(option.value);
-            }}
-            styles={customSelectStyles}
-          />
         </div>
+      )}
+
+      {/* ============= TABLE HEADER ROW ============= */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        padding: '8px 12px',
+        background: 'var(--surface-2)',
+        borderTop: '1px solid var(--border)',
+        borderBottom: '1px solid var(--border)',
+        fontSize: 10,
+        fontWeight: 700,
+        color: 'var(--muted)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        flexShrink: 0,
+      }}>
+        <div style={{ width: 32, textAlign: 'center' }}>SL</div>
+        <div style={{ flex: 1, paddingLeft: 6 }}>
+          Name · <span style={{ fontWeight: 800 }}>{filteredRows.length}</span> workers
+        </div>
+        <div style={{ width: 54, textAlign: 'center' }}>Status</div>
+        <div style={{ width: 42, textAlign: 'right', paddingRight: 2 }}>Total</div>
       </div>
 
-      {/* Status messages + Save button — always visible */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ flex: 1 }} />
-        {isDateSaved && (
-          <span style={{ fontSize: 11, color: '#ffaa00', fontWeight: 600, marginRight: 8 }}>
-            ⚠ Already saved — editing locked
-          </span>
+      {/* ============= WORKER LIST ============= */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+      }}>
+        {filteredRows.length === 0 && (
+          <div style={{
+            padding: 40,
+            textAlign: 'center',
+            color: 'var(--muted-2)',
+            fontSize: 13,
+          }}>
+            No workers found
+          </div>
         )}
-        {!isDateSaved && !canEditThisDate && (
-          <span style={{ fontSize: 11, color: '#ff6b6b', fontWeight: 600, marginRight: 8 }}>
-            ⏳ Save earlier dates first
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={saveAttendance}
-          disabled={saving || isDateSaved || !canEditThisDate}
-          style={{
-            padding: '6px 16px', borderRadius: 6, border: 'none',
-            background: saving || isDateSaved || !canEditThisDate ? '#888' : '#0055ff',
-            color: '#fff',
-            cursor: saving || isDateSaved || !canEditThisDate ? 'not-allowed' : 'pointer',
-            fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6,
-          }}
-        >
-          <Save size={14} /> {saving ? 'SAVING...' : isDateSaved ? 'ALREADY SAVED' : 'SAVE'}
-        </button>
+        {filteredRows.map((row) => {
+          const statusColor = STATUS_COLORS[row.ATTENDANCE] || STATUS_COLORS['P'];
+          const isLocked = isDateSaved || !canEditThisDate || row._isClosed || row._isBeforeJoining || row._isFutureDate;
+          const rowId = row.id;
+          const dropdownOpen = openStatusDropdown === rowId;
+
+          return (
+            <div
+              key={rowId}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 12px',
+                borderBottom: '1px solid var(--border)',
+                background: row._isClosed
+                  ? 'rgba(107,114,128,0.05)'
+                  : dropdownOpen
+                    ? 'var(--surface-2)'
+                    : 'transparent',
+                opacity: row._isBeforeJoining || row._isFutureDate ? 0.4 : 1,
+                transition: 'background 0.1s ease',
+              }}
+            >
+              {/* SL Number */}
+              <div style={{
+                width: 32,
+                textAlign: 'center',
+                fontSize: 10,
+                color: 'var(--muted-2)',
+                fontWeight: 500,
+                fontVariantNumeric: 'tabular-nums',
+              }}>
+                {row.SLNO}
+              </div>
+
+              {/* Name + subtitle */}
+              <div style={{ flex: 1, paddingLeft: 6, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  lineHeight: 1.3,
+                }}>
+                  {row.WORKER_NAME}
+                </div>
+                <div style={{
+                  fontSize: 10,
+                  color: 'var(--muted-2)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginTop: 1,
+                  lineHeight: 1.3,
+                }}>
+                  {buildSubtitle(row)}
+                </div>
+              </div>
+
+              {/* Status badge with dropdown */}
+              <div style={{
+                width: 54,
+                textAlign: 'center',
+                position: 'relative',
+                flexShrink: 0,
+              }}>
+                {isLocked ? (
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    background: statusColor.bg,
+                    color: statusColor.text,
+                    minWidth: 30,
+                    textAlign: 'center',
+                  }}>
+                    {row.ATTENDANCE || '—'}
+                  </span>
+                ) : (
+                  <>
+                    <button
+                      ref={(el) => {
+                        if (el) {
+                          statusDropdownBtnRefs.current[rowId] = el;
+                        } else {
+                          delete statusDropdownBtnRefs.current[rowId];
+                        }
+                      }}
+                      onClick={() => setOpenStatusDropdown(dropdownOpen ? null : rowId)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        justifyContent: 'center',
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        border: dropdownOpen ? `2px solid ${statusColor.text}` : '2px solid transparent',
+                        background: statusColor.bg,
+                        color: statusColor.text,
+                        cursor: 'pointer',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        fontFamily: 'inherit',
+                        minWidth: 30,
+                        transition: 'border 0.1s ease',
+                      }}
+                    >
+                      {row.ATTENDANCE || 'P'}
+                      <ChevronDown size={10} />
+                    </button>
+                    {dropdownOpen && (
+                      <div
+                        ref={(el) => {
+                          if (el) {
+                            statusDropdownPanelRefs.current[rowId] = el;
+                          } else {
+                            delete statusDropdownPanelRefs.current[rowId];
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          marginTop: 6,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border-strong)',
+                          borderRadius: 8,
+                          zIndex: 9999,
+                          minWidth: 48,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {STATUS_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.value}
+                            onClick={() => updateWorkerAttendance(rowId, opt.value)}
+                            style={{
+                              display: 'block',
+                              width: '100%',
+                              padding: '6px 12px',
+                              border: 'none',
+                              background: opt.value === row.ATTENDANCE ? 'rgba(255,255,255,0.05)' : 'transparent',
+                              color: opt.color,
+                              cursor: 'pointer',
+                              fontSize: 13,
+                              fontWeight: 800,
+                              textAlign: 'center',
+                              fontFamily: 'inherit',
+                              borderBottom: '1px solid var(--border)',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = opt.value === row.ATTENDANCE
+                                ? 'rgba(255,255,255,0.05)'
+                                : 'transparent';
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Total */}
+              <div style={{
+                width: 42,
+                textAlign: 'right',
+                paddingRight: 2,
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--text)',
+                fontVariantNumeric: 'tabular-nums',
+                flexShrink: 0,
+              }}>
+                {row.TOTAL_DAY}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <div style={s.gridSection}>
-        <div style={{ height: '60vh', width: '100%' }}>
-          <AgGridReact
-            ref={gridRef}
-            rowData={rows}
-            columnDefs={columnDefs}
-            defaultColDef={{ filter: columnFiltersEnabled, sortable: true, editable: false, flex: 1, minWidth: 80, resizable: true }}
-            quickFilterText={searchText}
-            theme={darkQuartzTheme}
-            pinnedBottomRowData={footerRowData}
-            rowHeight={34}
-            headerHeight={38}
-            onGridReady={(params) => {
-              setGridApi(params.api);
-              setTimeout(() => {
-                Object.entries(columnVisibility).forEach(([field, visible]) => {
-                  setGridColumnVisible(field, visible, params.api);
-                });
-                params.api.sizeColumnsToFit();
-              }, 200);
+
+      {/* ============= SAVE BAR (bottom) ============= */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px 12px',
+        background: 'var(--surface)',
+        borderTop: '1px solid var(--border-strong)',
+        gap: 12,
+        flexShrink: 0,
+        boxShadow: '0 -2px 8px rgba(0,0,0,0.08)',
+      }}>
+        <div style={{
+          fontSize: 12,
+          color: 'var(--muted)',
+          fontWeight: 600,
+          whiteSpace: 'nowrap',
+        }}>
+          <span style={{ color: '#22c55e' }}>{presentCount} present</span>
+          {' · '}
+          <span style={{ color: '#ef4444' }}>{absentCount} absent</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {isDateSaved && (
+            <span style={{
+              fontSize: 10,
+              color: '#f59e0b',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}>
+              ⚠ Already saved
+            </span>
+          )}
+          {!isDateSaved && !canEditThisDate && (
+            <span style={{
+              fontSize: 10,
+              color: '#ef4444',
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+            }}>
+              ⏳ Save earlier dates first
+            </span>
+          )}
+          <button
+            onClick={saveAttendance}
+            disabled={saving || isDateSaved || !canEditThisDate}
+            style={{
+              padding: '10px 24px',
+              borderRadius: 8,
+              border: 'none',
+              background: saving || isDateSaved || !canEditThisDate
+                ? 'var(--muted-2)'
+                : '#0055ff',
+              color: '#fff',
+              cursor: saving || isDateSaved || !canEditThisDate
+                ? 'not-allowed'
+                : 'pointer',
+              fontSize: 12,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'inherit',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.15s ease',
+              boxShadow: saving || isDateSaved || !canEditThisDate
+                ? 'none'
+                : '0 2px 8px rgba(0,85,255,0.3)',
             }}
-            onGridSizeChanged={(params) => {
-              params.api.sizeColumnsToFit();
-            }}
-            onCellValueChanged={onCellValueChanged}
-          />
+          >
+            <Save size={14} />
+            {saving ? 'SAVING...' : isDateSaved ? 'SAVED' : 'SAVE'}
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
