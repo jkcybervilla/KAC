@@ -330,6 +330,10 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
 
   const presentCount = filteredRows.filter((r) => r.ATTENDANCE === 'P' && !r._isBeforeJoining && !r._isFutureDate).length;
   const absentCount = filteredRows.filter((r) => r.ATTENDANCE === 'A' && !r._isBeforeJoining && !r._isFutureDate).length;
+  const totalWorkers = filteredRows.filter((r) => !r._isBeforeJoining && !r._isFutureDate).length;
+  const totalDaysSum = filteredRows
+    .filter((r) => !r._isBeforeJoining && !r._isFutureDate)
+    .reduce((sum, r) => sum + (r.TOTAL_DAY || 0), 0);
 
   // Build column defs for export toolbar (keeps export working)
   const exportColumnDefs = useMemo(
@@ -1019,10 +1023,18 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
           color: 'var(--muted)',
           fontWeight: 600,
           whiteSpace: 'nowrap',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
         }}>
           <span style={{ color: '#22c55e' }}>{presentCount} present</span>
-          {' · '}
           <span style={{ color: '#ef4444' }}>{absentCount} absent</span>
+          <span style={{ color: 'var(--text)' }}>
+            👥 {totalWorkers} workers
+          </span>
+          <span style={{ color: 'var(--text)', fontWeight: 800 }}>
+            Σ {totalDaysSum} days
+          </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

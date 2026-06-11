@@ -54,6 +54,14 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    // Set PWA session flag BEFORE Firebase sign in so that onAuthStateChanged
+    // in AuthContext doesn't clear the user/profile due to missing session flag.
+    // This fixes Android TWA login where the flag must exist before auth state changes.
+    if (isTwaMode()) {
+      localStorage.setItem('kac_pwa_session', 'true');
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userIdText = String(userCredential.user.uid); 
@@ -62,11 +70,6 @@ const Login = () => {
       if (userDoc.exists()) {
         // Clear the TWA locked flag so PIN isn't required after login
         clearTwaLocked();
-
-        // If running in PWA / TWA mode, set the local session flag
-        if (isTwaMode()) {
-          localStorage.setItem('kac_pwa_session', 'true');
-        }
 
         // Check if biometric is available and offer to set up
         const hasBiometric = await isPlatformAuthenticatorAvailable();
