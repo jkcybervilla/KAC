@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { UserPlus, Search, X, Check, Clock, Eye, Bell, ChevronLeft, ChevronRight, SkipForward, Building, User, CreditCard, Camera } from 'lucide-react';
+import { UserPlus, Search, X, Check, Clock, Eye, Bell, ChevronLeft, ChevronRight, SkipForward, Building, User, CreditCard, Camera, Pencil } from 'lucide-react';
 import PhotoUpload from '../../components/PhotoUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createNotification } from '../../utils/notifications';
@@ -301,6 +301,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [statusDropdownId, setStatusDropdownId] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [showEditForm, setShowEditForm] = useState(false);
   const dropdownRef = useRef(null);
 
   const load = useCallback(async () => {
@@ -424,6 +425,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
 
   const openDetails = useCallback((row) => {
     setSelectedWorker(row);
+    setShowEditForm(false);
     setEditForm({
       WORKER_NAME: row.WORKER_NAME || '',
       FATHER_NAME: row.FATHER_NAME || '',
@@ -820,7 +822,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
         )}
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit Modal - Details + Edit */}
       {showEditModal && selectedWorker && (
         <div style={{
           position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
@@ -832,181 +834,250 @@ const AccountantWorkerRegistration = ({ projectName }) => {
             borderRadius: '16px', width: '100%', maxWidth: '500px',
             border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto',
           }}>
+            {/* Header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px',
             }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>EDIT WORKER — {selectedWorker.WORKER_NAME || ''}</h3>
-              <X size={20} style={{ cursor: 'pointer', color: '#64748b' }}
-                onClick={() => { setShowEditModal(false); setSelectedWorker(null); setEditForm({}); }} />
-            </div>
-            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <PhotoUpload label="PHOTO" value={editForm.PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, PHOTO: val })} folder="worker-photos" aspect={1} />
-
-              <input
-                placeholder="NAME"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                  outline: 'none', boxSizing: 'border-box',
-                  ...(editForm.WORKER_NAME ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-                }}
-                value={editForm.WORKER_NAME}
-                onChange={(e) => setEditForm({ ...editForm, WORKER_NAME: e.target.value.toUpperCase() })}
-                disabled={!!editForm.WORKER_NAME}
-                readOnly={!!editForm.WORKER_NAME}
-              />
-              <input
-                placeholder="FATHER NAME"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                  outline: 'none', boxSizing: 'border-box',
-                  ...(editForm.FATHER_NAME ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-                }}
-                value={editForm.FATHER_NAME}
-                onChange={(e) => setEditForm({ ...editForm, FATHER_NAME: e.target.value.toUpperCase() })}
-                disabled={!!editForm.FATHER_NAME}
-                readOnly={!!editForm.FATHER_NAME}
-              />
-              <input
-                placeholder="AADHAAR NO"
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                  outline: 'none', boxSizing: 'border-box',
-                  ...(editForm.AADHAR_NO ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-                }}
-                value={editForm.AADHAR_NO}
-                onChange={(e) => setEditForm({ ...editForm, AADHAR_NO: e.target.value })}
-                disabled={!!editForm.AADHAR_NO}
-                readOnly={!!editForm.AADHAR_NO}
-              />
-              <select
-                style={{
-                  width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                  padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                  outline: 'none', boxSizing: 'border-box',
-                  ...(editForm.DESIGNATION ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-                }}
-                value={editForm.DESIGNATION}
-                onChange={(e) => setEditForm({ ...editForm, DESIGNATION: e.target.value })}
-                disabled={!!editForm.DESIGNATION}
-              >
-                <option value="LABOUR">LABOUR</option>
-                <option value="SKILLED">SKILLED</option>
-                <option value="SUPERVISOR">SUPERVISOR</option>
-              </select>
-
-              {!editForm.DOB && (
-                <input type="date" placeholder="DOB"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.DOB} onChange={(e) => setEditForm({ ...editForm, DOB: e.target.value })} />
-              )}
-              {!editForm.MOBILE_NO && (
-                <input placeholder="MOBILE NO"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.MOBILE_NO} onChange={(e) => setEditForm({ ...editForm, MOBILE_NO: e.target.value })} />
-              )}
-              {!editForm.REFFERENCE && (
-                <input placeholder="REFERENCE"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.REFFERENCE} onChange={(e) => setEditForm({ ...editForm, REFFERENCE: e.target.value })} />
-              )}
-              {!editForm.JOINING_DATE_CLIENT && (
-                <input type="date" placeholder="JOINING DATE (CLIENT)"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.JOINING_DATE_CLIENT} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_CLIENT: e.target.value })} />
-              )}
-              {!editForm.JOINING_DATE_OFFICE && (
-                <input type="date" placeholder="JOINING DATE (OFFICE)"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.JOINING_DATE_OFFICE} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_OFFICE: e.target.value })} />
-              )}
-              {!editForm.CLOSE_DATE && (
-                <input type="date" placeholder="CLOSE DATE"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.CLOSE_DATE} onChange={(e) => setEditForm({ ...editForm, CLOSE_DATE: e.target.value })} />
-              )}
-              {!editForm.ADDRESS && (
-                <input placeholder="ADDRESS"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.ADDRESS} onChange={(e) => setEditForm({ ...editForm, ADDRESS: e.target.value })} />
-              )}
-              {!editForm.PAN_NO && (
-                <input placeholder="PAN NO (optional)"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.PAN_NO} onChange={(e) => setEditForm({ ...editForm, PAN_NO: e.target.value })} />
-              )}
-              {!editForm.BANK && (
-                <input placeholder="BANK (optional)"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.BANK} onChange={(e) => setEditForm({ ...editForm, BANK: e.target.value })} />
-              )}
-              {!editForm.ACCOUNT_NO && (
-                <input placeholder="ACCOUNT NO (optional)"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.ACCOUNT_NO} onChange={(e) => setEditForm({ ...editForm, ACCOUNT_NO: e.target.value })} />
-              )}
-              {!editForm.IFSC && (
-                <input placeholder="IFSC (optional)"
-                  style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                  }}
-                  value={editForm.IFSC} onChange={(e) => setEditForm({ ...editForm, IFSC: e.target.value })} />
-              )}
-
-              {!editForm.AADHAR_PHOTO && (
-                <PhotoUpload label="AADHAAR PHOTO" value={editForm.AADHAR_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, AADHAR_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
-              )}
-              {!editForm.PAN_PHOTO && (
-                <PhotoUpload label="PAN PHOTO (optional)" value={editForm.PAN_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, PAN_PHOTO: val })} folder="pan-photos" aspect={1.4} />
-              )}
-              {!editForm.BANK_PHOTO && (
-                <PhotoUpload label="BANK PHOTO (optional)" value={editForm.BANK_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
-              )}
-
-              <div style={{ marginTop: 8, fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
-                Fields with existing data are pre-filled and read-only. Fill in the blank fields above.
-                On save, worker status will reset to <strong>PENDING</strong> for admin approval.
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Worker details</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {!showEditForm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEditForm(true)}
+                    style={{
+                      background: '#eff6ff', border: '1px solid #bfdbfe',
+                      borderRadius: '8px', padding: '6px 12px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      color: '#2563eb', fontWeight: 600, fontSize: '12px',
+                      fontFamily: 'Inter, sans-serif',
+                    }}
+                  >
+                    <Pencil size={14} /> Edit
+                  </button>
+                )}
+                <X size={20} style={{ cursor: 'pointer', color: '#64748b' }}
+                  onClick={() => { setShowEditModal(false); setSelectedWorker(null); setEditForm({}); setShowEditForm(false); }} />
               </div>
-              <button type="submit" style={{
-                backgroundColor: '#2563eb', color: '#fff', border: 'none',
-                padding: '14px', borderRadius: '8px', fontWeight: 700,
-                cursor: 'pointer', marginTop: '4px', fontSize: '13px', fontFamily: 'Inter, sans-serif',
-              }}>SAVE & SEND FOR APPROVAL</button>
-            </form>
+            </div>
+
+            {/* Read-only details view (profile card) */}
+            {!showEditForm && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {selectedWorker.PHOTO && (
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                    <img src={selectedWorker.PHOTO} alt="Worker"
+                      style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e2e8f0' }} />
+                  </div>
+                )}
+                <DetailRow label="Name" value={selectedWorker.WORKER_NAME} />
+                <DetailRow label="EMP ID" value={selectedWorker.EMPID} />
+                <DetailRow label="Aadhaar No" value={selectedWorker.AADHAR_NO} />
+                <DetailRow label="Designation" value={selectedWorker.DESIGNATION} />
+                <DetailRow label="Father Name" value={selectedWorker.FATHER_NAME} />
+                <DetailRow label="Joining Date (Client)" value={selectedWorker.JOINING_DATE_CLIENT} />
+                <DetailRow label="Joining Date (Office)" value={selectedWorker.JOINING_DATE_OFFICE} />
+                <DetailRow label="Close Date" value={selectedWorker.CLOSE_DATE} />
+                <DetailRow label="Phone" value={selectedWorker.MOBILE_NO} />
+                <DetailRow label="Address" value={selectedWorker.ADDRESS} />
+                <DetailRow label="PAN No" value={selectedWorker.PAN_NO} />
+                <DetailRow label="Bank" value={selectedWorker.BANK} />
+                <DetailRow label="Account No" value={selectedWorker.ACCOUNT_NO} />
+                <DetailRow label="IFSC" value={selectedWorker.IFSC} />
+                <DetailRow label="Reference" value={selectedWorker.REFFERENCE} />
+                <div style={{ marginTop: 16, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  {selectedWorker.AADHAR_PHOTO && (
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>Aadhaar Photo</div>
+                      <img src={selectedWorker.AADHAR_PHOTO} alt="Aadhaar" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                    </div>
+                  )}
+                  {selectedWorker.PAN_PHOTO && (
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>PAN Photo</div>
+                      <img src={selectedWorker.PAN_PHOTO} alt="PAN" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                    </div>
+                  )}
+                  {selectedWorker.BANK_PHOTO && (
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>Bank Photo</div>
+                      <img src={selectedWorker.BANK_PHOTO} alt="Bank" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Edit form (shown below details when Edit is clicked) */}
+            {showEditForm && (
+              <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <PhotoUpload label="PHOTO" value={editForm.PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, PHOTO: val })} folder="worker-photos" aspect={1} />
+
+                <input
+                  placeholder="NAME"
+                  style={{
+                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
+                    outline: 'none', boxSizing: 'border-box',
+                    ...(editForm.WORKER_NAME ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                  }}
+                  value={editForm.WORKER_NAME}
+                  onChange={(e) => setEditForm({ ...editForm, WORKER_NAME: e.target.value.toUpperCase() })}
+                  disabled={!!editForm.WORKER_NAME}
+                  readOnly={!!editForm.WORKER_NAME}
+                />
+                <input
+                  placeholder="FATHER NAME"
+                  style={{
+                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
+                    outline: 'none', boxSizing: 'border-box',
+                    ...(editForm.FATHER_NAME ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                  }}
+                  value={editForm.FATHER_NAME}
+                  onChange={(e) => setEditForm({ ...editForm, FATHER_NAME: e.target.value.toUpperCase() })}
+                  disabled={!!editForm.FATHER_NAME}
+                  readOnly={!!editForm.FATHER_NAME}
+                />
+                <input
+                  placeholder="AADHAAR NO"
+                  style={{
+                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
+                    outline: 'none', boxSizing: 'border-box',
+                    ...(editForm.AADHAR_NO ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                  }}
+                  value={editForm.AADHAR_NO}
+                  onChange={(e) => setEditForm({ ...editForm, AADHAR_NO: e.target.value })}
+                  disabled={!!editForm.AADHAR_NO}
+                  readOnly={!!editForm.AADHAR_NO}
+                />
+                <select
+                  style={{
+                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
+                    outline: 'none', boxSizing: 'border-box',
+                    ...(editForm.DESIGNATION ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+                  }}
+                  value={editForm.DESIGNATION}
+                  onChange={(e) => setEditForm({ ...editForm, DESIGNATION: e.target.value })}
+                  disabled={!!editForm.DESIGNATION}
+                >
+                  <option value="LABOUR">LABOUR</option>
+                  <option value="SKILLED">SKILLED</option>
+                  <option value="SUPERVISOR">SUPERVISOR</option>
+                </select>
+
+                {!editForm.DOB && (
+                  <input type="date" placeholder="DOB"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.DOB} onChange={(e) => setEditForm({ ...editForm, DOB: e.target.value })} />
+                )}
+                {!editForm.MOBILE_NO && (
+                  <input placeholder="MOBILE NO"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.MOBILE_NO} onChange={(e) => setEditForm({ ...editForm, MOBILE_NO: e.target.value })} />
+                )}
+                {!editForm.REFFERENCE && (
+                  <input placeholder="REFERENCE"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.REFFERENCE} onChange={(e) => setEditForm({ ...editForm, REFFERENCE: e.target.value })} />
+                )}
+                {!editForm.JOINING_DATE_CLIENT && (
+                  <input type="date" placeholder="JOINING DATE (CLIENT)"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.JOINING_DATE_CLIENT} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_CLIENT: e.target.value })} />
+                )}
+                {!editForm.JOINING_DATE_OFFICE && (
+                  <input type="date" placeholder="JOINING DATE (OFFICE)"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.JOINING_DATE_OFFICE} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_OFFICE: e.target.value })} />
+                )}
+                {!editForm.CLOSE_DATE && (
+                  <input type="date" placeholder="CLOSE DATE"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.CLOSE_DATE} onChange={(e) => setEditForm({ ...editForm, CLOSE_DATE: e.target.value })} />
+                )}
+                {!editForm.ADDRESS && (
+                  <input placeholder="ADDRESS"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.ADDRESS} onChange={(e) => setEditForm({ ...editForm, ADDRESS: e.target.value })} />
+                )}
+                {!editForm.PAN_NO && (
+                  <input placeholder="PAN NO (optional)"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.PAN_NO} onChange={(e) => setEditForm({ ...editForm, PAN_NO: e.target.value })} />
+                )}
+                {!editForm.BANK && (
+                  <input placeholder="BANK (optional)"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.BANK} onChange={(e) => setEditForm({ ...editForm, BANK: e.target.value })} />
+                )}
+                {!editForm.ACCOUNT_NO && (
+                  <input placeholder="ACCOUNT NO (optional)"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.ACCOUNT_NO} onChange={(e) => setEditForm({ ...editForm, ACCOUNT_NO: e.target.value })} />
+                )}
+                {!editForm.IFSC && (
+                  <input placeholder="IFSC (optional)"
+                    style={{
+                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                    value={editForm.IFSC} onChange={(e) => setEditForm({ ...editForm, IFSC: e.target.value })} />
+                )}
+
+                {!editForm.AADHAR_PHOTO && (
+                  <PhotoUpload label="AADHAAR PHOTO" value={editForm.AADHAR_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, AADHAR_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
+                )}
+                {!editForm.PAN_PHOTO && (
+                  <PhotoUpload label="PAN PHOTO (optional)" value={editForm.PAN_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, PAN_PHOTO: val })} folder="pan-photos" aspect={1.4} />
+                )}
+                {!editForm.BANK_PHOTO && (
+                  <PhotoUpload label="BANK PHOTO (optional)" value={editForm.BANK_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
+                )}
+
+                <div style={{ marginTop: 8, fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                  Fields with existing data are pre-filled and read-only. Fill in the blank fields above.
+                  On save, worker status will reset to <strong>PENDING</strong> for admin approval.
+                </div>
+                <button type="submit" style={{
+                  backgroundColor: '#2563eb', color: '#fff', border: 'none',
+                  padding: '14px', borderRadius: '8px', fontWeight: 700,
+                  cursor: 'pointer', marginTop: '4px', fontSize: '13px', fontFamily: 'Inter, sans-serif',
+                }}>Update</button>
+              </form>
+            )}
           </div>
         </div>
       )}

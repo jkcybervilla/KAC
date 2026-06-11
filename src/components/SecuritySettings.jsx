@@ -177,6 +177,11 @@ function PinSection({ onBack }) {
           type="password"
           inputMode="numeric"
           pattern="[0-9]*"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          data-lpignore="true"
+          data-form-type="other"
           value={newPin}
           onChange={(e) => handleNumInput(setNewPin)(e.target.value)}
           style={styles.pinInput}
@@ -192,6 +197,11 @@ function PinSection({ onBack }) {
           type="password"
           inputMode="numeric"
           pattern="[0-9]*"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          data-lpignore="true"
+          data-form-type="other"
           value={confirmPin}
           onChange={(e) => handleNumInput(setConfirmPin)(e.target.value)}
           style={styles.pinInput}

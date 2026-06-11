@@ -125,7 +125,11 @@ export default function LockScreen() {
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                autoComplete="one-time-code"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                data-lpignore="true"
+                data-form-type="other"
                 value={pin}
                 onChange={(e) => handlePinChange(e.target.value)}
                 style={styles.pinInput}

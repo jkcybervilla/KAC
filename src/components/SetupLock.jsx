@@ -178,6 +178,11 @@ export default function SetupLock({ onComplete }) {
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                data-lpignore="true"
+                data-form-type="other"
                 value={pin}
                 onChange={(e) => handlePinChange(e.target.value)}
                 style={styles.pinInput}
@@ -193,6 +198,11 @@ export default function SetupLock({ onComplete }) {
                 type="password"
                 inputMode="numeric"
                 pattern="[0-9]*"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                data-lpignore="true"
+                data-form-type="other"
                 value={confirmPin}
                 onChange={(e) => handleConfirmPinChange(e.target.value)}
                 style={styles.pinInput}
