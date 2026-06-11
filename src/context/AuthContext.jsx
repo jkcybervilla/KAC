@@ -3,6 +3,23 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
+/**
+ * Helper: detect PWA / TWA / standalone mode.
+ */
+function isPwaMode() {
+  try {
+    if (window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (document.referrer && document.referrer.includes('android-app://')) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
+/**
+ * In PWA mode we use a localStorage flag to track the session.
+ * The browser mode relies on Firebase auth state.
+ */
+const PWA_SESSION_KEY = 'kac_pwa_session';
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -11,7 +28,25 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const pwa = isPwaMode();
+
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      // --- PWA mode: respect the local session flag ---
+      if (pwa) {
+        const hasPwaSession = localStorage.getItem(PWA_SESSION_KEY) === 'true';
+        if (!hasPwaSession || !firebaseUser) {
+          // PWA session was cleared (user logged out of PWA only)
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+          try {
+            localStorage.setItem('kac_auth_state', 'unauthenticated');
+          } catch { /* ignore */ }
+          return;
+        }
+      }
+
+      // --- Browser mode (or PWA with active session) ---
       if (!firebaseUser) {
         setUser(null);
         setProfile(null);

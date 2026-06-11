@@ -8,7 +8,8 @@ import {
   isWebAuthnSupported,
   isPlatformAuthenticatorAvailable,
   registerBiometricCredential,
-  authenticateWithBiometric
+  authenticateWithBiometric,
+  isTwaMode
 } from '../utils/pwa';
 
 const Login = () => {
@@ -61,6 +62,11 @@ const Login = () => {
       if (userDoc.exists()) {
         // Clear the TWA locked flag so PIN isn't required after login
         clearTwaLocked();
+
+        // If running in PWA / TWA mode, set the local session flag
+        if (isTwaMode()) {
+          localStorage.setItem('kac_pwa_session', 'true');
+        }
 
         // Check if biometric is available and offer to set up
         const hasBiometric = await isPlatformAuthenticatorAvailable();
