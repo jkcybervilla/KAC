@@ -1,19 +1,19 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * Hook to detect right swipe gesture from the left edge to open the sidebar.
- * Works in all modes: browser, PWA, and TWA (Android app).
- * Does not interfere with horizontal scrolling in tables or AG Grid components.
+ * Hook to detect left-to-right swipe gesture from anywhere on the screen
+ * to open the sidebar. Only triggers when the sidebar is currently closed.
+ * Does not interfere with normal vertical scrolling or horizontal scroll containers.
  *
  * @param {Function} onOpenSidebar - Callback to open/expand the sidebar
  * @param {Object}   options
- * @param {number}   options.threshold     - Minimum px horizontal distance to trigger (default: 50)
- * @param {number}   options.edgeThreshold - Max px from left edge to start detection (default: 30)
+ * @param {number}   options.threshold - Minimum px horizontal distance to trigger (default: 50)
  */
 export default function useSwipeToOpenSidebar(onOpenSidebar, options = {}) {
-  const { threshold = 50, edgeThreshold = 30 } = options;
+  const { threshold = 50 } = options;
   const touchStartXRef = useRef(null);
   const touchStartYRef = useRef(null);
+  const sidebarOpenRef = useRef(false);
 
   useEffect(() => {
     if (typeof onOpenSidebar !== 'function') return;
@@ -22,27 +22,34 @@ export default function useSwipeToOpenSidebar(onOpenSidebar, options = {}) {
       const touch = e.touches[0];
       touchStartXRef.current = touch.clientX;
       touchStartYRef.current = touch.clientY;
+
+      // Check if sidebar is currently open by looking for the open class
+      // on any .page-aside.slidebar element
+      const sidebar = document.querySelector('.page-aside.slidebar');
+      sidebarOpenRef.current = sidebar && sidebar.classList.contains('open');
     };
 
     const handleTouchEnd = (e) => {
       if (touchStartXRef.current === null) return;
+      if (sidebarOpenRef.current) {
+        touchStartXRef.current = null;
+        touchStartYRef.current = null;
+        return;
+      }
 
       const touch = e.changedTouches[0];
       const deltaX = touch.clientX - touchStartXRef.current;
       const deltaY = touch.clientY - touchStartYRef.current;
 
       // Check right-swipe conditions:
-      // 1. Starts near the left edge of the screen
-      // 2. Swiped right far enough
-      // 3. More horizontal than vertical movement (avoids accidental triggers from scrolling)
-      const isRightSwipeFromEdge =
-        touchStartXRef.current <= edgeThreshold &&
+      // 1. Swiped right far enough
+      // 2. More horizontal than vertical movement (avoids accidental triggers from scrolling)
+      // 3. Not inside a horizontally scrollable container
+      const isRightSwipe =
         deltaX > threshold &&
         Math.abs(deltaY) < Math.abs(deltaX) * 1.5;
 
-      if (isRightSwipeFromEdge) {
-        // Prevent triggering when touch started inside a horizontally scrollable
-        // container (AG Grid tables, regular tables, etc.)
+      if (isRightSwipe) {
         const target = e.target;
         if (!isHorizontalScrollContainer(target)) {
           onOpenSidebar();
@@ -60,12 +67,12 @@ export default function useSwipeToOpenSidebar(onOpenSidebar, options = {}) {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [onOpenSidebar, threshold, edgeThreshold]);
+  }, [onOpenSidebar, threshold]);
 }
 
 /* ------------------------------------------------------------------ */
 /*  Helper: determine if the touch target sits inside a horizontally   */
-/*  scrollable container (AG Grid, <table> with overflow, etc.)       */
+/*  scrollable container (AG Grid, date strip, <table> with overflow)  */
 /* ------------------------------------------------------------------ */
 function isHorizontalScrollContainer(element) {
   // Known AG Grid / table selectors that use horizontal scrolling
@@ -93,6 +100,18 @@ function isHorizontalScrollContainer(element) {
           parentStyle.overflowX === 'scroll'
         )
           return true;
+      }
+
+      // Date strip / horizontal scroll containers commonly used in attendance
+      // Class names that indicate horizontal scrolling containers
+      if (
+        el.matches('.date-strip') ||
+        el.matches('.date-strip-container') ||
+        el.matches('[class*="dateStrip"]') ||
+        el.matches('[class*="date-scroll"]') ||
+        el.matches('[class*="horizontal-scroll"]')
+      ) {
+        return true;
       }
     }
 

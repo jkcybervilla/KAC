@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { Search, Save, ChevronDown, Zap, Settings } from 'lucide-react';
@@ -27,10 +27,10 @@ const getNextUnsavedDate = (savedDatesSet, year, month) => {
 };
 
 const STATUS_OPTIONS = [
-  { value: 'P', label: 'P', color: '#22c55e' },
-  { value: 'A', label: 'A', color: '#ef4444' },
-  { value: 'H', label: 'H', color: '#f59e0b' },
-  { value: 'C', label: 'C', color: '#6b7280' },
+  { value: 'P', label: 'P', color: '#22c55e', tooltip: 'Present' },
+  { value: 'A', label: 'A', color: '#ef4444', tooltip: 'Absent' },
+  { value: 'H', label: 'H', color: '#f59e0b', tooltip: 'Holiday (Paid)' },
+  { value: 'C', label: 'C', color: '#6b7280', tooltip: 'Closed' },
 ];
 
 const STATUS_COLORS = {
@@ -40,15 +40,10 @@ const STATUS_COLORS = {
   C: { bg: 'rgba(107,114,128,0.15)', text: '#9ca3af' },
 };
 
-/** Generate a unique ID for each status dropdown portal */
-let dropdownIdCounter = 0;
-const getNextDropdownId = () => `status-dd-${++dropdownIdCounter}`;
-
-const AccountantDailyAttendance = ({ type, projectName }) => {
+const AccountantDailyAttendance = forwardRef(({ type, projectName }, ref) => {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
-  const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1);
   const todayStr = toDateStr(now);
   const [selectedDate, setSelectedDate] = useState(() => todayStr);
   const [rows, setRows] = useState([]);
@@ -67,7 +62,16 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [showFilterBar, setShowFilterBar] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
+  const [showSearchPanel, setShowSearchPanel] = useState(false);
+  const [showReferencePanel, setShowReferencePanel] = useState(false);
+  const [showStatusFilterPanel, setShowStatusFilterPanel] = useState(false);
+  const [selectedReferences, setSelectedReferences] = useState([]);
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
   const [openStatusDropdown, setOpenStatusDropdown] = useState(null); // worker id
+  const hasAutoSelectedRef = useRef(false);
+  const searchPanelRef = useRef(null);
+  const referencePanelRef = useRef(null);
+  const statusFilterPanelRef = useRef(null);
   const settingsRef = useRef(null);
   const quickActionRef = useRef(null);
   const dateStripRef = useRef(null);
@@ -76,6 +80,41 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
   // Use a Set ref to track all status dropdown button elements for outside-click detection
   const statusDropdownBtnRefs = useRef({});
   const statusDropdownPanelRefs = useRef({});
+
+  // Expose methods and data to parent dashboard (AccountantDashboard)
+  useImperativeHandle(ref, () => ({
+    openExport: () => {
+      // Now handled directly via getExportData in the dashboard
+    },
+    openSettings: () => {
+      setShowSettings((prev) => !prev);
+    },
+    openSearchPanel: () => {
+      setShowSearchPanel((prev) => !prev);
+      setShowReferencePanel(false);
+      setShowStatusFilterPanel(false);
+    },
+    openReferencePanel: () => {
+      setShowReferencePanel((prev) => !prev);
+      setShowSearchPanel(false);
+      setShowStatusFilterPanel(false);
+    },
+    openStatusPanel: () => {
+      setShowStatusFilterPanel((prev) => !prev);
+      setShowSearchPanel(false);
+      setShowReferencePanel(false);
+    },
+    getExportData: () => ({
+      rows,
+      columnDefs: exportColumnDefs,
+      title: `${type} ${selectedDate}`,
+      filename: `${type}-${selectedDate}`,
+      fullMonthRows: fullMonthData,
+      month,
+      year,
+      projectName,
+    }),
+  }));
 
   const dateObj = new Date(selectedDate + 'T00:00:00');
   const month = dateObj.getMonth() + 1;
@@ -123,10 +162,11 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         });
         setSavedDates(foundDates);
 
-        // Auto-select the next unsaved date
+        // Auto-select the next unsaved date only on initial mount
         const next = getNextUnsavedDate(foundDates, currentYear, currentMonth);
-        if (next) {
+        if (!hasAutoSelectedRef.current && next) {
           setSelectedDate(next);
+          hasAutoSelectedRef.current = true;
         }
 
         // Check if selected date is in the future
@@ -137,7 +177,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         const built = workers.map((w, i) => {
           const days = attMap[w.EMPID]?.days || {};
           // Check if worker's joining date is after the selected date
-          const joiningDate = w.JOINING_DATE_OFFICE || w.CLOSE_DATE || '';
+          const joiningDate = type === 'office' ? (w.JOINING_DATE_OFFICE || '') : (w.JOINING_DATE_CLIENT || '');
           let isBeforeJoining = false;
           if (joiningDate) {
             const joinDateObj = new Date(joiningDate);
@@ -293,6 +333,18 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
       if (quickActionRef.current && !quickActionRef.current.contains(e.target)) {
         setShowQuickAction(false);
       }
+      // Search panel
+      if (searchPanelRef.current && !searchPanelRef.current.contains(e.target)) {
+        setShowSearchPanel(false);
+      }
+      // Reference panel
+      if (referencePanelRef.current && !referencePanelRef.current.contains(e.target)) {
+        setShowReferencePanel(false);
+      }
+      // Status filter panel
+      if (statusFilterPanelRef.current && !statusFilterPanelRef.current.contains(e.target)) {
+        setShowStatusFilterPanel(false);
+      }
       // Status dropdowns — check if click is outside ALL status dropdown buttons and panels
       if (openStatusDropdown !== null) {
         const btnRef = statusDropdownBtnRefs.current[openStatusDropdown];
@@ -315,18 +367,42 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     });
   }, []);
 
-  // Filtered + searched rows
-  const filteredRows = useMemo(() => {
-    if (!searchText.trim()) return rows;
-    const q = searchText.toLowerCase();
-    return rows.filter((r) => {
-      const name = (r.WORKER_NAME || '').toLowerCase();
-      const empId = (r.EMP_ID || '').toLowerCase();
-      const desig = (r.DESIGNATION || '').toLowerCase();
-      const father = (r.FATHER_NAME || '').toLowerCase();
-      return name.includes(q) || empId.includes(q) || desig.includes(q) || father.includes(q);
+  // Unique reference values from current rows
+  const referenceOptions = useMemo(() => {
+    const refs = new Set();
+    rows.forEach((r) => {
+      const ref = (r.REFFERENCE || '').trim();
+      if (ref && ref !== '—') {
+        refs.add(ref);
+      }
     });
-  }, [rows, searchText]);
+    return Array.from(refs).sort();
+  }, [rows]);
+
+  // Filtered + searched + reference-filtered rows
+  const filteredRows = useMemo(() => {
+    let result = rows;
+    // Apply reference filter
+    if (selectedReferences.length > 0) {
+      result = result.filter((r) => selectedReferences.includes(r.REFFERENCE));
+    }
+    // Apply status filter
+    if (selectedStatuses.length > 0) {
+      result = result.filter((r) => selectedStatuses.includes(r.ATTENDANCE));
+    }
+    // Apply search text filter
+    if (searchText.trim()) {
+      const q = searchText.toLowerCase();
+      result = result.filter((r) => {
+        const name = (r.WORKER_NAME || '').toLowerCase();
+        const empId = (r.EMP_ID || '').toLowerCase();
+        const desig = (r.DESIGNATION || '').toLowerCase();
+        const father = (r.FATHER_NAME || '').toLowerCase();
+        return name.includes(q) || empId.includes(q) || desig.includes(q) || father.includes(q);
+      });
+    }
+    return result;
+  }, [rows, searchText, selectedReferences, selectedStatuses]);
 
   const presentCount = filteredRows.filter((r) => r.ATTENDANCE === 'P' && !r._isBeforeJoining && !r._isFutureDate).length;
   const absentCount = filteredRows.filter((r) => r.ATTENDANCE === 'A' && !r._isBeforeJoining && !r._isFutureDate).length;
@@ -374,8 +450,8 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
     return parts.length > 0 ? parts.join(' · ') : '—';
   };
 
-  if (!projectName) return <p style={{ color: '#666', padding: 24 }}>Select a project from the header.</p>;
-  if (loading) return <p style={{ color: '#666', padding: 24 }}>Loading...</p>;
+  if (!projectName) return <p style={{ color: 'var(--muted)', padding: 24 }}>Select a project from the header.</p>;
+  if (loading) return <p style={{ color: 'var(--muted)', padding: 24 }}>Loading...</p>;
 
   return (
     <div style={{
@@ -480,8 +556,8 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         </div>
       </div>
 
-      {/* ============= STATS ROW: Present + Absent ============= */}
-      <div style={{ display: 'flex', gap: 8, padding: '8px 12px' }}>
+      {/* ============= STATS ROW: Present + Absent + Quick Action ============= */}
+      <div style={{ display: 'flex', gap: 8, padding: '8px 12px', alignItems: 'stretch' }}>
         <div style={{
           flex: 1,
           background: 'rgba(34,197,94,0.1)',
@@ -526,49 +602,8 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
             Absent
           </div>
         </div>
-      </div>
-
-      {/* ============= TOOLBAR: Search + Quick action + Settings + Download ============= */}
-      <div style={{
-        display: 'flex',
-        gap: 6,
-        padding: '0 12px 8px 12px',
-        flexWrap: 'nowrap',
-        alignItems: 'center',
-      }}>
-        {/* Search */}
-        <div style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 8,
-          padding: '7px 8px',
-        }}>
-          <Search size={14} color="var(--muted)" style={{ flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Search workers..."
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            style={{
-              flex: 1,
-              background: 'none',
-              border: 'none',
-              outline: 'none',
-              color: 'var(--text)',
-              fontSize: 12,
-              fontFamily: 'inherit',
-              minWidth: 0,
-            }}
-          />
-        </div>
-
         {/* Quick Action */}
-        <div ref={quickActionRef} style={{ position: 'relative', flexShrink: 0 }}>
+        <div ref={quickActionRef} style={{ position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
           <button
             onClick={() => setShowQuickAction(!showQuickAction)}
             style={{
@@ -584,6 +619,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
               fontSize: 12,
               fontFamily: 'inherit',
               transition: 'all 0.15s ease',
+              height: '100%',
             }}
             title="Quick action"
           >
@@ -634,21 +670,24 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Settings */}
-        <div ref={settingsRef} style={{ position: 'relative', flexShrink: 0 }}>
+      {/* Panels triggered via refs from header 3-dot menu */}
+      <div style={{ position: 'relative', height: 0, overflow: 'visible', zIndex: 9999 }}>
+        {/* Settings panel (hidden button, functional via ref) */}
+        <div ref={settingsRef} style={{ position: 'absolute', top: 0, right: 12, display: showSettings ? 'block' : 'none' }}>
           <button
             onClick={() => setShowSettings(!showSettings)}
             style={{
               padding: '7px 10px',
               borderRadius: 8,
               border: '1px solid var(--border)',
-              background: showSettings ? 'rgba(0,85,255,0.1)' : 'var(--surface)',
+              background: 'var(--surface)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
-              color: showSettings ? '#0055ff' : 'var(--text-soft)',
+              color: 'var(--text-soft)',
               fontSize: 12,
               fontFamily: 'inherit',
               transition: 'all 0.15s ease',
@@ -707,7 +746,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                     padding: '10px 14px',
                     cursor: 'pointer',
                     fontSize: 12,
-                    color: columnVisibility[c.field] !== false ? 'var(--text)' : 'var(--muted-2)',
+                    color: columnVisibility[c.field] !== false ? 'var(--text)' : 'var(--muted)',
                     borderBottom: '1px solid var(--border)',
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
@@ -726,19 +765,229 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
           )}
         </div>
 
-        {/* Download / Export */}
-        <div style={{ flexShrink: 0 }}>
-          <ExportToolbar
-            rows={rows}
-            columnDefs={exportColumnDefs}
-            title={`${type} ${selectedDate}`}
-            filename={`${type}-${selectedDate}`}
-            fullMonthRows={fullMonthData}
-            month={month}
-            year={year}
-            projectName={projectName}
-          />
+        {/* Search panel */}
+        <div ref={searchPanelRef} style={{ position: 'absolute', top: 0, right: 12 }}>
+          {showSearchPanel && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 4,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 8,
+              zIndex: 1000,
+              minWidth: 220,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '10px 14px',
+              }}>
+                <Search size={14} color="var(--muted)" style={{ flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search workers..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--text)',
+                    fontSize: 12,
+                    fontFamily: 'inherit',
+                    minWidth: 0,
+                  }}
+                />
+                {searchText && (
+                  <button
+                    onClick={() => setSearchText('')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--muted)',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      padding: 0,
+                      lineHeight: 1,
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Reference panel */}
+        <div ref={referencePanelRef} style={{ position: 'absolute', top: 0, right: 12 }}>
+          {showReferencePanel && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 4,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 8,
+              zIndex: 1000,
+              minWidth: 200,
+              maxHeight: 320,
+              overflowY: 'auto',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}>
+              {selectedReferences.length > 0 && (
+                <button
+                  onClick={() => setSelectedReferences([])}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  ✕ Clear filter
+                </button>
+              )}
+              {referenceOptions.length === 0 ? (
+                <div style={{ padding: '14px', fontSize: 12, color: 'var(--muted)', textAlign: 'center' }}>
+                  No references found
+                </div>
+              ) : (
+                referenceOptions.map((ref) => (
+                  <label
+                    key={ref}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 14px',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      color: 'var(--text)',
+                      borderBottom: '1px solid var(--border)',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedReferences.includes(ref)}
+                      onChange={() => {
+                        setSelectedReferences((prev) =>
+                          prev.includes(ref)
+                            ? prev.filter((r) => r !== ref)
+                            : [...prev, ref]
+                        );
+                      }}
+                      style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                    />
+                    <span>{ref}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Status filter panel */}
+        <div ref={statusFilterPanelRef} style={{ position: 'absolute', top: 0, right: 12 }}>
+          {showStatusFilterPanel && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: 4,
+              background: 'var(--surface)',
+              border: '1px solid var(--border-strong)',
+              borderRadius: 8,
+              zIndex: 1000,
+              minWidth: 200,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+            }}>
+              {selectedStatuses.length > 0 && (
+                <button
+                  onClick={() => setSelectedStatuses([])}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    padding: '10px 14px',
+                    border: 'none',
+                    borderBottom: '1px solid var(--border)',
+                    background: 'transparent',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    textAlign: 'left',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  ✕ Clear filter
+                </button>
+              )}
+              {[
+                { value: 'P', label: 'Present (P)' },
+                { value: 'A', label: 'Absent (A)' },
+                { value: 'H', label: 'Holiday (H)' },
+                { value: 'C', label: 'Closed (C)' },
+              ].map((opt) => {
+                const count = rows.filter((r) => r.ATTENDANCE === opt.value && !r._isBeforeJoining && !r._isFutureDate).length;
+                return (
+                  <label
+                    key={opt.value}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 14px',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      color: 'var(--text)',
+                      borderBottom: '1px solid var(--border)',
+                      fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedStatuses.includes(opt.value)}
+                      onChange={() => {
+                        setSelectedStatuses((prev) =>
+                          prev.includes(opt.value)
+                            ? prev.filter((s) => s !== opt.value)
+                            : [...prev, opt.value]
+                        );
+                      }}
+                      style={{ accentColor: '#0055ff', cursor: 'pointer' }}
+                    />
+                    <span>{opt.label} — {count}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ============= FILTER BAR (optional) ============= */}
@@ -793,7 +1042,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
       }}>
         <div style={{ width: 32, textAlign: 'center' }}>SL</div>
         <div style={{ flex: 1, paddingLeft: 6 }}>
-          Name · <span style={{ fontWeight: 800 }}>{filteredRows.length}</span> workers
+          Name
         </div>
         <div style={{ width: 54, textAlign: 'center' }}>Status</div>
         <div style={{ width: 42, textAlign: 'right', paddingRight: 2 }}>Total</div>
@@ -810,13 +1059,13 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
           <div style={{
             padding: 40,
             textAlign: 'center',
-            color: 'var(--muted-2)',
+            color: 'var(--muted)',
             fontSize: 13,
           }}>
             No workers found
           </div>
         )}
-        {filteredRows.map((row) => {
+        {filteredRows.map((row, idx) => {
           const statusColor = STATUS_COLORS[row.ATTENDANCE] || STATUS_COLORS['P'];
           const isLocked = isDateSaved || !canEditThisDate || row._isClosed || row._isBeforeJoining || row._isFutureDate;
           const rowId = row.id;
@@ -844,11 +1093,11 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                 width: 32,
                 textAlign: 'center',
                 fontSize: 10,
-                color: 'var(--muted-2)',
-                fontWeight: 500,
+                color: 'var(--muted)',
+                fontWeight: 600,
                 fontVariantNumeric: 'tabular-nums',
               }}>
-                {row.SLNO}
+                {idx + 1}
               </div>
 
               {/* Name + subtitle */}
@@ -866,7 +1115,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                 </div>
                 <div style={{
                   fontSize: 10,
-                  color: 'var(--muted-2)',
+                  color: 'var(--muted)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -908,6 +1157,7 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
                           delete statusDropdownBtnRefs.current[rowId];
                         }
                       }}
+                      title={STATUS_OPTIONS.find((o) => o.value === row.ATTENDANCE)?.tooltip || ''}
                       onClick={() => setOpenStatusDropdown(dropdownOpen ? null : rowId)}
                       style={{
                         display: 'inline-flex',
@@ -1027,10 +1277,8 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
           alignItems: 'center',
           gap: 12,
         }}>
-          <span style={{ color: '#22c55e' }}>{presentCount} present</span>
-          <span style={{ color: '#ef4444' }}>{absentCount} absent</span>
           <span style={{ color: 'var(--text)' }}>
-            👥 {totalWorkers} workers
+            · {totalWorkers} workers
           </span>
           <span style={{ color: 'var(--text)', fontWeight: 800 }}>
             Σ {totalDaysSum} days
@@ -1038,16 +1286,6 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {isDateSaved && (
-            <span style={{
-              fontSize: 10,
-              color: '#f59e0b',
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}>
-              ⚠ Already saved
-            </span>
-          )}
           {!isDateSaved && !canEditThisDate && (
             <span style={{
               fontSize: 10,
@@ -1092,6 +1330,6 @@ const AccountantDailyAttendance = ({ type, projectName }) => {
       </div>
     </div>
   );
-};
+});
 
 export default AccountantDailyAttendance;

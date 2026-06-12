@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const ExportToolbar = ({ rows, columnDefs, title, filename, fullMonthRows, month, year, projectName }) => {
+const ExportToolbar = ({ rows, columnDefs, title, filename, fullMonthRows, month, year, projectName, triggerRef, isIconOnly }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -132,15 +132,34 @@ const ExportToolbar = ({ rows, columnDefs, title, filename, fullMonthRows, month
 
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button type="button" style={s.secondaryBtn} onClick={() => setOpen((p) => !p)}>
-        <Download size={14} /> Download
+      <button
+        ref={triggerRef}
+        type="button"
+        style={isIconOnly ? {
+          padding: '7px 10px',
+          borderRadius: 8,
+          border: '1px solid var(--border)',
+          background: 'var(--surface)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          color: 'var(--text-soft)',
+          fontSize: 12,
+          fontFamily: 'inherit',
+          transition: 'all 0.15s ease',
+        } : s.secondaryBtn}
+        onClick={() => setOpen((p) => !p)}
+      >
+        <Download size={14} /> {isIconOnly ? '' : 'Download'}
       </button>
       {open && (
         <div
           style={{
             position: 'absolute',
             top: '100%',
-            left: 0,
+            right: 0,
+            left: 'auto',
             marginTop: 4,
             background: 'var(--surface)',
             border: '1px solid var(--border)',
@@ -148,6 +167,7 @@ const ExportToolbar = ({ rows, columnDefs, title, filename, fullMonthRows, month
             padding: '4px 0',
             zIndex: 200,
             minWidth: 140,
+            maxWidth: 'calc(100vw - 32px)',
             boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
           }}
         >

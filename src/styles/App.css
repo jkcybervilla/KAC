@@ -392,7 +392,8 @@ button {
   width: 100%;
   display: flex;
   flex: 1;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .page-aside {
@@ -425,9 +426,23 @@ button {
   display: block;
 }
 
-.slidebar-close-btn,
-.slidebar-toggle-btn {
+.slidebar-close-btn {
   display: none;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.slidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 18px;
   border: none;
   background: transparent;
   color: inherit;
@@ -445,10 +460,18 @@ button {
   transform: translateX(-100%);
   z-index: 25;
   box-shadow: 24px 0 64px var(--shadow-lg);
+  /* Frosted glass effect */
+  background: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid var(--sidebar-border);
+}
+
+:root[data-theme='dark'] .page-aside.slidebar {
+  background: rgba(20, 20, 24, 0.7);
 }
 
 @media (max-width: 640px) {
-  .slidebar-toggle-btn,
   .slidebar-close-btn {
     display: inline-flex;
     align-items: center;
@@ -471,6 +494,20 @@ button {
     transform: translateX(0);
     box-shadow: none;
     width: 200px;
+    transition: width 0.28s ease, padding 0.28s ease, opacity 0.28s ease;
+    overflow: hidden;
+    opacity: 1;
+    /* Solid background on desktop (no glass) */
+    background: var(--sidebar-bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .page-aside.slidebar:not(.open) {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
   }
 
   .slidebar-backdrop {

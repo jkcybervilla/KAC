@@ -20,6 +20,7 @@ export default function LockScreen() {
   const [error, setError] = useState('');
   const [biometricLoading, setBiometricLoading] = useState(false);
   const [showPinInput, setShowPinInput] = useState(false);
+  const [shake, setShake] = useState(false);
 
   // Auto-trigger biometric unlock if available
   useEffect(() => {
@@ -50,16 +51,15 @@ export default function LockScreen() {
   };
 
   const handlePinSubmit = async (e) => {
-    e.preventDefault();
-    if (pin.length < 4) {
-      setError('PIN must be at least 4 digits.');
-      return;
-    }
+    if (e) e.preventDefault();
+    if (pin.length < 4) return;
     setError('');
     const success = await unlockWithPin(pin);
     if (!success) {
       setError('Incorrect PIN. Please try again.');
       setPin('');
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
     }
   };
 
@@ -72,96 +72,110 @@ export default function LockScreen() {
     }
   };
 
+  // Auto-submit when 4 digits are entered
+  useEffect(() => {
+    if (pin.length === 4) {
+      handlePinSubmit();
+    }
+  }, [pin]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Show PIN input if lock type is PIN or biometric failed and fallback to PIN
   const shouldShowPin = lockType === 'pin' || showPinInput;
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        {/* App Logo / Icon */}
-        <div style={styles.logoContainer}>
-          <div style={styles.logo}>
-            <span style={styles.logoText}>KAC</span>
-          </div>
-        </div>
-
-        <h2 style={styles.title}>App Locked</h2>
-        <p style={styles.subtitle}>
-          {userEmail || profile?.email || 'KAC OFFICIAL'}
-        </p>
-
-        {/* Biometric unlock (primary) */}
-        {!shouldShowPin && biometricAvailable && (
-          <div style={styles.biometricSection}>
-            <button
-              onClick={handleBiometricUnlock}
-              style={styles.biometricButton}
-              disabled={biometricLoading}
-            >
-              {biometricLoading ? (
-                <span style={styles.loadingText}>Authenticating...</span>
-              ) : (
-                <>
-                  <span style={styles.biometricIcon}>🔒</span>
-                  <span>Unlock with Biometric</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => setShowPinInput(true)}
-              style={styles.pinFallbackBtn}
-            >
-              Use PIN instead
-            </button>
-          </div>
-        )}
-
-        {/* PIN unlock (primary or fallback) */}
-        {shouldShowPin && (
-          <form onSubmit={handlePinSubmit} style={styles.form}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Enter PIN</label>
-              <input
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                data-lpignore="true"
-                data-form-type="other"
-                value={pin}
-                onChange={(e) => handlePinChange(e.target.value)}
-                style={styles.pinInput}
-                placeholder="• • • •"
-                maxLength={6}
-                autoFocus
-              />
+    <>
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-6px); }
+          80% { transform: translateX(6px); }
+        }
+      `}</style>
+      <div style={styles.container}>
+        <div style={styles.card}>
+          {/* App Logo / Icon */}
+          <div style={styles.logoContainer}>
+            <div style={styles.logo}>
+              <span style={styles.logoText}>KAC</span>
             </div>
+          </div>
 
-            {error && <p style={styles.error}>{error}</p>}
+          <h2 style={styles.title}>App Locked</h2>
+          <p style={styles.subtitle}>
+            {userEmail || profile?.email || 'KAC OFFICIAL'}
+          </p>
 
-            <button
-              type="submit"
-              style={styles.unlockButton}
-              disabled={pin.length < 4}
-            >
-              Unlock
-            </button>
-
-            {biometricAvailable && lockType !== 'pin' && (
+          {/* Biometric unlock (primary) */}
+          {!shouldShowPin && biometricAvailable && (
+            <div style={styles.biometricSection}>
               <button
-                type="button"
-                onClick={() => setShowPinInput(false)}
+                onClick={handleBiometricUnlock}
+                style={styles.biometricButton}
+                disabled={biometricLoading}
+              >
+                {biometricLoading ? (
+                  <span style={styles.loadingText}>Authenticating...</span>
+                ) : (
+                  <>
+                    <span style={styles.biometricIcon}>🔒</span>
+                    <span>Unlock with Biometric</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowPinInput(true)}
                 style={styles.pinFallbackBtn}
               >
-                Use Biometric instead
+                Use PIN instead
               </button>
-            )}
-          </form>
-        )}
+            </div>
+          )}
+
+          {/* PIN unlock (primary or fallback) */}
+          {shouldShowPin && (
+            <form onSubmit={handlePinSubmit} style={styles.form}>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Enter PIN</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  value={pin}
+                  onChange={(e) => handlePinChange(e.target.value)}
+                  style={{
+                    ...styles.pinInput,
+                    animation: shake ? 'shake 0.4s ease' : 'none',
+                    borderColor: error ? '#ef4444' : '#222',
+                  }}
+                  placeholder="• • • •"
+                  maxLength={4}
+                  autoFocus
+                />
+              </div>
+
+              {error && <p style={styles.error}>{error}</p>}
+
+              {biometricAvailable && lockType !== 'pin' && (
+                <button
+                  type="button"
+                  onClick={() => setShowPinInput(false)}
+                  style={styles.pinFallbackBtn}
+                >
+                  Use Biometric instead
+                </button>
+              )}
+            </form>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

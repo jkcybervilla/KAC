@@ -11,7 +11,8 @@ export function getDaysInMonth(month, year) {
 export function countPresent(days, maxDay) {
   let count = 0;
   for (let d = 1; d <= maxDay; d++) {
-    if (days[String(d)] === 'P') count++;
+    const val = days[String(d)];
+    if (val === 'P' || val === 'H') count++;
   }
   return count;
 }

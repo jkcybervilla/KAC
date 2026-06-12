@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { UserPlus, Search, X, Check, Clock, Eye, Bell, ChevronLeft, ChevronRight, SkipForward, Building, User, CreditCard, Camera, Pencil } from 'lucide-react';
+import { UserPlus, Search, X, Check, Clock, Eye, ChevronLeft, ChevronRight, SkipForward, User, CreditCard, Camera, Pencil } from 'lucide-react';
 import PhotoUpload from '../../components/PhotoUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createNotification } from '../../utils/notifications';
@@ -13,7 +13,7 @@ const styles = {
     padding: '16px',
     maxWidth: '100%',
     fontFamily: 'Inter, sans-serif',
-    color: '#1e293b',
+    color: 'var(--text)',
   },
   header: {
     display: 'flex',
@@ -28,18 +28,18 @@ const styles = {
   projectName: {
     fontSize: '20px',
     fontWeight: '700',
-    color: '#0f172a',
+    color: 'var(--text)',
     margin: 0,
     lineHeight: 1.2,
   },
   subtitle: {
     fontSize: '13px',
-    color: '#64748b',
+    color: 'var(--muted)',
     margin: '2px 0 0 0',
     fontWeight: 400,
   },
   bellBtn: {
-    background: '#f1f5f9',
+    background: 'var(--surface-2)',
     border: 'none',
     borderRadius: '50%',
     width: 40,
@@ -48,7 +48,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     cursor: 'pointer',
-    color: '#475569',
+    color: 'var(--muted)',
     flexShrink: 0,
   },
   statsRow: {
@@ -87,23 +87,23 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: 'var(--surface-2)',
     borderRadius: '10px',
     padding: '0 14px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--border)',
   },
   searchInput: {
     background: 'none',
     border: 'none',
     outline: 'none',
     fontSize: '14px',
-    color: '#1e293b',
+    color: 'var(--text)',
     width: '100%',
     padding: '12px 0',
     fontFamily: 'Inter, sans-serif',
   },
   addBtn: {
-    background: '#2563eb',
+    background: '#0055ff',
     color: '#fff',
     border: 'none',
     borderRadius: '10px',
@@ -130,9 +130,9 @@ const styles = {
   filterChip: (active) => ({
     padding: '8px 18px',
     borderRadius: '20px',
-    border: active ? '2px solid #2563eb' : '2px solid #e2e8f0',
-    background: active ? '#eff6ff' : '#fff',
-    color: active ? '#2563eb' : '#64748b',
+    border: active ? '2px solid #0055ff' : '2px solid var(--border)',
+    background: active ? 'var(--accent-soft)' : 'var(--surface)',
+    color: active ? '#0055ff' : 'var(--muted)',
     fontWeight: 600,
     fontSize: '13px',
     cursor: 'pointer',
@@ -144,37 +144,36 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     padding: '10px 14px',
-    backgroundColor: '#f8fafc',
+    backgroundColor: 'var(--surface-2)',
     borderRadius: '10px 10px 0 0',
-    borderBottom: '2px solid #e2e8f0',
+    borderBottom: '2px solid var(--border)',
     fontSize: '11px',
     fontWeight: 700,
-    color: '#64748b',
+    color: 'var(--muted)',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     position: 'sticky',
     top: 0,
     zIndex: 10,
-    background: 'var(--color-background-primary)',
   },
   listBody: {
     borderRadius: '0 0 10px 10px',
     overflow: 'hidden',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--border)',
     borderTop: 'none',
   },
   workerRow: {
     display: 'flex',
     alignItems: 'center',
     padding: '12px 14px',
-    borderBottom: '1px solid #f1f5f9',
-    backgroundColor: '#fff',
+    borderBottom: '1px solid var(--border)',
+    backgroundColor: 'var(--surface)',
     transition: 'background 0.15s ease',
   },
   slCol: {
     width: '36px',
     fontSize: '12px',
-    color: '#94a3b8',
+    color: 'var(--muted)',
     fontWeight: 500,
     flexShrink: 0,
   },
@@ -186,14 +185,14 @@ const styles = {
   workerName: {
     fontSize: '14px',
     fontWeight: 700,
-    color: '#0f172a',
+    color: 'var(--text)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
   },
   workerMeta: {
     fontSize: '12px',
-    color: '#94a3b8',
+    color: 'var(--muted)',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -227,7 +226,7 @@ const styles = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#94a3b8',
+    color: 'var(--muted)',
     padding: 6,
     display: 'flex',
     alignItems: 'center',
@@ -238,32 +237,32 @@ const styles = {
   emptyState: {
     textAlign: 'center',
     padding: '40px 20px',
-    color: '#94a3b8',
+    color: 'var(--muted)',
     fontSize: '14px',
-    backgroundColor: '#fff',
+    backgroundColor: 'var(--surface)',
     borderRadius: '0 0 10px 10px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--border)',
     borderTop: 'none',
   },
   loadingState: {
     textAlign: 'center',
     padding: '60px 20px',
-    color: '#64748b',
+    color: 'var(--muted)',
     fontSize: '14px',
   },
 };
 
 const STATUS_COLORS = {
-  APPROVED: { bg: 'rgba(34,197,94,0.15)', text: '#3b6d11', border: 'rgba(34,197,94,0.3)' },
-  PENDING: { bg: '#faeeda', text: '#854f0b', border: 'rgba(245,158,11,0.3)' },
-  REJECTED: { bg: '#fcebeb', text: '#a32d2d', border: 'rgba(239,68,68,0.3)' },
-  default: { bg: '#f1f5f9', text: '#64748b', border: '#e2e8f0' },
+  APPROVED: { bg: 'rgba(34,197,94,0.15)', text: '#22c55e', border: 'rgba(34,197,94,0.3)' },
+  PENDING: { bg: 'rgba(245,158,11,0.15)', text: '#f59e0b', border: 'rgba(245,158,11,0.3)' },
+  REJECTED: { bg: 'rgba(239,68,68,0.15)', text: '#ef4444', border: 'rgba(239,68,68,0.3)' },
+  default: { bg: 'var(--surface-2)', text: 'var(--muted)', border: 'var(--border)' },
 };
 
 const DetailRow = ({ label, value }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #e2e8f0' }}>
-    <span style={{ color: '#64748b', fontSize: 13 }}>{label}</span>
-    <span style={{ color: '#1e293b', fontSize: 13, fontWeight: 500, textAlign: 'right', maxWidth: '60%' }}>{value || '—'}</span>
+  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+    <span style={{ color: 'var(--muted)', fontSize: 13 }}>{label}</span>
+    <span style={{ color: 'var(--text)', fontSize: 13, fontWeight: 500, textAlign: 'right', maxWidth: '60%' }}>{value || '—'}</span>
   </div>
 );
 
@@ -289,7 +288,25 @@ const EMPTY = {
   BANK_PHOTO: '',
 };
 
-const AccountantWorkerRegistration = ({ projectName }) => {
+const modalOverlay = {
+  position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
+  display: 'flex', justifyContent: 'center', alignItems: 'center',
+  zIndex: 9999, padding: '16px',
+};
+
+const modalBox = {
+  backgroundColor: 'var(--surface)', color: 'var(--text)', padding: '24px',
+  borderRadius: '16px', width: '100%', maxWidth: '520px',
+  border: '1px solid var(--border-strong)', maxHeight: '90vh', overflowY: 'auto',
+};
+
+const formInput = {
+  width: '100%', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)',
+  padding: '11px', borderRadius: '8px', color: 'var(--text)', fontSize: '13px',
+  outline: 'none', boxSizing: 'border-box',
+};
+
+const AccountantWorkerRegistration = ({ projectName, autoOpenModal, onAutoOpened }) => {
   const { profile, isAccountant } = useAuth();
   const [rows, setRows] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -307,6 +324,16 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [showEditForm, setShowEditForm] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Auto-open modal when triggered from dashboard shortcut
+  useEffect(() => {
+    if (autoOpenModal) {
+      setShowModal(true);
+      setCurrentStep(0);
+      setForm(EMPTY);
+      if (onAutoOpened) onAutoOpened();
+    }
+  }, [autoOpenModal, onAutoOpened]);
 
   const load = useCallback(async () => {
     const [rSnap, wSnap, vSnap] = await Promise.all([
@@ -586,14 +613,13 @@ const AccountantWorkerRegistration = ({ projectName }) => {
     handleSubmit(e);
   };
 
-
   const inputBase = {
     width: '100%',
-    backgroundColor: '#f8fafc',
-    border: '1px solid #e2e8f0',
+    backgroundColor: 'var(--surface-2)',
+    border: '1px solid var(--border)',
     padding: '11px',
     borderRadius: '8px',
-    color: '#1e293b',
+    color: 'var(--text)',
     fontSize: '13px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -603,7 +629,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
   const labelStyle = {
     fontSize: '12px',
     fontWeight: 600,
-    color: '#475569',
+    color: 'var(--muted)',
     marginBottom: '4px',
     display: 'block',
   };
@@ -626,24 +652,24 @@ const AccountantWorkerRegistration = ({ projectName }) => {
 
       {/* Stats Row */}
       <div style={styles.statsRow}>
-        <div style={styles.statCard('#eff6ff', '#2563eb')}>
-          <div style={styles.statNumber('#2563eb')}>{stats.total}</div>
-          <div style={styles.statLabel('#2563eb')}>Total</div>
+        <div style={styles.statCard('rgba(0,85,255,0.1)', '#0055ff')}>
+          <div style={styles.statNumber('#0055ff')}>{stats.total}</div>
+          <div style={styles.statLabel('#0055ff')}>Total</div>
         </div>
-        <div style={styles.statCard('rgba(34,197,94,0.12)', '#3b6d11')}>
-          <div style={styles.statNumber('#3b6d11')}>{stats.approved}</div>
-          <div style={styles.statLabel('#3b6d11')}>Approved</div>
+        <div style={styles.statCard('rgba(34,197,94,0.12)', '#22c55e')}>
+          <div style={styles.statNumber('#22c55e')}>{stats.approved}</div>
+          <div style={styles.statLabel('#22c55e')}>Approved</div>
         </div>
-        <div style={styles.statCard('#fef7e6', '#854f0b')}>
-          <div style={styles.statNumber('#854f0b')}>{stats.pending}</div>
-          <div style={styles.statLabel('#854f0b')}>Pending</div>
+        <div style={styles.statCard('rgba(245,158,11,0.15)', '#f59e0b')}>
+          <div style={styles.statNumber('#f59e0b')}>{stats.pending}</div>
+          <div style={styles.statLabel('#f59e0b')}>Pending</div>
         </div>
       </div>
 
       {/* Toolbar */}
       <div style={styles.toolbar}>
         <div style={styles.searchBox}>
-          <Search size={16} color="#94a3b8" />
+          <Search size={16} color="var(--muted)" />
           <input
             type="text"
             placeholder="Search by name, EMP ID or father name..."
@@ -655,7 +681,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
             <button
               type="button"
               onClick={() => setSearchText('')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 4 }}
             >
               <X size={14} />
             </button>
@@ -698,8 +724,6 @@ const AccountantWorkerRegistration = ({ projectName }) => {
           </div>
         ) : (
           filteredRows.map((row, idx) => {
-            const sc = STATUS_COLORS[row.STATUS] || STATUS_COLORS.default;
-            const StatusIcon = row.STATUS === 'APPROVED' ? Check : row.STATUS === 'REJECTED' ? X : Clock;
             const isOpen = isStatusOpen(row.id);
 
             return (
@@ -745,13 +769,13 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                         position: 'absolute',
                         right: 0,
                         top: '100%',
-                        background: '#fff',
-                        border: '1px solid #e2e8f0',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
                         borderRadius: '10px',
                         padding: '4px',
                         zIndex: 1000,
                         minWidth: '120px',
-                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                       }}
                     >
                       <button
@@ -828,39 +852,31 @@ const AccountantWorkerRegistration = ({ projectName }) => {
 
       {/* Edit Modal - Details + Edit */}
       {showEditModal && selectedWorker && (
-        <div style={{
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          zIndex: 9999, padding: '16px',
-        }}>
-          <div style={{
-            backgroundColor: '#fff', color: '#1e293b', padding: '24px',
-            borderRadius: '16px', width: '100%', maxWidth: '500px',
-            border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto',
-          }}>
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, maxWidth: '500px' }}>
             {/* Header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px',
+              marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '15px',
             }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Worker details</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Worker details</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {!showEditForm && (
                   <button
                     type="button"
                     onClick={() => setShowEditForm(true)}
                     style={{
-                      background: '#eff6ff', border: '1px solid #bfdbfe',
+                      background: 'var(--accent-soft)', border: '1px solid var(--border)',
                       borderRadius: '8px', padding: '6px 12px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', gap: '6px',
-                      color: '#2563eb', fontWeight: 600, fontSize: '12px',
+                      color: '#0055ff', fontWeight: 600, fontSize: '12px',
                       fontFamily: 'Inter, sans-serif',
                     }}
                   >
                     <Pencil size={14} /> Edit
                   </button>
                 )}
-                <X size={20} style={{ cursor: 'pointer', color: '#64748b' }}
+                <X size={20} style={{ cursor: 'pointer', color: 'var(--muted)' }}
                   onClick={() => { setShowEditModal(false); setSelectedWorker(null); setEditForm({}); setShowEditForm(false); }} />
               </div>
             </div>
@@ -871,7 +887,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 {selectedWorker.PHOTO && (
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
                     <img src={selectedWorker.PHOTO} alt="Worker"
-                      style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '3px solid #e2e8f0' }} />
+                      style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--border)' }} />
                   </div>
                 )}
                 <DetailRow label="Name" value={selectedWorker.WORKER_NAME} />
@@ -892,20 +908,20 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 <div style={{ marginTop: 16, display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   {selectedWorker.AADHAR_PHOTO && (
                     <div style={{ flex: 1, minWidth: 120 }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>Aadhaar Photo</div>
-                      <img src={selectedWorker.AADHAR_PHOTO} alt="Aadhaar" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 }}>Aadhaar Photo</div>
+                      <img src={selectedWorker.AADHAR_PHOTO} alt="Aadhaar" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)' }} />
                     </div>
                   )}
                   {selectedWorker.PAN_PHOTO && (
                     <div style={{ flex: 1, minWidth: 120 }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>PAN Photo</div>
-                      <img src={selectedWorker.PAN_PHOTO} alt="PAN" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 }}>PAN Photo</div>
+                      <img src={selectedWorker.PAN_PHOTO} alt="PAN" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)' }} />
                     </div>
                   )}
                   {selectedWorker.BANK_PHOTO && (
                     <div style={{ flex: 1, minWidth: 120 }}>
-                      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 4 }}>Bank Photo</div>
-                      <img src={selectedWorker.BANK_PHOTO} alt="Bank" style={{ width: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                      <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 600, marginBottom: 4 }}>Bank Photo</div>
+                      <img src={selectedWorker.BANK_PHOTO} alt="Bank" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)' }} />
                     </div>
                   )}
                 </div>
@@ -920,9 +936,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 <input
                   placeholder="NAME"
                   style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                    outline: 'none', boxSizing: 'border-box',
+                    ...formInput,
                     ...(editForm.WORKER_NAME ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
                   }}
                   value={editForm.WORKER_NAME}
@@ -933,9 +947,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 <input
                   placeholder="FATHER NAME"
                   style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                    outline: 'none', boxSizing: 'border-box',
+                    ...formInput,
                     ...(editForm.FATHER_NAME ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
                   }}
                   value={editForm.FATHER_NAME}
@@ -946,9 +958,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 <input
                   placeholder="AADHAAR NO"
                   style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                    outline: 'none', boxSizing: 'border-box',
+                    ...formInput,
                     ...(editForm.AADHAR_NO ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
                   }}
                   value={editForm.AADHAR_NO}
@@ -958,9 +968,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 />
                 <select
                   style={{
-                    width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px',
-                    outline: 'none', boxSizing: 'border-box',
+                    ...formInput,
                     ...(editForm.DESIGNATION ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
                   }}
                   value={editForm.DESIGNATION}
@@ -973,91 +981,47 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                 </select>
 
                 {!editForm.DOB && (
-                  <input type="date" placeholder="DOB"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input type="date" placeholder="DOB" style={formInput}
                     value={editForm.DOB} onChange={(e) => setEditForm({ ...editForm, DOB: e.target.value })} />
                 )}
                 {!editForm.MOBILE_NO && (
-                  <input placeholder="MOBILE NO"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="MOBILE NO" style={formInput}
                     value={editForm.MOBILE_NO} onChange={(e) => setEditForm({ ...editForm, MOBILE_NO: e.target.value })} />
                 )}
                 {!editForm.REFFERENCE && (
-                  <input placeholder="REFERENCE"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="REFERENCE" style={formInput}
                     value={editForm.REFFERENCE} onChange={(e) => setEditForm({ ...editForm, REFFERENCE: e.target.value })} />
                 )}
                 {!editForm.JOINING_DATE_CLIENT && (
-                  <input type="date" placeholder="JOINING DATE (CLIENT)"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input type="date" placeholder="JOINING DATE (CLIENT)" style={formInput}
                     value={editForm.JOINING_DATE_CLIENT} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_CLIENT: e.target.value })} />
                 )}
                 {!editForm.JOINING_DATE_OFFICE && (
-                  <input type="date" placeholder="JOINING DATE (OFFICE)"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input type="date" placeholder="JOINING DATE (OFFICE)" style={formInput}
                     value={editForm.JOINING_DATE_OFFICE} onChange={(e) => setEditForm({ ...editForm, JOINING_DATE_OFFICE: e.target.value })} />
                 )}
                 {!editForm.CLOSE_DATE && (
-                  <input type="date" placeholder="CLOSE DATE"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input type="date" placeholder="CLOSE DATE" style={formInput}
                     value={editForm.CLOSE_DATE} onChange={(e) => setEditForm({ ...editForm, CLOSE_DATE: e.target.value })} />
                 )}
                 {!editForm.ADDRESS && (
-                  <input placeholder="ADDRESS"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="ADDRESS" style={formInput}
                     value={editForm.ADDRESS} onChange={(e) => setEditForm({ ...editForm, ADDRESS: e.target.value })} />
                 )}
                 {!editForm.PAN_NO && (
-                  <input placeholder="PAN NO (optional)"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="PAN NO (optional)" style={formInput}
                     value={editForm.PAN_NO} onChange={(e) => setEditForm({ ...editForm, PAN_NO: e.target.value })} />
                 )}
                 {!editForm.BANK && (
-                  <input placeholder="BANK (optional)"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="BANK (optional)" style={formInput}
                     value={editForm.BANK} onChange={(e) => setEditForm({ ...editForm, BANK: e.target.value })} />
                 )}
                 {!editForm.ACCOUNT_NO && (
-                  <input placeholder="ACCOUNT NO (optional)"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="ACCOUNT NO (optional)" style={formInput}
                     value={editForm.ACCOUNT_NO} onChange={(e) => setEditForm({ ...editForm, ACCOUNT_NO: e.target.value })} />
                 )}
                 {!editForm.IFSC && (
-                  <input placeholder="IFSC (optional)"
-                    style={{
-                      width: '100%', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                      padding: '11px', borderRadius: '8px', color: '#1e293b', fontSize: '13px', outline: 'none', boxSizing: 'border-box',
-                    }}
+                  <input placeholder="IFSC (optional)" style={formInput}
                     value={editForm.IFSC} onChange={(e) => setEditForm({ ...editForm, IFSC: e.target.value })} />
                 )}
 
@@ -1071,12 +1035,12 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   <PhotoUpload label="BANK PHOTO (optional)" value={editForm.BANK_PHOTO || ''} onChange={(val) => setEditForm({ ...editForm, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
                 )}
 
-                <div style={{ marginTop: 8, fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
                   Fields with existing data are pre-filled and read-only. Fill in the blank fields above.
                   On save, worker status will reset to <strong>PENDING</strong> for admin approval.
                 </div>
                 <button type="submit" style={{
-                  backgroundColor: '#2563eb', color: '#fff', border: 'none',
+                  backgroundColor: '#0055ff', color: '#fff', border: 'none',
                   padding: '14px', borderRadius: '8px', fontWeight: 700,
                   cursor: 'pointer', marginTop: '4px', fontSize: '13px', fontFamily: 'Inter, sans-serif',
                 }}>Update</button>
@@ -1088,23 +1052,15 @@ const AccountantWorkerRegistration = ({ projectName }) => {
 
       {/* Add Worker Modal — 4-Step Wizard */}
       {showModal && (
-        <div style={{
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          zIndex: 9999, padding: '16px',
-        }}>
-          <div style={{
-            backgroundColor: '#fff', color: '#1e293b', padding: '24px',
-            borderRadius: '16px', width: '100%', maxWidth: '520px',
-            border: '1px solid #e2e8f0', maxHeight: '90vh', overflowY: 'auto',
-          }}>
+        <div style={modalOverlay}>
+          <div style={modalBox}>
             {/* Header */}
             <div style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               marginBottom: '20px',
             }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>ADD WORKER</h3>
-              <X size={20} style={{ cursor: 'pointer', color: '#64748b' }} onClick={() => { setShowModal(false); setCurrentStep(0); }} />
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>ADD WORKER</h3>
+              <X size={20} style={{ cursor: 'pointer', color: 'var(--muted)' }} onClick={() => { setShowModal(false); setCurrentStep(0); }} />
             </div>
 
             {/* Stepper */}
@@ -1123,15 +1079,15 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                       width: 32, height: 32, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: '13px',
-                      backgroundColor: currentStep === idx ? '#2563eb' : currentStep > idx ? '#22c55e' : '#e2e8f0',
-                      color: currentStep >= idx ? '#fff' : '#94a3b8',
+                      backgroundColor: currentStep === idx ? '#0055ff' : currentStep > idx ? '#22c55e' : 'var(--surface-2)',
+                      color: currentStep >= idx ? '#fff' : 'var(--muted)',
                       transition: 'all 0.2s ease',
                     }}>
                       {currentStep > idx ? <Check size={16} /> : idx + 1}
                     </div>
                     <span style={{
                       fontSize: '10px', fontWeight: 600,
-                      color: currentStep === idx ? '#2563eb' : currentStep > idx ? '#22c55e' : '#94a3b8',
+                      color: currentStep === idx ? '#0055ff' : currentStep > idx ? '#22c55e' : 'var(--muted)',
                       textAlign: 'center',
                       whiteSpace: 'nowrap',
                     }}>
@@ -1142,7 +1098,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   {idx < steps.length - 1 && (
                     <div style={{
                       flex: 1, height: 2,
-                      backgroundColor: currentStep > idx ? '#22c55e' : '#e2e8f0',
+                      backgroundColor: currentStep > idx ? '#22c55e' : 'var(--border)',
                       margin: '0 4px', marginBottom: 22,
                       borderRadius: 1,
                       transition: 'background 0.2s ease',
@@ -1179,7 +1135,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                     <input type="date" style={inputBase}
                       value={form.JOINING_DATE_OFFICE} onChange={(e) => setForm({ ...form, JOINING_DATE_OFFICE: e.target.value })} />
                   </div>
-                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '-4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '-4px' }}>
                     At least one joining date (Client or Office) must be filled.
                   </div>
                 </div>
@@ -1228,7 +1184,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                       value={form.ADDRESS} onChange={(e) => setForm({ ...form, ADDRESS: e.target.value })} />
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, color: '#94a3b8' }}>PAN (optional)</label>
+                    <label style={{ ...labelStyle, color: 'var(--muted-2)' }}>PAN (optional)</label>
                     <input placeholder="PAN (optional)" style={inputBase}
                       value={form.PAN_NO} onChange={(e) => setForm({ ...form, PAN_NO: e.target.value })} />
                   </div>
@@ -1239,25 +1195,25 @@ const AccountantWorkerRegistration = ({ projectName }) => {
               {currentStep === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div style={{
-                    backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0',
-                    borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#166534',
+                    backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                    borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#22c55e',
                     display: 'flex', alignItems: 'center', gap: '8px',
                   }}>
                     <Check size={16} color="#22c55e" />
                     <span>Bank details are optional. You can skip this step.</span>
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, color: '#94a3b8' }}>Bank Name (optional)</label>
+                    <label style={{ ...labelStyle, color: 'var(--muted-2)' }}>Bank Name (optional)</label>
                     <input placeholder="BANK NAME" style={inputBase}
                       value={form.BANK} onChange={(e) => setForm({ ...form, BANK: e.target.value })} />
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, color: '#94a3b8' }}>Account Number (optional)</label>
+                    <label style={{ ...labelStyle, color: 'var(--muted-2)' }}>Account Number (optional)</label>
                     <input placeholder="ACCOUNT NO" style={inputBase}
                       value={form.ACCOUNT_NO} onChange={(e) => setForm({ ...form, ACCOUNT_NO: e.target.value })} />
                   </div>
                   <div>
-                    <label style={{ ...labelStyle, color: '#94a3b8' }}>IFSC Code (optional)</label>
+                    <label style={{ ...labelStyle, color: 'var(--muted-2)' }}>IFSC Code (optional)</label>
                     <input placeholder="IFSC" style={inputBase}
                       value={form.IFSC} onChange={(e) => setForm({ ...form, IFSC: e.target.value })} />
                   </div>
@@ -1271,18 +1227,18 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '14px',
                     padding: '14px', borderRadius: '12px',
-                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                    border: '1px solid var(--border)', backgroundColor: 'var(--surface-2)',
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: '10px',
-                      backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: 'rgba(0,85,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
-                      <Camera size={22} color="#2563eb" />
+                      <Camera size={22} color="#0055ff" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Worker Photo *</div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Upload a recent photo of the worker</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>Worker Photo *</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: 8 }}>Upload a recent photo of the worker</div>
                       <PhotoUpload variant="light" label="" value={form.PHOTO} onChange={(val) => setForm({ ...form, PHOTO: val })} folder="worker-photos" aspect={1} />
                     </div>
                   </div>
@@ -1291,18 +1247,18 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '14px',
                     padding: '14px', borderRadius: '12px',
-                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                    border: '1px solid var(--border)', backgroundColor: 'var(--surface-2)',
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: '10px',
-                      backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
                       <User size={22} color="#ef4444" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Aadhaar Front *</div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Front side of Aadhaar card</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>Aadhaar Front *</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: 8 }}>Front side of Aadhaar card</div>
                       <PhotoUpload variant="light" label="" value={form.AADHAR_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
                     </div>
                   </div>
@@ -1311,18 +1267,18 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '14px',
                     padding: '14px', borderRadius: '12px',
-                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                    border: '1px solid var(--border)', backgroundColor: 'var(--surface-2)',
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: '10px',
-                      backgroundColor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
                       <User size={22} color="#ef4444" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Aadhaar Back *</div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Back side of Aadhaar card</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>Aadhaar Back *</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: 8 }}>Back side of Aadhaar card</div>
                       <PhotoUpload variant="light" label="" value={form.AADHAR_BACK_PHOTO} onChange={(val) => setForm({ ...form, AADHAR_BACK_PHOTO: val })} folder="aadhaar-photos" aspect={1.4} />
                     </div>
                   </div>
@@ -1331,18 +1287,18 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '14px',
                     padding: '14px', borderRadius: '12px',
-                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                    border: '1px solid var(--border)', backgroundColor: 'var(--surface-2)',
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: '10px',
-                      backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
                       <CreditCard size={22} color="#22c55e" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>PAN Photo (optional)</div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Upload PAN card image if available</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>PAN Photo (optional)</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: 8 }}>Upload PAN card image if available</div>
                       <PhotoUpload variant="light" label="" value={form.PAN_PHOTO} onChange={(val) => setForm({ ...form, PAN_PHOTO: val })} folder="pan-photos" aspect={1.4} />
                     </div>
                   </div>
@@ -1351,18 +1307,18 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '14px',
                     padding: '14px', borderRadius: '12px',
-                    border: '1px solid #e2e8f0', backgroundColor: '#fafafa',
+                    border: '1px solid var(--border)', backgroundColor: 'var(--surface-2)',
                   }}>
                     <div style={{
                       width: 44, height: 44, borderRadius: '10px',
-                      backgroundColor: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      backgroundColor: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       flexShrink: 0,
                     }}>
                       <CreditCard size={22} color="#22c55e" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', marginBottom: 2 }}>Bank Passbook (optional)</div>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: 8 }}>Upload bank passbook or cheque copy</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>Bank Passbook (optional)</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginBottom: 8 }}>Upload bank passbook or cheque copy</div>
                       <PhotoUpload variant="light" label="" value={form.BANK_PHOTO} onChange={(val) => setForm({ ...form, BANK_PHOTO: val })} folder="bank-photos" aspect={1.4} />
                     </div>
                   </div>
@@ -1373,7 +1329,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 marginTop: '20px', paddingTop: '16px',
-                borderTop: '1px solid #e2e8f0',
+                borderTop: '1px solid var(--border)',
               }}>
                 {/* Back Button — hidden on step 0 */}
                 <div>
@@ -1381,8 +1337,8 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                     <button type="button" onClick={handlePrevStep} style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
                       padding: '10px 18px', borderRadius: '8px',
-                      border: '1px solid #e2e8f0', backgroundColor: '#fff',
-                      color: '#475569', fontWeight: 600, fontSize: '13px',
+                      border: '1px solid var(--border)', backgroundColor: 'var(--surface)',
+                      color: 'var(--text)', fontWeight: 600, fontSize: '13px',
                       cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                     }}>
                       <ChevronLeft size={16} /> Back
@@ -1397,8 +1353,8 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                     <button type="button" onClick={handleSkipStep} style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
                       padding: '10px 18px', borderRadius: '8px',
-                      border: '1px solid #e2e8f0', backgroundColor: '#fff',
-                      color: '#64748b', fontWeight: 600, fontSize: '13px',
+                      border: '1px solid var(--border)', backgroundColor: 'var(--surface)',
+                      color: 'var(--muted)', fontWeight: 600, fontSize: '13px',
                       cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                     }}>
                       <SkipForward size={16} /> Skip
@@ -1410,7 +1366,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                     <button type="button" onClick={handleNextStep} style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
                       padding: '10px 22px', borderRadius: '8px',
-                      border: 'none', backgroundColor: '#2563eb',
+                      border: 'none', backgroundColor: '#0055ff',
                       color: '#fff', fontWeight: 700, fontSize: '13px',
                       cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                     }}>
@@ -1420,7 +1376,7 @@ const AccountantWorkerRegistration = ({ projectName }) => {
                     <button type="button" onClick={handleSubmit} style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
                       padding: '10px 22px', borderRadius: '8px',
-                      border: 'none', backgroundColor: '#2563eb',
+                      border: 'none', backgroundColor: '#0055ff',
                       color: '#fff', fontWeight: 700, fontSize: '13px',
                       cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                     }}>

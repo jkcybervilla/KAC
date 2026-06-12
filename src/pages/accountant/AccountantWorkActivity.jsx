@@ -1,29 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Search } from 'lucide-react';
-import { collection, getDocs, query, orderBy, addDoc, where } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { Plus, X, Eye, EyeOff } from 'lucide-react';
+import { collection, getDocs, query, orderBy, addDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import { Send, Plus, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getBatchId } from '../../utils/attendance';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
-
-const darkQuartzTheme = themeQuartz.withParams({
-  backgroundColor: 'var(--surface)',
-  foregroundColor: 'var(--text-soft)',
-  headerBackgroundColor: 'var(--surface-2)',
-  headerTextColor: 'var(--text)',
-  borderColor: 'var(--border-strong)',
-  rowHoverColor: 'var(--surface-2)',
-  oddRowBackgroundColor: 'var(--surface)',
-  fontFamily: 'Inter, sans-serif',
-  rowHeight: 36,
-  headerHeight: 40,
-  wrapperBorderRadius: '12px',
-  borderRadius: 0,
-});
 
 const WORK_TYPES = ['EXCAVATION', 'CONCRETING', 'REINFORCEMENT', 'FORMWORK', 'BRICKWORK', 'PLASTERING', 'PAINTING', 'FLOORING', 'WATERPROOFING', 'ELECTRICAL', 'PLUMBING', 'OTHER'];
 
@@ -45,7 +25,6 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
   const [selectedManpower, setSelectedManpower] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  // Load mistri (from office attendance) and manpower (from client+office attendance) for selected date
   useEffect(() => {
     if (!date || !project) return;
     (async () => {
@@ -60,32 +39,24 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
         getDocs(collection(db, 'attendance_client')),
       ]);
 
-      // All active workers for this project
       const workers = wSnap.docs
         .map((d) => d.data())
         .filter((w) => w.PROJECT === pname && (w.STATUS || 'ACTIVE') === 'ACTIVE');
 
-      // Office attendance map
       const officeMap = {};
       oSnap.docs.forEach((d) => {
         const data = d.data();
         if (data.batchId === batchId) officeMap[data.EMPID] = data.days?.[String(day)] === 'P';
       });
 
-      // Client attendance map
       const clientMap = {};
       cSnap.docs.forEach((d) => {
         const data = d.data();
         if (data.batchId === batchId) clientMap[data.EMPID] = data.days?.[String(day)] === 'P';
       });
 
-      // Mistri = workers present in office
-      const ml = workers.filter((w) => officeMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME }));
-      setMistriList(ml);
-
-      // Manpower = workers present in either office or client
-      const mp = workers.filter((w) => officeMap[w.EMPID] || clientMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME }));
-      setManpowerList(mp);
+      setMistriList(workers.filter((w) => officeMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME })));
+      setManpowerList(workers.filter((w) => officeMap[w.EMPID] || clientMap[w.EMPID]).map((w) => ({ EMPID: w.EMPID, NAME: w.WORKER_NAME })));
     })();
   }, [date, project]);
 
@@ -133,85 +104,84 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
     );
   };
 
+  const inputStyle = { width: '100%', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', padding: '12px', borderRadius: 8, color: 'var(--text)', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' };
+  const labelStyle = { fontSize: 10, color: 'var(--muted)', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 };
+
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-      <div style={{ backgroundColor: '#0a0a0a', padding: 30, borderRadius: 15, width: 700, border: '1px solid #1a1a1a', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid #1a1a1a', paddingBottom: 15 }}>
-          <h3 style={{ margin: 0, color: '#fff' }}>SEND ACTIVITY</h3>
-          <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={onClose} />
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'var(--overlay)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+      <div style={{ backgroundColor: 'var(--surface)', padding: 30, borderRadius: 15, width: 700, maxWidth: '95vw', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 15 }}>
+          <h3 style={{ margin: 0, color: 'var(--text)' }}>SEND ACTIVITY</h3>
+          <X size={20} style={{ cursor: 'pointer', color: 'var(--muted)' }} onClick={onClose} />
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORKING DATE *</label>
-              <input type="date" required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={date} onChange={(e) => { setDate(e.target.value); setMistri(''); setSelectedManpower([]); }} />
+              <label style={labelStyle}>WORKING DATE *</label>
+              <input type="date" required style={inputStyle} value={date} onChange={(e) => { setDate(e.target.value); setMistri(''); setSelectedManpower([]); }} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>LINE NAME</label>
-              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#888', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', fontStyle: 'italic' }} value={project?.LINE_NAME || ''} readOnly />
+              <label style={labelStyle}>LINE NAME</label>
+              <input type="text" style={{ ...inputStyle, color: 'var(--muted)', fontStyle: 'italic' }} value={project?.LINE_NAME || ''} readOnly />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>PKG</label>
-              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Package number" value={pkg} onChange={(e) => setPkg(e.target.value.toUpperCase())} />
+              <label style={labelStyle}>PKG</label>
+              <input type="text" style={inputStyle} placeholder="Package number" value={pkg} onChange={(e) => setPkg(e.target.value.toUpperCase())} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>START DATE</label>
-              <input type="date" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <label style={labelStyle}>START DATE</label>
+              <input type="date" style={inputStyle} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>CLOSE DATE</label>
-              <input type="date" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
+              <label style={labelStyle}>CLOSE DATE</label>
+              <input type="date" style={inputStyle} value={closeDate} onChange={(e) => setCloseDate(e.target.value)} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>DISTRICT</label>
-              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#888', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', fontStyle: 'italic' }} value={project?.DISTRICT || ''} readOnly />
+              <label style={labelStyle}>DISTRICT</label>
+              <input type="text" style={{ ...inputStyle, color: 'var(--muted)', fontStyle: 'italic' }} value={project?.DISTRICT || ''} readOnly />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>LOC NO</label>
-              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Location number" value={locNo} onChange={(e) => setLocNo(e.target.value.toUpperCase())} />
+              <label style={labelStyle}>LOC NO</label>
+              <input type="text" style={inputStyle} placeholder="Location number" value={locNo} onChange={(e) => setLocNo(e.target.value.toUpperCase())} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>TOWER TYPE</label>
-              <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Tower type" value={towerType} onChange={(e) => setTowerType(e.target.value.toUpperCase())} />
+              <label style={labelStyle}>TOWER TYPE</label>
+              <input type="text" style={inputStyle} placeholder="Tower type" value={towerType} onChange={(e) => setTowerType(e.target.value.toUpperCase())} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORK TYPE *</label>
-              <input type="text" required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Enter work type" value={workType} onChange={(e) => setWorkType(e.target.value.toUpperCase())} />
+              <label style={labelStyle}>WORK TYPE *</label>
+              <input type="text" required style={inputStyle} placeholder="Enter work type" value={workType} onChange={(e) => setWorkType(e.target.value.toUpperCase())} />
             </div>
             <div>
-              <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>QTY</label>
-              <input type="number" step="0.01" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="0.00" value={qty} onChange={(e) => setQty(e.target.value)} />
+              <label style={labelStyle}>QTY</label>
+              <input type="number" step="0.01" style={inputStyle} placeholder="0.00" value={qty} onChange={(e) => setQty(e.target.value)} />
             </div>
           </div>
 
-          {/* MISTRI SELECT */}
           <div>
-            <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>MISTRI (from attendance) *</label>
-            <select required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: '12px', borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={mistri} onChange={(e) => setMistri(e.target.value)}>
+            <label style={labelStyle}>MISTRI (from attendance) *</label>
+            <select required style={inputStyle} value={mistri} onChange={(e) => setMistri(e.target.value)}>
               <option value="">-- SELECT --</option>
               {mistriList.map((m) => <option key={m.EMPID} value={m.NAME}>{m.NAME}</option>)}
             </select>
           </div>
 
-          {/* MANPOWER MULTI-SELECT */}
           <div>
-            <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
-              MANPOWER ({selectedManpower.length} selected — Present on {date})
-            </label>
-            <div style={{ maxHeight: 150, overflowY: 'auto', backgroundColor: '#000', border: '1px solid #1a1a1a', borderRadius: 8, padding: 4 }}>
-              {manpowerList.length === 0 && <p style={{ color: '#666', fontSize: 12, padding: 8, margin: 0 }}>No workers present on this date.</p>}
+            <label style={labelStyle}>MANPOWER ({selectedManpower.length} selected — Present on {date})</label>
+            <div style={{ maxHeight: 150, overflowY: 'auto', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, padding: 4 }}>
+              {manpowerList.length === 0 && <p style={{ color: 'var(--muted)', fontSize: 12, padding: 8, margin: 0 }}>No workers present on this date.</p>}
               {manpowerList.map((w) => (
                 <label key={w.EMPID} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', cursor: 'pointer', borderRadius: 4, background: selectedManpower.includes(w.EMPID) ? 'rgba(0,85,255,0.15)' : 'transparent' }}>
                   <input type="checkbox" checked={selectedManpower.includes(w.EMPID)} onChange={() => toggleManpower(w.EMPID)} style={{ accentColor: '#0055ff' }} />
-                  <span style={{ color: '#ccc', fontSize: 12 }}>{w.NAME}</span>
+                  <span style={{ color: 'var(--text)', fontSize: 12 }}>{w.NAME}</span>
                 </label>
               ))}
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORK DETAILS</label>
-            <textarea style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }} placeholder="Enter work details..." value={details} onChange={(e) => setDetails(e.target.value)} />
+            <label style={labelStyle}>WORK DETAILS</label>
+            <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="Enter work details..." value={details} onChange={(e) => setDetails(e.target.value)} />
           </div>
 
           <button type="submit" disabled={saving} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: 15, borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
@@ -224,76 +194,11 @@ const ActivityForm = ({ project, onClose, onSaved }) => {
 };
 
 /* ──────────────── ACTIVITY TAB ──────────────── */
-const ActivityTab = ({ project, profile }) => {
+const ActivityTab = ({ project, profile, autoOpenForm, onAutoOpened }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showFilterBar, setShowFilterBar] = useState(false);
-  const [searchText, setSearchText] = useState('');
-  const [columnVisibility, setColumnVisibility] = useState({
-    LINE_NAME: true,
-    PKG: true,
-    START_DATE: true,
-    CLOSE_DATE: true,
-  });
-  const settingsRef = useRef(null);
-  const filterBarRef = useRef(null);
-  const gridRef = useRef(null);
-  const [gridApi, setGridApi] = useState(null);
-  const [columnFiltersEnabled, setColumnFiltersEnabled] = useState(false);
-
-  const setGridColumnVisible = useCallback((colId, visible, providedApi) => {
-    const api = providedApi || gridRef?.current?.api || gridApi;
-    if (!api) return;
-
-    if (typeof api.setColumnVisible === 'function') {
-      api.setColumnVisible(colId, visible);
-      return;
-    }
-
-    if (typeof api.setColumnsVisible === 'function') {
-      api.setColumnsVisible([colId], visible);
-      return;
-    }
-
-    if (typeof api.applyColumnState === 'function') {
-      api.applyColumnState({
-        state: [{ colId, hide: !visible }],
-      });
-    }
-  }, [gridApi]);
-
-  const toggleColumn = useCallback((field) => {
-    setColumnVisibility((prev) => {
-      const nextVisible = !prev[field];
-      setGridColumnVisible(field, nextVisible);
-      return { ...prev, [field]: nextVisible };
-    });
-  }, [setGridColumnVisible]);
-
-  // Toggle ag-grid column header filters when filter bar is toggled
-  useEffect(() => {
-    setColumnFiltersEnabled(showFilterBar);
-    if (gridApi && typeof gridApi.setGridOption === 'function') {
-      gridApi.setGridOption('filter', showFilterBar);
-    }
-  }, [showFilterBar, gridApi]);
-
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (settingsRef.current && !settingsRef.current.contains(e.target)) {
-        if (filterBarRef.current && filterBarRef.current.contains(e.target)) {
-          return;
-        }
-        setShowSettings(false);
-      }
-    };
-    if (showSettings) {
-      document.addEventListener('mousedown', handleClick);
-      return () => document.removeEventListener('mousedown', handleClick);
-    }
-  }, [showSettings]);
+  const [expanded, setExpanded] = useState({});
 
   const loadActivities = async () => {
     setLoading(true);
@@ -301,7 +206,6 @@ const ActivityTab = ({ project, profile }) => {
       const q = query(collection(db, 'accountant_activities'), orderBy('timestamp', 'desc'));
       const snap = await getDocs(q);
       const all = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      // Filter by current user's UID
       setActivities(all.filter((a) => a.CREATED_BY === profile?.uid));
     } catch (err) {
       console.error('Error loading activities:', err);
@@ -310,26 +214,19 @@ const ActivityTab = ({ project, profile }) => {
     }
   };
 
+  // Auto-open form when triggered from dashboard shortcut
+  useEffect(() => {
+    if (autoOpenForm) {
+      setShowForm(true);
+      if (onAutoOpened) onAutoOpened();
+    }
+  }, [autoOpenForm, onAutoOpened]);
+
   useEffect(() => { loadActivities(); }, [profile]);
 
-  const columnDefs = useMemo(() => [
-    { headerName: "SL", minWidth: 50, width: 60, pinned: 'left', valueGetter: (p) => (p.node ? p.node.rowIndex + 1 : '') },
-    { field: "LINE_NAME", headerName: "LINE NAME", minWidth: 120, width: 130, hide: !columnVisibility.LINE_NAME },
-    { field: "PKG", headerName: "PKG", minWidth: 80, width: 110, hide: !columnVisibility.PKG },
-    { field: "START_DATE", headerName: "START DATE", minWidth: 100, width: 110, hide: !columnVisibility.START_DATE, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "CLOSE_DATE", headerName: "CLOSE DATE", minWidth: 100, width: 110, hide: !columnVisibility.CLOSE_DATE, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "DISTRICT", headerName: "DISTRICT", minWidth: 80, width: 120 },
-    { field: "LOC_NO", headerName: "LOC NO", minWidth: 80, width: 110 },
-    { field: "TOWER_TYPE", headerName: "TOWER TYPE", minWidth: 80, width: 110 },
-    { field: "WORKING_DATE", headerName: "DATE", minWidth: 80, width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "MISTRI", headerName: "MISTRI", minWidth: 80, width: 150 },
-    { field: "WORKING_TYPE", headerName: "WORK TYPE", minWidth: 80, width: 110 },
-    { field: "WORK_DETAILS", headerName: "WORK DETAILS", minWidth: 80, width: 250, wrapText: true, autoHeight: true },
-    { field: "QTY", headerName: "QTY", minWidth: 80, width: 80 },
-    { field: "MANPOWER", headerName: "MANPOWER", minWidth: 80, width: 200, cellRenderer: (p) => Array.isArray(p.value) ? p.value.join(', ') : p.value || '' },
-    { field: "DETAILS", headerName: "DETAILS", minWidth: 80, width: 200, wrapText: true, autoHeight: true },
-    { field: "CREATED_BY_NAME", headerName: "SENT BY", minWidth: 80, width: 130 },
-  ], [columnVisibility]);
+  const toggleExpand = (id) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   if (loading) {
     return <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 60 }}>Loading Activities...</div>;
@@ -337,157 +234,59 @@ const ActivityTab = ({ project, profile }) => {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 16, marginBottom: showFilterBar ? 0 : 20, flexWrap: 'wrap' }}>
+      <div style={{ marginBottom: 16 }}>
         <button type="button" onClick={() => setShowForm(true)} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
           <Plus size={16} /> SEND ACTIVITY
         </button>
-        <div ref={settingsRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            style={{
-              padding: '6px 14px',
-              borderRadius: 6,
-              border: showSettings ? '1px solid #0055ff' : '1px solid var(--border)',
-              background: 'var(--surface)',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: 600,
-              color: showSettings ? '#fff' : 'var(--text-soft)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-            onClick={() => setShowSettings(!showSettings)}
-            title="Settings"
-          >
-            <span style={{ fontSize: 16, lineHeight: 1 }}>⚙️</span>
-          </button>
-          {showSettings && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                marginTop: 4,
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                padding: '6px 0',
-                zIndex: 9999,
-                minWidth: 190,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-              }}
-            >
-              <label
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '7px 14px', cursor: 'pointer', fontSize: 12, color: '#ddd',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-              >
-                <span>Filter bar</span>
-                <input
-                  type="checkbox"
-                  checked={showFilterBar}
-                  onChange={() => setShowFilterBar(!showFilterBar)}
-                  style={{ accentColor: '#0055ff', cursor: 'pointer' }}
-                />
-              </label>
-              <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
-              {[
-                { field: 'LINE_NAME', label: 'LINE NAME' },
-                { field: 'PKG', label: 'PKG' },
-                { field: 'START_DATE', label: 'START DATE' },
-                { field: 'CLOSE_DATE', label: 'CLOSE DATE' },
-              ].map((c) => (
-                <label
-                  key={c.field}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '7px 14px',
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    color: columnVisibility[c.field] !== false ? '#fff' : '#666',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#111'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span>{c.label}</span>
-                  <input
-                    type="checkbox"
-                    checked={columnVisibility[c.field] !== false}
-                    onChange={() => toggleColumn(c.field)}
-                    style={{ accentColor: '#0055ff', cursor: 'pointer' }}
-                  />
-                </label>
-              ))}
+      </div>
+
+      {/* List header */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-2)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>SL</div>
+        <div style={{ flex: 1, paddingLeft: 6 }}>Date</div>
+        <div style={{ flex: 2, paddingLeft: 6 }}>Details</div>
+        <div style={{ width: 40, textAlign: 'center', flexShrink: 0 }}></div>
+      </div>
+
+      {activities.length === 0 && (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No activities found</div>
+      )}
+
+      {activities.map((a, idx) => {
+        const isOpen = expanded[a.id];
+        const dateStr = a.WORKING_DATE ? new Date(a.WORKING_DATE).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        return (
+          <div key={a.id}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => toggleExpand(a.id)}>
+              <div style={{ width: 32, textAlign: 'center', fontSize: 10, color: 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>{idx + 1}</div>
+              <div style={{ flex: 1, paddingLeft: 6, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{dateStr}</div>
+              </div>
+              <div style={{ flex: 2, paddingLeft: 6, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-soft)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {[a.LINE_NAME, a.WORKING_TYPE, a.MISTRI].filter(Boolean).join(' · ')}
+                </div>
+              </div>
+              <div style={{ width: 40, textAlign: 'center', flexShrink: 0, color: 'var(--muted)' }}>
+                {isOpen ? <EyeOff size={14} /> : <Eye size={14} />}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Collapsible filter bar — slides down when toggled ON */}
-      <div
-        ref={filterBarRef}
-        style={{
-          display: 'flex',
-          marginBottom: showFilterBar ? 12 : 0,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 16, marginBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 6px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6 }}>
-            <Search size={10} color="#444" />
-            <input
-              type="text"
-              placeholder="Search..."
-              style={{
-                padding: '6px 0',
-                backgroundColor: 'transparent',
-                border: 'none',
-                outline: 'none',
-                color: 'var(--text)',
-                fontSize: 10,
-                width: 120,
-                fontFamily: 'inherit',
-              }}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-            />
+            {isOpen && (
+              <div style={{ padding: '10px 12px 10px 50px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-soft)', lineHeight: 1.6 }}>
+                <div><strong>PKG:</strong> {a.PKG || '—'}</div>
+                <div><strong>Line:</strong> {a.LINE_NAME || '—'}</div>
+                <div><strong>Start:</strong> {a.START_DATE || '—'} {a.CLOSE_DATE ? `| Close: ${a.CLOSE_DATE}` : ''}</div>
+                <div><strong>Location:</strong> {[a.DISTRICT, a.LOC_NO, a.TOWER_TYPE].filter(Boolean).join(' · ') || '—'}</div>
+                <div><strong>Work type:</strong> {a.WORKING_TYPE || '—'}</div>
+                <div><strong>Qty:</strong> {a.QTY || '—'}</div>
+                <div><strong>Mistri:</strong> {a.MISTRI || '—'}</div>
+                <div><strong>Manpower:</strong> {Array.isArray(a.MANPOWER) ? a.MANPOWER.join(', ') : a.MANPOWER || '—'}</div>
+                {a.WORK_DETAILS && <div><strong>Details:</strong> {a.WORK_DETAILS}</div>}
+              </div>
+            )}
           </div>
-        </div>
-      </div>
-
-      <div style={{ borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ height: '60vh', width: '100%', overflowX: 'auto' }}>
-          <AgGridReact
-            ref={gridRef}
-            rowData={activities}
-            columnDefs={columnDefs}
-            defaultColDef={{ sortable: true, filter: columnFiltersEnabled, resizable: true, headerWrapText: false }}
-            animateRows={true}
-            rowHeight={34}
-            headerHeight={38}
-            theme={darkQuartzTheme}
-            quickFilterText={searchText}
-            suppressColumnVirtualisation={false}
-            onGridReady={(params) => {
-              setGridApi(params.api);
-              setTimeout(() => {
-                Object.entries(columnVisibility).forEach(([field, visible]) => {
-                  setGridColumnVisible(field, visible, params.api);
-                });
-                params.api.sizeColumnsToFit();
-              }, 200);
-            }}
-            onGridSizeChanged={(params) => {
-              params.api.sizeColumnsToFit();
-            }}
-          />
-        </div>
-      </div>
+        );
+      })}
 
       {showForm && <ActivityForm project={project} onClose={() => setShowForm(false)} onSaved={loadActivities} />}
     </div>
@@ -499,6 +298,7 @@ const JmcTab = ({ project, profile }) => {
   const [jmcs, setJmcs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [expanded, setExpanded] = useState({});
   const [formData, setFormData] = useState({
     DATE: new Date().toISOString().slice(0, 10),
     WORK_TYPE: '',
@@ -554,18 +354,18 @@ const JmcTab = ({ project, profile }) => {
     }
   };
 
-  const columnDefs = useMemo(() => [
-    { headerName: "SL", width: 60, pinned: 'left', valueGetter: (p) => (p.node ? p.node.rowIndex + 1 : '') },
-    { field: "WORK_TYPE", headerName: "WORK TYPE", width: 90 },
-    { field: "DATE", headerName: "DATE", width: 110, cellRenderer: (p) => p.value ? new Date(p.value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '' },
-    { field: "MEASUREMENT_DESC", headerName: "MEASUREMENT DESCRIPTION", width: 260, wrapText: true, autoHeight: true },
-    { field: "QUANTITY", headerName: "QUANTITY", width: 100 },
-    { field: "UNIT", headerName: "UNIT", width: 100 },
-    { field: "LOCATION", headerName: "LOCATION", width: 160 },
-    { field: "AGENCY_CONTRACTOR", headerName: "AGENCY / CONTRACTOR", width: 180 },
-    { field: "REMARKS", headerName: "REMARKS", width: 200 },
-    { field: "CREATED_BY_NAME", headerName: "SENT BY", width: 130 },
-  ], []);
+  const toggleExpand = (id) => {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const getMonthYear = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  };
+
+  const inputStyle = { width: '100%', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', padding: '12px', borderRadius: 8, color: 'var(--text)', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' };
+  const labelStyle = { fontSize: 10, color: 'var(--muted)', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 };
 
   if (loading) {
     return <div style={{ color: 'var(--muted)', textAlign: 'center', marginTop: 60 }}>Loading JMC...</div>;
@@ -573,71 +373,103 @@ const JmcTab = ({ project, profile }) => {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+      <div style={{ marginBottom: 16 }}>
         <button type="button" onClick={() => setShowForm(true)} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
           <Plus size={16} /> SEND JMC
         </button>
       </div>
 
-      <div style={{ borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ height: '60vh', width: '100%' }}>
-          <AgGridReact
-            rowData={jmcs}
-            columnDefs={columnDefs}
-            defaultColDef={{ sortable: true, filter: true, resizable: true }}
-            animateRows={true}
-            rowHeight={34}
-            headerHeight={38}
-            theme={darkQuartzTheme}
-          />
-        </div>
+      {/* List header */}
+      <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', background: 'var(--surface-2)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ width: 32, textAlign: 'center', flexShrink: 0 }}>SL</div>
+        <div style={{ flex: 1, paddingLeft: 6 }}>Month-Year</div>
+        <div style={{ flex: 2, paddingLeft: 6 }}>Details</div>
+        <div style={{ width: 40, textAlign: 'center', flexShrink: 0 }}></div>
       </div>
 
+      {jmcs.length === 0 && (
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No JMC records found</div>
+      )}
+
+      {jmcs.map((j, idx) => {
+        const isOpen = expanded[j.id];
+        const my = getMonthYear(j.DATE);
+        return (
+          <div key={j.id}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => toggleExpand(j.id)}>
+              <div style={{ width: 32, textAlign: 'center', fontSize: 10, color: 'var(--muted)', fontWeight: 600, flexShrink: 0 }}>{idx + 1}</div>
+              <div style={{ flex: 1, paddingLeft: 6, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{my}</div>
+              </div>
+              <div style={{ flex: 2, paddingLeft: 6, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-soft)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {(j.WORK_TYPE || '') + (j.MEASUREMENT_DESC ? ` — ${j.MEASUREMENT_DESC}` : '')}
+                </div>
+              </div>
+              <div style={{ width: 40, textAlign: 'center', flexShrink: 0, color: 'var(--muted)' }}>
+                {isOpen ? <EyeOff size={14} /> : <Eye size={14} />}
+              </div>
+            </div>
+            {isOpen && (
+              <div style={{ padding: '10px 12px 10px 50px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-soft)', lineHeight: 1.6 }}>
+                <div><strong>Date:</strong> {j.DATE ? new Date(j.DATE).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</div>
+                <div><strong>Work type:</strong> {j.WORK_TYPE || '—'}</div>
+                <div><strong>Qty:</strong> {j.QUANTITY || '—'} {j.UNIT || ''}</div>
+                <div><strong>Location:</strong> {j.LOCATION || '—'}</div>
+                <div><strong>Agency/Contractor:</strong> {j.AGENCY_CONTRACTOR || '—'}</div>
+                {j.MEASUREMENT_DESC && <div><strong>Measurement:</strong> {j.MEASUREMENT_DESC}</div>}
+                {j.REMARKS && <div><strong>Remarks:</strong> {j.REMARKS}</div>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
       {showForm && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ backgroundColor: '#0a0a0a', padding: 30, borderRadius: 15, width: 700, border: '1px solid #1a1a1a', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid #1a1a1a', paddingBottom: 15 }}>
-              <h3 style={{ margin: 0, color: '#fff' }}>SEND JMC</h3>
-              <X size={20} style={{ cursor: 'pointer', color: '#555' }} onClick={() => setShowForm(false)} />
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'var(--overlay)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'var(--surface)', padding: 30, borderRadius: 15, width: 700, maxWidth: '95vw', border: '1px solid var(--border)', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 15 }}>
+              <h3 style={{ margin: 0, color: 'var(--text)' }}>SEND JMC</h3>
+              <X size={20} style={{ cursor: 'pointer', color: 'var(--muted)' }} onClick={() => setShowForm(false)} />
             </div>
             <form onSubmit={handleSaveJmc} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>WORK TYPE *</label>
-                  <select required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={formData.WORK_TYPE} onChange={(e) => setFormData({ ...formData, WORK_TYPE: e.target.value })}>
+                  <label style={labelStyle}>WORK TYPE *</label>
+                  <select required style={inputStyle} value={formData.WORK_TYPE} onChange={(e) => setFormData({ ...formData, WORK_TYPE: e.target.value })}>
                     <option value="">-- SELECT --</option>
                     {WORK_TYPES.map((wt) => <option key={wt} value={wt}>{wt}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>DATE *</label>
-                  <input type="date" required style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={formData.DATE} onChange={(e) => setFormData({ ...formData, DATE: e.target.value })} />
+                  <label style={labelStyle}>DATE *</label>
+                  <input type="date" required style={inputStyle} value={formData.DATE} onChange={(e) => setFormData({ ...formData, DATE: e.target.value })} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>UNIT</label>
-                  <select style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} value={formData.UNIT} onChange={(e) => setFormData({ ...formData, UNIT: e.target.value })}>
+                  <label style={labelStyle}>UNIT</label>
+                  <select style={inputStyle} value={formData.UNIT} onChange={(e) => setFormData({ ...formData, UNIT: e.target.value })}>
                     {['Nos.', 'Mtr.', 'Sq.Mtr.', 'Cu.Mtr.', 'Kg.', 'Ltr.', 'Days', 'Lumpsum'].map((u) => <option key={u} value={u}>{u}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>QUANTITY</label>
-                  <input type="number" step="0.01" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="0.00" value={formData.QUANTITY} onChange={(e) => setFormData({ ...formData, QUANTITY: e.target.value })} />
+                  <label style={labelStyle}>QUANTITY</label>
+                  <input type="number" step="0.01" style={inputStyle} placeholder="0.00" value={formData.QUANTITY} onChange={(e) => setFormData({ ...formData, QUANTITY: e.target.value })} />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>MEASUREMENT DESCRIPTION</label>
-                  <textarea style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', minHeight: 70, resize: 'vertical' }} placeholder="Describe the measurement" value={formData.MEASUREMENT_DESC} onChange={(e) => setFormData({ ...formData, MEASUREMENT_DESC: e.target.value })} />
+                  <label style={labelStyle}>MEASUREMENT DESCRIPTION</label>
+                  <textarea style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} placeholder="Describe the measurement" value={formData.MEASUREMENT_DESC} onChange={(e) => setFormData({ ...formData, MEASUREMENT_DESC: e.target.value })} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>LOCATION</label>
-                  <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Location" value={formData.LOCATION} onChange={(e) => setFormData({ ...formData, LOCATION: e.target.value.toUpperCase() })} />
+                  <label style={labelStyle}>LOCATION</label>
+                  <input type="text" style={inputStyle} placeholder="Location" value={formData.LOCATION} onChange={(e) => setFormData({ ...formData, LOCATION: e.target.value.toUpperCase() })} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>AGENCY / CONTRACTOR</label>
-                  <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Agency name" value={formData.AGENCY_CONTRACTOR} onChange={(e) => setFormData({ ...formData, AGENCY_CONTRACTOR: e.target.value.toUpperCase() })} />
+                  <label style={labelStyle}>AGENCY / CONTRACTOR</label>
+                  <input type="text" style={inputStyle} placeholder="Agency name" value={formData.AGENCY_CONTRACTOR} onChange={(e) => setFormData({ ...formData, AGENCY_CONTRACTOR: e.target.value.toUpperCase() })} />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: 10, color: '#888', display: 'block', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>REMARKS</label>
-                  <input type="text" style={{ width: '100%', backgroundColor: '#000', border: '1px solid #1a1a1a', padding: 12, borderRadius: 8, color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} placeholder="Remarks" value={formData.REMARKS} onChange={(e) => setFormData({ ...formData, REMARKS: e.target.value })} />
+                  <label style={labelStyle}>REMARKS</label>
+                  <input type="text" style={inputStyle} placeholder="Remarks" value={formData.REMARKS} onChange={(e) => setFormData({ ...formData, REMARKS: e.target.value })} />
                 </div>
               </div>
               <button type="submit" disabled={saving} style={{ backgroundColor: '#0055ff', color: '#fff', border: 'none', padding: 15, borderRadius: 8, fontWeight: 'bold', cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
@@ -652,7 +484,7 @@ const JmcTab = ({ project, profile }) => {
 };
 
 /* ──────────────── TABS CONTAINER ──────────────── */
-const AccountantWorkActivity = ({ projectName }) => {
+const AccountantWorkActivity = ({ projectName, autoOpenForm, onAutoOpened }) => {
   const { profile } = useAuth();
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState('activity');
@@ -671,7 +503,7 @@ const AccountantWorkActivity = ({ projectName }) => {
     borderRadius: '10px',
     border: isActive ? '2px solid #0055ff' : '2px solid transparent',
     background: isActive ? 'rgba(0,85,255,0.12)' : 'var(--surface)',
-    color: isActive ? '#fff' : 'var(--muted)',
+    color: isActive ? '#0055ff' : 'var(--muted)',
     cursor: 'pointer',
     fontWeight: 'bold',
     fontSize: '13px',
@@ -686,7 +518,7 @@ const AccountantWorkActivity = ({ projectName }) => {
         <button type="button" style={tabBtn(tab === 'jmc')} onClick={() => setTab('jmc')}>JMC</button>
       </div>
 
-      {tab === 'activity' && <ActivityTab project={project} profile={profile} />}
+      {tab === 'activity' && <ActivityTab project={project} profile={profile} autoOpenForm={autoOpenForm} onAutoOpened={onAutoOpened} />}
       {tab === 'jmc' && <JmcTab project={project} profile={profile} />}
     </div>
   );
