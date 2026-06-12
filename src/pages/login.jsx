@@ -3,7 +3,7 @@ import { auth, db } from '../config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { clearTwaLocked } from '../context/AppLockContext';
+import { clearTwaLastActive } from '../context/AppLockContext';
 import {
   isWebAuthnSupported,
   isPlatformAuthenticatorAvailable,
@@ -68,8 +68,8 @@ const Login = () => {
       const userDoc = await getDoc(doc(db, "users", userIdText));
 
       if (userDoc.exists()) {
-        // Clear the TWA locked flag so PIN isn't required after login
-        clearTwaLocked();
+        // Clear the TWA last-active timestamp so PIN isn't required after login
+        clearTwaLastActive();
 
         // Check if biometric is available and offer to set up
         const hasBiometric = await isPlatformAuthenticatorAvailable();
@@ -126,55 +126,110 @@ const Login = () => {
         flexDirection: isMobile ? 'column' : 'row',
         width: isMobile ? '100%' : '1000px',
         height: isMobile ? '100vh' : '600px',
+        overflow: isMobile ? 'auto' : 'hidden',
+        minHeight: isMobile ? '100vh' : '600px',
       }}>
         
-        {/* বাম পাশ: ব্র্যান্ডিং (কালো অংশ) */}
+        {/* Left: Branding banner (black section) — compact on mobile */}
         <div style={{
           ...styles.leftSection,
-          padding: isMobile ? '60px 30px' : '100px',
-          justifyContent: isMobile ? 'flex-start' : 'center'
+          padding: isMobile ? '16px 20px 10px' : '100px',
+          justifyContent: isMobile ? 'flex-start' : 'center',
+          minHeight: isMobile ? 'auto' : undefined,
+          flex: isMobile ? 'none' : 1.3,
         }}>
-          <p style={styles.brandTag}>CORE MANAGEMENT</p>
-          <h1 style={{...styles.brandName, fontSize: isMobile ? '50px' : '80px'}}>
+          <p style={{
+            ...styles.brandTag,
+            fontSize: isMobile ? '8px' : '12px',
+            letterSpacing: isMobile ? '1px' : '2px',
+            marginBottom: isMobile ? '6px' : '15px',
+          }}>CORE MANAGEMENT</p>
+          <h1 style={{
+            ...styles.brandName,
+            fontSize: isMobile ? '28px' : '80px',
+            lineHeight: isMobile ? '0.9' : '0.8',
+          }}>
             KUDDUS<br />ALI
           </h1>
-          <div style={styles.blueBar}></div>
-          <p style={styles.brandSub}>CONSTRUCTION</p>
-          <p style={styles.description}>
-            A high-precision ecosystem designed for large-scale industrial oversight and architectural orchestration.
-          </p>
+          <div style={{
+            ...styles.blueBar,
+            height: isMobile ? '50px' : '100px',
+            top: isMobile ? '30%' : '35%',
+          }}></div>
+          <p style={{
+            ...styles.brandSub,
+            fontSize: isMobile ? '9px' : '14px',
+            letterSpacing: isMobile ? '3px' : '8px',
+            marginTop: isMobile ? '6px' : '20px',
+          }}>CONSTRUCTION</p>
+          {!isMobile && (
+            <p style={styles.description}>
+              A high-precision ecosystem designed for large-scale industrial oversight and architectural orchestration.
+            </p>
+          )}
         </div>
 
-        {/* ডান পাশ: লগইন ফর্ম (সাদা অংশ) */}
+        {/* Right: Login form (white section) — compact on mobile */}
         <div style={{
           ...styles.rightSection,
-          padding: isMobile ? '40px 30px' : '80px'
+          padding: isMobile ? '12px 24px 16px' : '80px',
+          justifyContent: isMobile ? 'flex-start' : 'center',
         }}>
-          <h2 style={styles.gateWay}>GATE WAY<span style={{color: '#0055ff'}}>.</span></h2>
-          <p style={styles.authText}>AUTHENTICATION</p>
+          <h2 style={{
+            ...styles.gateWay,
+            fontSize: isMobile ? '24px' : '40px',
+          }}>GATE WAY<span style={{color: '#0055ff'}}>.</span></h2>
+          <p style={{
+            ...styles.authText,
+            marginBottom: isMobile ? '20px' : '60px',
+            fontSize: isMobile ? '9px' : '12px',
+          }}>AUTHENTICATION</p>
           
           <form onSubmit={handleLogin} style={styles.form}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>ACCESS IDENTITY</label>
+            <div style={{
+              ...styles.inputGroup,
+              marginBottom: isMobile ? '14px' : '35px',
+            }}>
+              <label style={{
+                ...styles.label,
+                fontSize: isMobile ? '9px' : '11px',
+              }}>ACCESS IDENTITY</label>
               <input 
                 type="email" 
-                style={styles.input} 
+                style={{
+                  ...styles.input,
+                  fontSize: isMobile ? '13px' : '16px',
+                }} 
                 onChange={(e) => setEmail(e.target.value)} 
                 required 
               />
             </div>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>SECURITY KEY</label>
+            <div style={{
+              ...styles.inputGroup,
+              marginBottom: isMobile ? '14px' : '35px',
+            }}>
+              <label style={{
+                ...styles.label,
+                fontSize: isMobile ? '9px' : '11px',
+              }}>SECURITY KEY</label>
               <input 
                 type="password" 
-                style={styles.input} 
+                style={{
+                  ...styles.input,
+                  fontSize: isMobile ? '13px' : '16px',
+                }} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
               />
             </div>
             <button 
               type="submit"
-              style={styles.button}
+              style={{
+                ...styles.button,
+                padding: isMobile ? '12px' : '22px',
+                fontSize: isMobile ? '11px' : '13px',
+                marginTop: isMobile ? '8px' : '20px',
+              }}
               disabled={loading}
             >
               {loading ? "VERIFYING..." : "AUTHORIZE ENTRY"}
@@ -185,7 +240,12 @@ const Login = () => {
           {biometricAvailable && lastUserId && !showBiometricSetup && (
             <button
               onClick={handleBiometricLogin}
-              style={styles.biometricButton}
+              style={{
+                ...styles.biometricButton,
+                padding: isMobile ? '10px' : '16px',
+                fontSize: isMobile ? '10px' : '13px',
+                marginTop: isMobile ? '8px' : '16px',
+              }}
               disabled={biometricLoading}
             >
               {biometricLoading ? 'AUTHENTICATING...' : '🔒 SIGN IN WITH BIOMETRIC'}
@@ -194,8 +254,14 @@ const Login = () => {
 
           {/* Divider */}
           {(biometricAvailable || showBiometricSetup) && (
-            <div style={styles.divider}>
-              <span style={styles.dividerText}>OR</span>
+            <div style={{
+              ...styles.divider,
+              margin: isMobile ? '8px 0' : '16px 0',
+            }}>
+              <span style={{
+                ...styles.dividerText,
+                fontSize: isMobile ? '9px' : '11px',
+              }}>OR</span>
             </div>
           )}
 
@@ -203,7 +269,13 @@ const Login = () => {
           {showBiometricSetup && (
             <button
               onClick={handleSetupBiometric}
-              style={styles.biometricSetupButton}
+              style={{
+                ...styles.biometricSetupButton,
+                padding: isMobile ? '10px' : '14px',
+                fontSize: isMobile ? '9px' : '12px',
+                letterSpacing: isMobile ? '0.5px' : '1px',
+                marginTop: isMobile ? '4px' : '8px',
+              }}
             >
               ✨ ENABLE FINGERPRINT / FACE LOGIN
             </button>
@@ -222,9 +294,10 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
-    overflow: 'hidden',
+    overflow: 'auto',
     fontFamily: '"Inter", sans-serif',
     colorScheme: 'light',
+    WebkitOverflowScrolling: 'touch',
   },
   mainCard: {
     display: 'flex',

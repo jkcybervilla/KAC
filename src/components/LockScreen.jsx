@@ -135,18 +135,20 @@ export default function LockScreen() {
 
           {/* PIN unlock (primary or fallback) */}
           {shouldShowPin && (
-            <form onSubmit={handlePinSubmit} style={styles.form}>
+            <div style={styles.form}>
               <div style={styles.inputGroup}>
                 <label style={styles.label}>Enter PIN</label>
                 <input
-                  type="password"
+                  type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  autoComplete="off"
+                  autoComplete="one-time-code"
                   autoCorrect="off"
                   autoCapitalize="off"
+                  spellCheck="false"
                   data-lpignore="true"
                   data-form-type="other"
+                  name="security-code"
                   value={pin}
                   onChange={(e) => handlePinChange(e.target.value)}
                   style={{
@@ -171,7 +173,7 @@ export default function LockScreen() {
                   Use Biometric instead
                 </button>
               )}
-            </form>
+            </div>
           )}
         </div>
       </div>

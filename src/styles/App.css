@@ -345,6 +345,18 @@ button {
   overflow: hidden !important;
 }
 
+/* ── Exit toast animation (Android back button) ── */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
 /* Row & Cell Styles */
 .ag-row {
     border-bottom: 1px solid var(--border) !important;

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, Eye, EyeOff } from 'lucide-react';
+import { registerModal } from '../../hooks/useBackNavigation';
 import { collection, getDocs, query, orderBy, addDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
@@ -198,7 +199,13 @@ const ActivityTab = ({ project, profile, autoOpenForm, onAutoOpened }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const showFormRef = useRef(false);
   const [expanded, setExpanded] = useState({});
+
+  useEffect(() => { showFormRef.current = showForm; }, [showForm]);
+  useEffect(() => {
+    return registerModal(showFormRef, () => setShowForm(false));
+  }, []);
 
   const loadActivities = async () => {
     setLoading(true);

@@ -3,6 +3,7 @@ import { collection, getDocs, query, orderBy, addDoc, updateDoc, doc } from 'fir
 import { Timestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { UserPlus, Search, X, Check, Clock, Eye, ChevronLeft, ChevronRight, SkipForward, User, CreditCard, Camera, Pencil } from 'lucide-react';
+import { registerModal } from '../../hooks/useBackNavigation';
 import PhotoUpload from '../../components/PhotoUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createNotification } from '../../utils/notifications';
@@ -313,7 +314,21 @@ const AccountantWorkerRegistration = ({ projectName, autoOpenModal, onAutoOpened
   const [vendors, setVendors] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const showModalRef = useRef(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const showEditModalRef = useRef(false);
+
+  // Sync refs
+  useEffect(() => { showModalRef.current = showModal; }, [showModal]);
+  useEffect(() => { showEditModalRef.current = showEditModal; }, [showEditModal]);
+
+  // Register modals with back-navigation system
+  useEffect(() => {
+    return registerModal(showModalRef, () => setShowModal(false));
+  }, []);
+  useEffect(() => {
+    return registerModal(showEditModalRef, () => { setShowEditModal(false); setShowEditForm(false); });
+  }, []);
   const [selectedWorker, setSelectedWorker] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [openStatusRow, setOpenStatusRow] = useState(null);

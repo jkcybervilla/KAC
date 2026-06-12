@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs, query, where, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -26,6 +26,7 @@ import ThemeToggle from '../../components/ThemeToggle';
 import SecuritySettings from '../../components/SecuritySettings';
 import { isTwaMode } from '../../utils/pwa';
 import useSwipeToOpenSidebar from '../../hooks/useSwipeToOpenSidebar';
+import useBackNavigation from '../../hooks/useBackNavigation';
 import ExportToolbar from '../../components/ExportToolbar';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
@@ -187,6 +188,26 @@ const AccountantDashboard = () => {
     }
   };
 
+  // ── Exit toast for Android hardware back button ──
+  const [showExitToast, setShowExitToast] = useState(false);
+  const exitToastTimerRef = useRef(null);
+
+  const triggerExitToast = useCallback(() => {
+    setShowExitToast(true);
+    if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+    exitToastTimerRef.current = setTimeout(() => {
+      setShowExitToast(false);
+    }, 2000);
+  }, []);
+
+  // Android hardware back button handling (TWA)
+  useBackNavigation({
+    currentMenu: menu,
+    setMenu,
+    isHome: menu === 'home',
+    showExitToast: triggerExitToast,
+  });
+
   // Right swipe from left edge opens sidebar (Android TWA only)
   useSwipeToOpenSidebar(() => setMenuOpen(true));
 
@@ -265,7 +286,46 @@ const AccountantDashboard = () => {
               </p>
             </div>
 
-            {/* Shortcut buttons */}
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Today's Date</span>
+                <p style={{ margin: '8px 0 0', fontSize: 18, fontWeight: 700 }}>{dateStr}</p>
+              </div>
+              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Current Project</span>
+                <h3 style={{ margin: '8px 0 0', fontSize: 18 }}>{project?.PROJECT_NAME || 'No project assigned'}</h3>
+                <p style={{ margin: '6px 0 0', color: 'var(--muted)', fontSize: 13 }}>{project?.LINE_NAME ? `Line: ${project.LINE_NAME}` : 'Assign a project to start'}</p>
+              </div>
+              <div
+                style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.15s ease' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-soft)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface)'}
+              >
+                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Attendance Today</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
+                  <div
+                    onClick={() => { setMenu('client'); setMenuOpen(false); }}
+                    style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s ease', marginLeft: -8 }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34,197,94,0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{clientMp}</p>
+                    <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>Client Present</p>
+                  </div>
+                  <div
+                    onClick={() => { setMenu('office'); setMenuOpen(false); }}
+                    style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s ease', marginRight: -8 }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(59,130,246,0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{officeMp}</p>
+                    <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>Office Present</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shortcut buttons — after Attendance Today */}
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
               <button
                 type="button"
@@ -315,45 +375,6 @@ const AccountantDashboard = () => {
                 <Send size={18} />
                 Send Activity
               </button>
-            </div>
-
-            <div style={{ display: 'grid', gap: 14 }}>
-              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Today's Date</span>
-                <p style={{ margin: '8px 0 0', fontSize: 18, fontWeight: 700 }}>{dateStr}</p>
-              </div>
-              <div style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)' }}>
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Current Project</span>
-                <h3 style={{ margin: '8px 0 0', fontSize: 18 }}>{project?.PROJECT_NAME || 'No project assigned'}</h3>
-                <p style={{ margin: '6px 0 0', color: 'var(--muted)', fontSize: 13 }}>{project?.LINE_NAME ? `Line: ${project.LINE_NAME}` : 'Assign a project to start'}</p>
-              </div>
-              <div
-                style={{ padding: 20, borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.15s ease' }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-soft)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface)'}
-              >
-                <span style={{ color: 'var(--muted)', fontSize: 12 }}>Attendance Today</span>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
-                  <div
-                    onClick={() => { setMenu('client'); setMenuOpen(false); }}
-                    style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s ease', marginLeft: -8 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(34,197,94,0.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{clientMp}</p>
-                    <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>Client Present</p>
-                  </div>
-                  <div
-                    onClick={() => { setMenu('office'); setMenuOpen(false); }}
-                    style={{ cursor: 'pointer', padding: '4px 8px', borderRadius: 8, transition: 'background 0.15s ease', marginRight: -8 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(59,130,246,0.1)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{officeMp}</p>
-                    <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: 13 }}>Office Present</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         );
@@ -760,6 +781,28 @@ const AccountantDashboard = () => {
       </main>
       {twaMode && showSecuritySettings && (
         <SecuritySettings onClose={() => setShowSecuritySettings(false)} />
+      )}
+
+      {/* ── Exit toast (Android back button double-press) ── */}
+      {twaMode && showExitToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          padding: '12px 24px',
+          borderRadius: 12,
+          background: '#333',
+          color: '#fff',
+          fontSize: 14,
+          fontWeight: 600,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+          animation: 'fadeInUp 0.3s ease',
+          whiteSpace: 'nowrap',
+        }}>
+          Press back again to exit
+        </div>
       )}
     </div>
   );

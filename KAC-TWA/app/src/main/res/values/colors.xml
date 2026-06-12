@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark surface color matching the app's CSS variable --surface: #0a0a0a
+         Used as window background to eliminate white flash on cold start -->
+    <color name="splash_background">#0a0a0a</color>
+    <color name="splash_background_deep">#050505</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

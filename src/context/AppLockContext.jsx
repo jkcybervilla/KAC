@@ -13,46 +13,65 @@ const AppLockContext = createContext(null);
 
 const APP_LOCK_STATE_KEY = 'kac_app_lock_state';
 
-// TWA LOCK key: set to 'true' when app goes to background (visibilitychange → hidden),
-// and removed on successful PIN/biometric unlock or login.
-// Uses localStorage so it persists across app close/reopen.
-const TWA_LOCKED_KEY = 'kac_twa_locked';
+/**
+ * TWA LAST ACTIVE timestamp key.
+ * Stores the epoch ms when the app went to background.
+ * On next open, if the time since this timestamp exceeds the threshold,
+ * the lock screen is shown. This prevents lock on quick page refresh
+ * (which is < 1 second) while still locking on actual cold start or
+ * long background periods.
+ */
+const TWA_LAST_ACTIVE_KEY = 'kac_twa_last_active';
+
+/** Time threshold in ms — lock only if app was away longer than this. */
+const BACKGROUND_LOCK_THRESHOLD_MS = 30 * 1000; // 30 seconds
 
 // Legacy TWA session keys — kept for backwards compatibility during transition
 const TWA_SESSION_KEY = 'kac_twa_session';
 const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Set kac_twa_locked flag in localStorage when app goes to background.
+ * Store current timestamp when app goes to background.
  */
-function setTwaLocked() {
+function setTwaLastActive() {
   try {
-    localStorage.setItem(TWA_LOCKED_KEY, 'true');
+    localStorage.setItem(TWA_LAST_ACTIVE_KEY, String(Date.now()));
   } catch {
     // ignore
   }
 }
 
 /**
- * Remove kac_twa_locked flag from localStorage after unlock/login.
+ * Remove the last-active timestamp after successful unlock/login.
  */
-function clearTwaLocked() {
+function clearTwaLastActive() {
   try {
-    localStorage.removeItem(TWA_LOCKED_KEY);
+    localStorage.removeItem(TWA_LAST_ACTIVE_KEY);
   } catch {
     // ignore
   }
 }
 
 /**
- * Check if the TWA lock flag is set in localStorage.
- * Returns true if kac_twa_locked === 'true'.
+ * Check if the app should be locked based on elapsed time since last active.
+ * Returns true only if the elapsed time exceeds the given threshold.
+ *
+ * @param {number} [thresholdMs=BACKGROUND_LOCK_THRESHOLD_MS]
+ * @returns {boolean}
  */
-function isTwaLocked() {
+function shouldLockOnResume(thresholdMs = BACKGROUND_LOCK_THRESHOLD_MS) {
   try {
-    return localStorage.getItem(TWA_LOCKED_KEY) === 'true';
+    const stored = localStorage.getItem(TWA_LAST_ACTIVE_KEY);
+    if (!stored) {
+      // No stored timestamp — this is a cold start or first visit → should lock
+      return true;
+    }
+    const elapsed = Date.now() - Number(stored);
+    // If elapsed is negative or NaN (invalid data), treat as cold start → lock
+    if (Number.isNaN(elapsed) || elapsed < 0) return true;
+    return elapsed >= thresholdMs;
   } catch {
-    return false;
+    return true; // On error, default to locked (safe behavior)
   }
 }
 
@@ -85,10 +104,12 @@ function clearSession() {
 /**
  * AppLockProvider — manages app lock state:
  * - On first login after auth, prompts to set up lock
- * - Locks app when coming from background / cold start via kac_twa_locked flag
- * - Sets kac_twa_locked='true' when app goes to background (visibilitychange → hidden)
- * - On app open: if kac_twa_locked === 'true' → show lock screen immediately
- * - After successful PIN/biometric unlock → removes kac_twa_locked
+ * - Locks app when coming from background / cold start via timestamp-based check
+ * - Stores kac_twa_last_active timestamp when app goes to background (visibilitychange)
+ * - On app open: checks elapsed time since that timestamp.
+ *   Only shows lock if elapsed time > BACKGROUND_LOCK_THRESHOLD_MS (30s).
+ *   Page refresh takes <1s → no lock. Actual cold start or long background → lock.
+ * - After successful PIN/biometric unlock → removes kac_twa_last_active
  * - Supports biometric (WebAuthn) with PIN fallback
  *
  * ALL lock features are ONLY active when app runs as TWA (Android).
@@ -159,17 +180,18 @@ export function AppLockProvider({ children }) {
         setNeedsSetup(false);
         setLockType(lockState.biometric ? 'biometric' : 'pin');
 
-        // Check kac_twa_locked flag in localStorage:
-        // - If 'true', it means app was previously in background → show lock screen
-        // - If absent/false, this is a fresh login or refresh after unlock → no lock
+        // Check if app should be locked based on elapsed time since last active:
+        // - If kac_twa_last_active is absent → cold start, lock
+        // - If elapsed time < 30s → page refresh, no lock
+        // - If elapsed time >= 30s → real background/cold start, lock
         if (!sessionEvaluatedRef.current) {
           sessionEvaluatedRef.current = true;
-          const locked = isTwaLocked();
-          console.debug('[AppLock] TWA locked flag:', locked);
-          setIsLocked(locked);
-          if (!locked) {
-            // No lock flag — app was properly unlocked before, clear any stale lock state
-            clearTwaLocked();
+          const shouldLock = shouldLockOnResume();
+          console.debug('[AppLock] shouldLockOnResume:', shouldLock);
+          setIsLocked(shouldLock);
+          if (!shouldLock) {
+            // Was a quick return (page refresh) — clear stale timestamp
+            clearTwaLastActive();
           }
         } else {
           // Subsequent auth state changes (e.g. re-auth) — lock
@@ -210,32 +232,32 @@ export function AppLockProvider({ children }) {
   }, [twaMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle app going to/coming from background (visibility change)
-  // Sets kac_twa_locked='true' when app goes to background.
-  // On app open: if kac_twa_locked === 'true' → show lock screen immediately.
-  // When coming back within 5 minutes, clears the flag (grace period).
+  // Stores kac_twa_last_active timestamp when app goes to background.
+  // On returning to foreground: if elapsed < threshold, clears the timestamp
+  // (grace period); otherwise leaves it so the mount check shows lock.
   useEffect(() => {
     // Skip visibility tracking in non-TWA mode
     if (!twaMode) return;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        // App going to background — set the lock flag so PIN shows on next open
+        // App going to background — store timestamp
         backgroundTimeRef.current = Date.now();
-        console.debug('[AppLock] App going to background — setting kac_twa_locked');
-        setTwaLocked();
+        console.debug('[AppLock] App going to background — storing last active timestamp');
+        setTwaLastActive();
       } else if (document.visibilityState === 'visible') {
         // App coming back to foreground
         if (backgroundTimeRef.current && isSetup && currentUserId) {
           const elapsed = Date.now() - backgroundTimeRef.current;
           console.debug('[AppLock] App back to foreground after', elapsed, 'ms');
 
-          if (elapsed > INACTIVITY_TIMEOUT_MS) {
-            // More than 5 minutes — kac_twa_locked stays 'true', lock will show
-            console.debug('[AppLock] Inactivity timeout exceeded — kac_twa_locked remains set');
+          if (elapsed > BACKGROUND_LOCK_THRESHOLD_MS) {
+            // More than 30 seconds — keep the timestamp, lock will show on re-check
+            console.debug('[AppLock] Background timeout exceeded — lock will be shown');
           } else {
-            // Within 5 minutes — clear the lock flag (grace period, no PIN needed)
-            console.debug('[AppLock] Within grace period — clearing kac_twa_locked');
-            clearTwaLocked();
+            // Within 30 seconds — clear the timestamp (grace period, no PIN needed)
+            console.debug('[AppLock] Within grace period — clearing last active timestamp');
+            clearTwaLastActive();
           }
         }
         backgroundTimeRef.current = null;
@@ -266,11 +288,11 @@ export function AppLockProvider({ children }) {
   }, [twaMode]);
 
   /**
-   * After successful unlock, clear the kac_twa_locked flag
+   * After successful unlock, clear the kac_twa_last_active timestamp
    * so that PIN is not requested on next navigation within the same session.
    */
   const markSessionAfterUnlock = useCallback(() => {
-    clearTwaLocked();
+    clearTwaLastActive();
   }, []);
 
   /**
@@ -289,7 +311,7 @@ export function AppLockProvider({ children }) {
     setNeedsSetup(false);
     setLockType('pin');
     setIsLocked(false);
-    clearTwaLocked();
+    clearTwaLastActive();
     console.debug('[AppLock] PIN lock set up successfully');
     return true;
   }, [currentUserId]);
@@ -319,7 +341,7 @@ export function AppLockProvider({ children }) {
     setNeedsSetup(false);
     setLockType('biometric');
     setIsLocked(false);
-    clearTwaLocked();
+    clearTwaLastActive();
     console.debug('[AppLock] Biometric lock set up successfully');
     return true;
   }, [currentUserId]);
@@ -341,7 +363,7 @@ export function AppLockProvider({ children }) {
     setNeedsSetup(false);
     setLockType(biometricAvailable ? 'biometric' : 'pin');
     setIsLocked(false);
-    clearTwaLocked();
+    clearTwaLastActive();
     console.debug('[AppLock] Full lock set up successfully');
     return true;
   }, [currentUserId, biometricAvailable]);
@@ -355,7 +377,7 @@ export function AppLockProvider({ children }) {
     const result = await authenticateWithBiometric(currentUserId);
     if (result) {
       setIsLocked(false);
-      clearTwaLocked();
+      clearTwaLastActive();
       console.debug('[AppLock] Unlocked via biometric');
       return true;
     }
@@ -371,7 +393,7 @@ export function AppLockProvider({ children }) {
     const pinHash = await hashPin(pin);
     if (pinHash === lockState.pin) {
       setIsLocked(false);
-      clearTwaLocked();
+      clearTwaLastActive();
       console.debug('[AppLock] Unlocked via PIN');
       return true;
     }
@@ -555,10 +577,10 @@ export const useAppLock = () => {
 };
 
 /**
- * Export markSessionActive for external use (e.g., from login page)
+ * Export lock helpers for external use (e.g., from login page)
  * so that after successful login, the session is marked active.
- * This prevents PIN screen on refresh — only shows on cold start.
+ * This prevents PIN screen on refresh — only shows on cold start or long background.
  */
-export { clearTwaLocked, setTwaLocked, isTwaLocked, clearSession };
+export { clearTwaLastActive, setTwaLastActive, shouldLockOnResume, clearSession };
 
 export default AppLockContext;
