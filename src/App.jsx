@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProjectDetails from './pages/project/ProjectDetails';
 import VendorManagement from './pages/admin/VendorManagement';
+import VehicleManagement from './pages/admin/VehicleManagement';
 import ProjectsPage from './pages/project/ProjectsPage';
 import WorkActivity from './pages/project/WorkActivityHub';
 import DprView from './pages/project/DprView';
@@ -359,6 +360,7 @@ function AppContent() {
         <Route path="/attendance-sheet" element={<ProtectedRoute roles={['admin']}><AttendanceHub /></ProtectedRoute>} />
         <Route path="/register-worker" element={<ProtectedRoute roles={['admin']}><WorkerRegisterHub /></ProtectedRoute>} />
         <Route path="/vendor-management" element={<ProtectedRoute roles={['admin']}><VendorManagement /></ProtectedRoute>} />
+        <Route path="/vehicle-management" element={<ProtectedRoute roles={['admin']}><VehicleManagement /></ProtectedRoute>} />
         <Route path="/activity-log" element={<ProtectedRoute roles={['admin']}><ActivityLog /></ProtectedRoute>} />
         {/* Catch /sw.js silently — the service worker auto-update module may trigger
             a navigation to this path. Without a matching route, React Router shows

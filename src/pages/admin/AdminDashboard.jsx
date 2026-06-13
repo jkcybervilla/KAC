@@ -11,7 +11,8 @@ import {
   UserPlus, Wallet, Package, ReceiptText,
   MessageSquare, Bell, LogOut, ChevronLeft, ChevronRight,
   Building2, Clock, UserCheck, CreditCard, FileText, UserMinus, Edit3, Activity,
-  UserX, ClipboardList, AlertTriangle, Settings, Globe, Shield, Database, Sliders
+  UserX, ClipboardList, AlertTriangle, Settings, Globe, Shield, Database, Sliders,
+  Truck
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -210,6 +211,7 @@ const menuItems = [
   { name: 'Worker Reg.', icon: <UserPlus size={20}/>, path: '/register-worker' },
   { name: 'User Manager', icon: <Users size={20}/>, path: '/user-manager' },
   { name: 'Vendors', icon: <Building2 size={20}/>, path: '/vendor-management' },
+  { name: 'Vehicles', icon: <Truck size={20}/>, path: '/vehicle-management' },
   { name: 'Payroll', icon: <Wallet size={20}/> },
   { name: 'Inventory', icon: <Package size={20}/> },
   { name: 'Expense', icon: <ReceiptText size={20}/> },

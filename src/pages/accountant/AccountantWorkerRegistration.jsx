@@ -338,6 +338,8 @@ const AccountantWorkerRegistration = ({ projectName, autoOpenModal, onAutoOpened
   const [statusDropdownId, setStatusDropdownId] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [aadhaarError, setAadhaarError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const dropdownRef = useRef(null);
 
   // Auto-open modal when triggered from dashboard shortcut
@@ -603,8 +605,8 @@ const AccountantWorkerRegistration = ({ projectName, autoOpenModal, onAutoOpened
         alert('Please select date of birth.');
         return;
       }
-      if (!form.MOBILE_NO) {
-        alert('Please enter phone number.');
+      if (!form.MOBILE_NO || form.MOBILE_NO.length !== 10) {
+        alert('Please enter a valid 10-digit phone number.');
         return;
       }
       if (!form.ADDRESS) {
@@ -1161,8 +1163,34 @@ const AccountantWorkerRegistration = ({ projectName, autoOpenModal, onAutoOpened
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   <div>
                     <label style={labelStyle}>Aadhaar Number *</label>
-                    <input required placeholder="AADHAAR NO (12 digit) *" style={inputBase}
-                      value={form.AADHAR_NO} onChange={(e) => setForm({ ...form, AADHAR_NO: e.target.value })} maxLength={12} />
+                    <input
+                      required
+                      placeholder="0000 - 0000 - 0000"
+                      inputMode="numeric"
+                      maxLength={14}
+                      style={{
+                        ...inputBase,
+                        fontSize: '18px',
+                        fontWeight: 600,
+                        letterSpacing: '2px',
+                        borderColor: aadhaarError ? '#ef4444' : 'var(--border)',
+                        borderWidth: aadhaarError ? '2px' : '1px',
+                      }}
+                      value={(() => {
+                        const raw = form.AADHAR_NO.replace(/\D/g, '').slice(0, 12);
+                        return raw ? raw.replace(/(\d{4})(?=\d)/g, '$1-') : form.AADHAR_NO;
+                      })()}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        setForm({ ...form, AADHAR_NO: raw });
+                        if (raw.length === 0) setAadhaarError('');
+                        else if (raw.length < 12) setAadhaarError('Aadhaar must be 12 digits');
+                        else setAadhaarError('');
+                      }}
+                    />
+                    {aadhaarError && (
+                      <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', display: 'block', fontWeight: 500 }}>{aadhaarError}</span>
+                    )}
                   </div>
                   <div>
                     <label style={labelStyle}>Name *</label>
@@ -1190,8 +1218,28 @@ const AccountantWorkerRegistration = ({ projectName, autoOpenModal, onAutoOpened
                   </div>
                   <div>
                     <label style={labelStyle}>Phone Number *</label>
-                    <input required placeholder="PH NUMBER *" style={inputBase}
-                      value={form.MOBILE_NO} onChange={(e) => setForm({ ...form, MOBILE_NO: e.target.value })} />
+                    <input
+                      required
+                      placeholder="PHONE NO (10 digit) *"
+                      inputMode="numeric"
+                      maxLength={10}
+                      style={{
+                        ...inputBase,
+                        borderColor: phoneError ? '#ef4444' : 'var(--border)',
+                        borderWidth: phoneError ? '2px' : '1px',
+                      }}
+                      value={form.MOBILE_NO}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setForm({ ...form, MOBILE_NO: val });
+                        if (val.length === 0) setPhoneError('');
+                        else if (val.length < 10) setPhoneError('Phone must be 10 digits');
+                        else setPhoneError('');
+                      }}
+                    />
+                    {phoneError && (
+                      <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px', display: 'block', fontWeight: 500 }}>{phoneError}</span>
+                    )}
                   </div>
                   <div>
                     <label style={labelStyle}>Address *</label>

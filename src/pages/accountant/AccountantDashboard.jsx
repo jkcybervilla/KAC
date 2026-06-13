@@ -17,6 +17,7 @@ import {
   MoreVertical,
   Send,
   HelpCircle,
+  Truck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { filterProjectsByUser } from '../../utils/projectAccess';
@@ -31,6 +32,7 @@ import ExportToolbar from '../../components/ExportToolbar';
 import AccountantWorkerRegistration from './AccountantWorkerRegistration';
 import AccountantDailyAttendance from './AccountantDailyAttendance';
 import AccountantWorkActivity from './AccountantWorkActivity';
+import AccountantVehicles from './AccountantVehicles';
 import DprView from '../project/DprView';
 import AdminChat from '../../components/AdminChat';
 import AccountantHelp from './AccountantHelp';
@@ -40,7 +42,7 @@ const MENU = [
   { id: 'workers', label: 'WORKER REGISTRATION', icon: UserPlus },
   { id: 'client', label: 'CLIENT ATTENDANCE', icon: ClipboardCheck },
   { id: 'office', label: 'OFFICE ATTENDANCE', icon: ClipboardCheck },
-  { id: 'dpr', label: 'DPR', icon: FileText },
+  { id: 'vehicles', label: 'VEHICLES', icon: Truck },
   { id: 'activity', label: 'WORK ACTIVITY', icon: ClipboardList },
   { id: 'expense', label: 'EXPENSE', icon: ReceiptText },
   { id: 'chat', label: 'CHAT WITH ADMIN', icon: MessageSquare },
@@ -390,6 +392,8 @@ const AccountantDashboard = () => {
         return <AccountantDailyAttendance ref={clientAttendanceRef} type="client" projectName={pname} />;
       case 'office':
         return <AccountantDailyAttendance ref={officeAttendanceRef} type="office" projectName={pname} />;
+      case 'vehicles':
+        return <AccountantVehicles projectName={pname} />;
       case 'dpr':
         return <DprView />;
       case 'activity':
@@ -419,9 +423,6 @@ const AccountantDashboard = () => {
           <h2 style={{ fontSize: 14, fontWeight: 900, padding: 0, margin: 0 }}>
             KAC <span style={{ color: '#0055ff' }}>ACCOUNTANT</span>
           </h2>
-          <button className="slidebar-close-btn" type="button" onClick={() => setMenuOpen(false)}>
-            ✕
-          </button>
         </div>
 
         {MENU.map((m) => (
@@ -491,7 +492,7 @@ const AccountantDashboard = () => {
       </aside>
 
       <main className="page-main" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-        <header className="page-header" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'var(--surface)' }}>
+        <header className="page-header" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'transparent', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
           <div className="page-header-inner" style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', gap: 0, justifyContent: 'flex-start' }}>
             <button className="slidebar-toggle-btn" type="button" onClick={() => setMenuOpen(!menuOpen)} style={{ flexShrink: 0 }}>
               ☰

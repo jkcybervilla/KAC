@@ -345,6 +345,107 @@ button {
   overflow: hidden !important;
 }
 
+/* ==========================================================================
+   LOGIN PAGE — MOBILE (max-width: 480px) 30/70 SPLIT
+   ========================================================================== */
+@media (max-width: 480px) {
+  /* Parent container: flex column, fixed 100vh, no scroll on card */
+  .login-main-card {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    max-height: 100vh !important;
+  }
+
+  /* Dark banner: take exactly 30% of viewport, content vertically centered */
+  .login-left-section {
+    flex: 0 0 30% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    padding: 12px 20px 8px !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Reduce KUDDUS ALI font to fit in 30vh */
+  .login-left-section h1 {
+    font-size: 22px !important;
+    line-height: 0.9 !important;
+  }
+
+  /* Reduce CORE MANAGEMENT more */
+  .login-left-section p:first-of-type {
+    font-size: 7px !important;
+    letter-spacing: 1px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Reduce CONSTRUCTION label */
+  .login-left-section p:last-of-type {
+    font-size: 8px !important;
+    letter-spacing: 3px !important;
+    margin-top: 4px !important;
+  }
+
+  /* Move blue bar more centered vertically */
+  .login-left-section div[style*="position: absolute"] {
+    height: 36px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+  }
+
+  /* White login section: take exactly 70% of viewport */
+  .login-right-section {
+    flex: 0 0 70% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    padding: 16px 24px 20px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  /* GATE WAY heading - slightly smaller */
+  .login-right-section h2 {
+    font-size: 22px !important;
+  }
+
+  /* AUTHENTICATION text - reduce margin */
+  .login-right-section p {
+    margin-bottom: 14px !important;
+    font-size: 8px !important;
+  }
+
+  /* Input groups - tighter spacing */
+  .login-right-section form div {
+    margin-bottom: 10px !important;
+  }
+
+  /* AUTHORIZE ENTRY button */
+  .login-right-section button[type="submit"] {
+    padding: 10px !important;
+    font-size: 10px !important;
+    margin-top: 6px !important;
+  }
+
+  /* Biometric button */
+  .login-right-section button:not([type="submit"]) {
+    padding: 8px !important;
+    font-size: 9px !important;
+    margin-top: 6px !important;
+  }
+
+  /* Divider */
+  .login-right-section div[style*="align-items: center"] {
+    margin: 6px 0 !important;
+  }
+}
+
 /* ── Exit toast animation (Android back button) ── */
 @keyframes fadeInUp {
   from {
@@ -466,8 +567,8 @@ button {
 .page-aside.slidebar {
   position: fixed;
   left: 0;
-  top: 0;
-  bottom: 0;
+  top: 56px;
+  height: calc(100vh - 56px);
   width: min(320px, 100%);
   transform: translateX(-100%);
   z-index: 25;

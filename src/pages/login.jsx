@@ -121,17 +121,17 @@ const Login = () => {
 
   return (
     <div style={styles.container}>
-      <div style={{
-        ...styles.mainCard,
-        flexDirection: isMobile ? 'column' : 'row',
-        width: isMobile ? '100%' : '1000px',
-        height: isMobile ? '100vh' : '600px',
-        overflow: isMobile ? 'auto' : 'hidden',
-        minHeight: isMobile ? '100vh' : '600px',
-      }}>
+        <div className="login-main-card" style={{
+          ...styles.mainCard,
+          flexDirection: isMobile ? 'column' : 'row',
+          width: isMobile ? '100%' : '1000px',
+          height: isMobile ? '100vh' : '600px',
+          overflow: isMobile ? 'auto' : 'hidden',
+          minHeight: isMobile ? '100vh' : '600px',
+        }}>
         
         {/* Left: Branding banner (black section) — compact on mobile */}
-        <div style={{
+        <div className="login-left-section" style={{
           ...styles.leftSection,
           padding: isMobile ? '16px 20px 10px' : '100px',
           justifyContent: isMobile ? 'flex-start' : 'center',
@@ -170,7 +170,7 @@ const Login = () => {
         </div>
 
         {/* Right: Login form (white section) — compact on mobile */}
-        <div style={{
+        <div className="login-right-section" style={{
           ...styles.rightSection,
           padding: isMobile ? '12px 24px 16px' : '80px',
           justifyContent: isMobile ? 'flex-start' : 'center',
