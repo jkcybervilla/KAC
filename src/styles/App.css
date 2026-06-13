@@ -518,6 +518,7 @@ button {
   gap: 10px;
   background: var(--sidebar-bg);
   transition: transform 0.28s ease, box-shadow 0.28s ease;
+  overflow-y: auto;
 }
 
 .page-main {
@@ -608,7 +609,8 @@ button {
     box-shadow: none;
     width: 200px;
     transition: width 0.28s ease, padding 0.28s ease, opacity 0.28s ease;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     opacity: 1;
     /* Solid background on desktop (no glass) */
     background: var(--sidebar-bg);
