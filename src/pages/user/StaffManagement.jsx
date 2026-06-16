@@ -219,15 +219,7 @@ const StaffManagement = () => {
         @media (max-width: 768px) { .user-table { font-size: 12px; } .user-table th, .user-table td { padding: 10px 12px; } }
       `}</style>
 
-      <header style={s.header}>
-        <div style={s.headerLeft}>
-          <button type="button" onClick={() => navigate('/admin')} style={s.backBtn}>
-            <ArrowLeft size={18} />
-          </button>
-          <h2 style={s.title}>
-            USER <span style={{ color: '#0055ff' }}>MANAGER</span>
-          </h2>
-        </div>
+      <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={s.searchBox}>
             <Search size={14} color="var(--muted-2)" />

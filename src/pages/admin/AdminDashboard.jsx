@@ -17,13 +17,22 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ThemeToggle from '../../components/ThemeToggle';
 import AdminChat from '../../components/AdminChat';
+import IndiaProjectMap from '../../components/IndiaProjectMap';
 import { useAuth } from '../../context/AuthContext';
 import KACLogo from '../../assets/logo.png';
+import ProjectsPage from '../project/ProjectsPage';
+import AttendanceHub from '../Attendance/AttendanceHub';
+import WorkActivity from '../project/WorkActivity';
+import WorkerRegisterHub from '../WorkerRegistration/WorkerRegisterHub';
+import StaffManagement from '../user/StaffManagement';
+import VendorManagement from './VendorManagement';
+import VehicleManagement from './VehicleManagement';
+import ActivityLog from './ActivityLog';
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [selectedAdminMenu, setSelectedAdminMenu] = useState('overview');
 
@@ -46,8 +55,36 @@ const AdminDashboard = () => {
   const userMenuRef = useRef(null);
   const twaMode = isTwaMode();
 
+  // Debounce ref for sidebar collapse to prevent flicker
+  const collapseTimeoutRef = useRef(null);
+
+  const handleSidebarEnter = useCallback(() => {
+    if (collapseTimeoutRef.current) {
+      clearTimeout(collapseTimeoutRef.current);
+      collapseTimeoutRef.current = null;
+    }
+    setIsCollapsed(false);
+  }, []);
+
+  const handleSidebarLeave = useCallback(() => {
+    collapseTimeoutRef.current = setTimeout(() => {
+      setIsCollapsed(true);
+    }, 50);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (collapseTimeoutRef.current) clearTimeout(collapseTimeoutRef.current);
+    };
+  }, []);
+
   // Right swipe from left edge opens/expands sidebar (Android TWA only)
   useSwipeToOpenSidebar(() => {
+    if (collapseTimeoutRef.current) {
+      clearTimeout(collapseTimeoutRef.current);
+      collapseTimeoutRef.current = null;
+    }
     if (isCollapsed) {
       setIsCollapsed(false);
     }
@@ -89,6 +126,28 @@ const AdminDashboard = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Handle browser back/forward button for inline dashboard views
+  useEffect(() => {
+    const reverseMenuMap = {
+      'overview': 'Dashboard', 'projects': 'Projects', 'work-activity': 'Work Activity',
+      'attendance': 'Attendance', 'dpr': 'DPR Status', 'worker-reg': 'Worker Reg.',
+      'user-manager': 'User Manager', 'vendors': 'Vendors', 'vehicles': 'Vehicles',
+      'payroll': 'Payroll', 'inventory': 'Inventory', 'expense': 'Expense',
+      'activity-log': 'Activity Log', 'chat': 'Live Chat', 'settings': 'Settings',
+    };
+    const handlePopState = (e) => {
+      if (e.state?.menu) {
+        setSelectedAdminMenu(e.state.menu);
+        setActiveMenu(reverseMenuMap[e.state.menu] || 'Dashboard');
+      } else {
+        setActiveMenu('Dashboard');
+        setSelectedAdminMenu('overview');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -222,12 +281,27 @@ const menuItems = [
 
   const handleMenuClick = (item) => {
     setActiveMenu(item.name);
-    if (item.name === 'Live Chat') {
-      setSelectedAdminMenu('chat');
-    } else if (item.name === 'Settings') {
-      setSelectedAdminMenu('settings');
-    } else if (item.path) {
-      navigate(item.path);
+    const menuMap = {
+      'Dashboard': { key: 'overview', path: '/admin' },
+      'Projects': { key: 'projects', path: '/admin/projects' },
+      'Work Activity': { key: 'work-activity', path: '/admin/work-activity' },
+      'Attendance': { key: 'attendance', path: '/admin/attendance' },
+      'DPR Status': { key: 'dpr', path: '/admin/dpr' },
+      'Worker Reg.': { key: 'worker-reg', path: '/admin/worker-reg' },
+      'User Manager': { key: 'user-manager', path: '/admin/user-manager' },
+      'Vendors': { key: 'vendors', path: '/admin/vendors' },
+      'Vehicles': { key: 'vehicles', path: '/admin/vehicles' },
+      'Payroll': { key: 'payroll', path: '/admin/payroll' },
+      'Inventory': { key: 'inventory', path: '/admin/inventory' },
+      'Expense': { key: 'expense', path: '/admin/expense' },
+      'Activity Log': { key: 'activity-log', path: '/admin/activity-log' },
+      'Live Chat': { key: 'chat', path: '/admin/chat' },
+      'Settings': { key: 'settings', path: '/admin/settings' },
+    };
+    const entry = menuMap[item.name];
+    if (entry) {
+      setSelectedAdminMenu(entry.key);
+      window.history.pushState({ menu: entry.key }, '', entry.path);
     }
   };
 
@@ -244,6 +318,8 @@ const menuItems = [
         .sidebar-toggle-btn { transition: all 0.25s ease !important; }
         .sidebar-toggle-btn:hover { background-color: var(--border-strong) !important; transform: scale(1.05); }
         .sidebar-logout-btn { transition: all 0.25s ease !important; border-radius: 8px !important; padding: 12px 15px !important; }
+        .sidebar-nav-scroll { overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; -ms-overflow-style: none; scrollbar-width: none; }
+        .sidebar-nav-scroll::-webkit-scrollbar { display: none; }
         .sidebar-logout-btn:hover { background-color: rgba(239, 68, 68, 0.1) !important; transform: translateX(4px); }
         .overview-card { transition: all 0.2s ease !important; }
         .overview-card:hover { transform: translateY(-2px) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important; border-color: #0055ff40 !important; }
@@ -256,41 +332,47 @@ const menuItems = [
         .activity-log-container::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
       `}</style>
       {/* --- COLLAPSIBLE SIDEBAR --- */}
-      <aside style={{ ...styles.sidebar, width: isCollapsed ? '80px' : '260px' }}>
+      <aside
+        style={{ ...styles.sidebar, width: isCollapsed ? '80px' : '260px' }}
+        onMouseEnter={handleSidebarEnter}
+        onMouseLeave={handleSidebarLeave}
+      >
         <div style={styles.sidebarHeader}>
-          <button onClick={() => setIsCollapsed(!isCollapsed)} style={styles.toggleBtn} className="sidebar-toggle-btn">
-            {isCollapsed ? <ChevronRight size={18}/> : <ChevronLeft size={18}/>}
-          </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'flex-start', gap: '10px' }}>
+              <img src={KACLogo} alt="KAC" style={{ height: isCollapsed ? '32px' : '40px', width: isCollapsed ? '32px' : 'auto', borderRadius: '6px', flexShrink: 0 }} />
+              <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, visibility: isCollapsed ? 'hidden' : 'visible', transition: 'opacity 0.15s ease-in-out, visibility 0.15s ease-in-out' }}>KAC <span style={{ color: '#0055ff' }}>CORE</span></span>
+            </div>
         </div>
 
-        <nav style={styles.nav}>
-          {menuItems.map((item) => (
-            <div 
-              key={item.name} 
-              onClick={() => handleMenuClick(item)}
-              style={activeMenu === item.name ? styles.activeNavItem : styles.navItem}
-              className="sidebar-nav-item"
-            >
-              {item.icon}
-              {!isCollapsed && <span style={{marginLeft: '15px'}}>{item.name}</span>}
-            </div>
-          ))}
-        </nav>
+        <div style={styles.navMenuContainer} className="sidebar-nav-scroll">
+          <nav style={styles.nav}>
+            {menuItems.map((item) => (
+              <div 
+                key={item.name} 
+                onClick={() => handleMenuClick(item)}
+                style={{ ...(activeMenu === item.name ? styles.activeNavItem : styles.navItem), justifyContent: isCollapsed ? 'center' : 'flex-start', paddingLeft: isCollapsed ? '0' : '15px', paddingRight: isCollapsed ? '0' : '15px' }}
+                className="sidebar-nav-item"
+              >
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', flexShrink: 0 }}>{item.icon}</span>
+                <span style={{ marginLeft: isCollapsed ? '0' : '15px', whiteSpace: 'nowrap', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, visibility: isCollapsed ? 'hidden' : 'visible', transition: 'opacity 0.15s ease-in-out, visibility 0.15s ease-in-out' }}>{item.name}</span>
+              </div>
+            ))}
+          </nav>
 
-        <ThemeToggle collapsed={isCollapsed} style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', marginBottom: 8 }} />
+          <ThemeToggle collapsed={isCollapsed} style={{ justifyContent: isCollapsed ? 'center' : 'flex-start', marginBottom: 8, transition: 'justify-content 0.15s ease-in-out' }} />
 
-        <button onClick={handleLogout} style={styles.logoutBtn} className="sidebar-logout-btn">
-          <LogOut size={20} />
-          {!isCollapsed && <span style={{marginLeft: '15px'}}>Logout</span>}
-        </button>
+          <button onClick={handleLogout} style={{ ...styles.logoutBtn, justifyContent: isCollapsed ? 'center' : 'flex-start' }} className="sidebar-logout-btn">
+            <LogOut size={20} style={{ flexShrink: 0 }} />
+            <span style={{ marginLeft: isCollapsed ? '0' : '15px', whiteSpace: 'nowrap', overflow: 'hidden', opacity: isCollapsed ? 0 : 1, visibility: isCollapsed ? 'hidden' : 'visible', transition: 'opacity 0.15s ease-in-out, visibility 0.15s ease-in-out' }}>Logout</span>
+          </button>
+        </div>
       </aside>
 
       {/* --- MAIN CONTENT AREA --- */}
       <div style={styles.main}>
         <header style={styles.topBar}>
           <div style={styles.topBarBranding}>
-            <img src={KACLogo} alt="KAC CORE Logo" style={{ height: '50px', marginRight: '10px' }} />
-            <h2 style={styles.logo}>KAC <span style={{ color: '#0055ff' }}>CORE</span></h2>
+            <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, background: 'linear-gradient(135deg, #0055ff, #4a6cf7, #0055ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text', letterSpacing: '0.3px' }}>{activeMenu}</h2>
           </div>
           <div style={styles.topIcons}>
           <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => setShowNotifications(!showNotifications)} ref={notifRef}>
@@ -384,6 +466,22 @@ const menuItems = [
             </div>
           ) : selectedAdminMenu === 'settings' ? (
             <AdminSettingsView />
+          ) : selectedAdminMenu === 'projects' ? (
+            <ProjectsPage />
+          ) : selectedAdminMenu === 'attendance' ? (
+            <AttendanceHub />
+          ) : selectedAdminMenu === 'work-activity' ? (
+            <WorkActivity />
+          ) : selectedAdminMenu === 'worker-reg' ? (
+            <WorkerRegisterHub />
+          ) : selectedAdminMenu === 'user-manager' ? (
+            <StaffManagement />
+          ) : selectedAdminMenu === 'vendors' ? (
+            <VendorManagement />
+          ) : selectedAdminMenu === 'vehicles' ? (
+            <VehicleManagement />
+          ) : selectedAdminMenu === 'activity-log' ? (
+            <ActivityLog />
           ) : (
           <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -445,6 +543,8 @@ const menuItems = [
               </p>
             </div>
           </div>
+
+          <IndiaProjectMap />
 
           <div style={styles.chartActivityRow}>
             <div style={styles.chartBox}>
@@ -956,12 +1056,13 @@ const sett = {
 const styles = {
   layout: { display: 'flex', height: '100vh', backgroundColor: 'var(--bg)', color: 'var(--text)', fontFamily: 'Inter, sans-serif' },
   
-  sidebar: { background: 'linear-gradient(180deg, rgba(0, 85, 255, 0.05) 0%, transparent 50%, transparent 100%)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)', padding: '20px 10px' },
+  sidebar: { background: 'linear-gradient(180deg, rgba(0, 85, 255, 0.05) 0%, transparent 50%, transparent 100%)', borderRight: '1px solid var(--sidebar-border)', display: 'flex', flexDirection: 'column', transition: 'all 0.15s ease-in-out', padding: '20px 10px', willChange: 'width', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'translateZ(0)' },
   sidebarHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', padding: '0 10px' },
   logo: { fontSize: '18px', fontWeight: '900', margin: 0 },
   toggleBtn: { background: 'var(--surface-2)', border: '1px solid var(--border-strong)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', padding: '5px' },
-  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' },
-  navItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: 'var(--muted-2)', transition: '0.2s' },
+  navMenuContainer: { flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' },
+  nav: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  navItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text-soft)', transition: '0.2s' },
   activeNavItem: { display: 'flex', alignItems: 'center', padding: '12px 15px', borderRadius: '8px', cursor: 'pointer', color: 'var(--text)', backgroundColor: 'var(--surface-2)', borderLeft: '4px solid #0055ff' },
   logoutBtn: { display: 'flex', alignItems: 'center', padding: '12px 15px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', marginTop: '20px' },
 

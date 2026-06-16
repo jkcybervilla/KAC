@@ -191,15 +191,7 @@ const VendorManagement = () => {
 
   return (
     <div style={s.container}>
-      <header style={s.header}>
-        <div style={s.headerLeft}>
-          <button type="button" onClick={() => navigate('/admin')} style={s.backBtn}>
-            <ArrowLeft size={18} />
-          </button>
-          <h2 style={s.title}>
-            VENDOR <span style={{ color: '#0055ff' }}>MANAGEMENT</span>
-          </h2>
-        </div>
+      <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div style={s.headerRight}>
           <div style={s.searchBox}>
             <Search size={14} color="#666" />

@@ -259,7 +259,7 @@ button {
     --ag-grid-size: 6px;
     --ag-list-item-height: 40px;
     --ag-row-height: 36px;
-    --ag-header-height: 44px;
+    --ag-header-height: 32px;
     --ag-cell-horizontal-padding: 8px;
     
     /* Core Colors */
@@ -517,8 +517,12 @@ button {
   flex-direction: column;
   gap: 10px;
   background: var(--sidebar-bg);
-  transition: transform 0.28s ease, box-shadow 0.28s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), width 0.2s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
+  will-change: width, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .page-main {
@@ -608,7 +612,7 @@ button {
     transform: translateX(0);
     box-shadow: none;
     width: 200px;
-    transition: width 0.28s ease, padding 0.28s ease, opacity 0.28s ease;
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), padding 0.2s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-x: hidden;
     overflow-y: auto;
     opacity: 1;
@@ -616,6 +620,9 @@ button {
     background: var(--sidebar-bg);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+    will-change: width;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 
   .page-aside.slidebar:not(.open) {
@@ -701,11 +708,12 @@ button {
 }
 
 [class^="ag-theme-"] .ag-header {
-  min-height: 44px !important;
+  min-height: 0 !important;
 }
 
 [class^="ag-theme-"] .ag-header-row {
-  min-height: 44px !important;
+  min-height: 0 !important;
+  align-items: center;
 }
 
 [class^="ag-theme-"] .ag-cell {

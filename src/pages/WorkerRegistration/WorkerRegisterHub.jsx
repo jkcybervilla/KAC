@@ -11,17 +11,6 @@ const WorkerRegisterHub = () => {
 
   return (
     <div style={s.container}>
-      <header style={s.header}>
-        <div style={s.headerLeft}>
-          <button type="button" onClick={() => navigate('/admin')} style={s.backBtn}>
-            <ArrowLeft size={18} />
-          </button>
-          <h2 style={s.title}>
-            WORKER <span style={{ color: '#0055ff' }}>REGISTER</span>
-          </h2>
-        </div>
-      </header>
-
       <div style={{
         display: 'flex',
         gap: '12px',

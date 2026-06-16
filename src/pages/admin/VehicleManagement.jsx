@@ -315,17 +315,6 @@ const VehicleManagement = () => {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div style={styles.headerLeft}>
-          <button type="button" onClick={() => navigate('/admin')} style={s.backBtn}>
-            <ArrowLeft size={18} />
-          </button>
-          <h2 style={styles.title}>
-            VEHICLE <span style={{ color: '#0055ff' }}>MANAGEMENT</span>
-          </h2>
-        </div>
-      </div>
 
       {/* Stats */}
       <div style={styles.statsRow}>

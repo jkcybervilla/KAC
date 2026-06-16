@@ -38,16 +38,7 @@ const AttendanceHub = () => {
 
   return (
     <div style={s.container}>
-      <header style={s.header}>
-        <div style={s.headerLeft}>
-          <button type="button" onClick={() => navigate('/admin')} style={s.backBtn}>
-            <ArrowLeft size={18} />
-          </button>
-          <h2 style={s.title}>
-            ATTENDANCE <span style={{ color: '#0055ff' }}>SYSTEM</span>
-          </h2>
-        </div>
-        <div style={s.headerRight}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
           <button
             type="button"
             data-active={tab === 'client'}
@@ -89,7 +80,6 @@ const AttendanceHub = () => {
             DESIGNATION
           </button>
         </div>
-      </header>
 
       {tab === 'client' && <AttendanceGrid type="client" projectFilter={projectFilter} />}
       {tab === 'office' && <AttendanceGrid type="office" projectFilter={projectFilter} />}
