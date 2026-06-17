@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Folder, Users, ClipboardCheck,
   UserPlus, Wallet, Package, ReceiptText,
   MessageSquare, Bell, LogOut, ChevronLeft, ChevronRight,
-  Building2, Clock, UserCheck, CreditCard, FileText, UserMinus, Edit3, Activity,
+  Building2, Building, Clock, UserCheck, CreditCard, FileText, UserMinus, Edit3, Activity,
   UserX, ClipboardList, AlertTriangle, Settings, Globe, Shield, Database, Sliders,
   Truck
 } from 'lucide-react';
@@ -28,6 +28,7 @@ import StaffManagement from '../user/StaffManagement';
 import VendorManagement from './VendorManagement';
 import VehicleManagement from './VehicleManagement';
 import ActivityLog from './ActivityLog';
+import ClientManagement from './ClientManagement';
 
 const AdminDashboard = () => {
   const { profile } = useAuth();
@@ -133,7 +134,7 @@ const AdminDashboard = () => {
     const reverseMenuMap = {
       'overview': 'Dashboard', 'projects': 'Projects', 'work-activity': 'Work Activity',
       'attendance': 'Attendance', 'dpr': 'DPR Status', 'worker-reg': 'Worker Reg.',
-      'user-manager': 'User Manager', 'vendors': 'Vendors', 'vehicles': 'Vehicles',
+      'user-manager': 'User Manager', 'vendors': 'Vendors', 'clients': 'Clients', 'vehicles': 'Vehicles',
       'payroll': 'Payroll', 'inventory': 'Inventory', 'expense': 'Expense',
       'activity-log': 'Activity Log', 'chat': 'Live Chat', 'settings': 'Settings',
     };
@@ -270,6 +271,7 @@ const menuItems = [
   { name: 'Worker Reg.', icon: <UserPlus size={20}/>, path: '/register-worker' },
   { name: 'User Manager', icon: <Users size={20}/>, path: '/user-manager' },
   { name: 'Vendors', icon: <Building2 size={20}/>, path: '/vendor-management' },
+  { name: 'Clients', icon: <Building size={20}/> },
   { name: 'Vehicles', icon: <Truck size={20}/>, path: '/vehicle-management' },
   { name: 'Payroll', icon: <Wallet size={20}/> },
   { name: 'Inventory', icon: <Package size={20}/> },
@@ -290,6 +292,7 @@ const menuItems = [
       'Worker Reg.': { key: 'worker-reg', path: '/admin/worker-reg' },
       'User Manager': { key: 'user-manager', path: '/admin/user-manager' },
       'Vendors': { key: 'vendors', path: '/admin/vendors' },
+      'Clients': { key: 'clients', path: '/admin/clients' },
       'Vehicles': { key: 'vehicles', path: '/admin/vehicles' },
       'Payroll': { key: 'payroll', path: '/admin/payroll' },
       'Inventory': { key: 'inventory', path: '/admin/inventory' },
@@ -478,6 +481,8 @@ const menuItems = [
             <StaffManagement />
           ) : selectedAdminMenu === 'vendors' ? (
             <VendorManagement />
+          ) : selectedAdminMenu === 'clients' ? (
+            <ClientManagement />
           ) : selectedAdminMenu === 'vehicles' ? (
             <VehicleManagement />
           ) : selectedAdminMenu === 'activity-log' ? (

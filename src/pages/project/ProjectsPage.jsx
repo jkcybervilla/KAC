@@ -174,6 +174,7 @@ const ProjectsPage = () => {
   const [clientAttendance, setClientAttendance] = useState([]);
   const [officeAttendance, setOfficeAttendance] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
@@ -211,18 +212,20 @@ const ProjectsPage = () => {
 
   const loadData = async () => {
     try {
-      const [pSnap, wSnap, cSnap, oSnap, vSnap] = await Promise.all([
+      const [pSnap, wSnap, cSnap, oSnap, vSnap, clSnap] = await Promise.all([
         getDocs(query(collection(db, 'projects'), orderBy('SL', 'asc'))),
         getDocs(collection(db, 'workers')),
         getDocs(collection(db, 'attendance_client')),
         getDocs(collection(db, 'attendance_office')),
         getDocs(collection(db, 'vendors')),
+        getDocs(collection(db, 'clients')),
       ]);
       setProjects(pSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setWorkers(wSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setClientAttendance(cSnap.docs.map((d) => d.data()));
       setOfficeAttendance(oSnap.docs.map((d) => d.data()));
       setVendors(vSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setClients(clSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error(err);
     } finally {
@@ -594,6 +597,7 @@ const ProjectsPage = () => {
           }}
           onSubmit={handleCreate}
           vendors={activeVendorOptions}
+          clients={clients}
         />
       )}
 
@@ -608,6 +612,7 @@ const ProjectsPage = () => {
           }}
           navigate={navigate}
           vendors={activeVendorOptions}
+          clients={clients}
         />
       )}
 
@@ -647,7 +652,23 @@ const ProjectsPage = () => {
 
 const stepLabels = ['Project Info', 'Client & PO', 'Team'];
 
-const ProjectFormModal = ({ formData, setFormData, currentStep, setCurrentStep, onClose, onSubmit, vendors }) => {
+const ProjectFormModal = ({ formData, setFormData, currentStep, setCurrentStep, onClose, onSubmit, vendors, clients }) => {
+  const handleClientChange = (clientName) => {
+    const selectedClient = clients.find(c => c.companyName === clientName);
+    if (selectedClient) {
+      setFormData({
+        ...formData,
+        CLIENT: clientName,
+        PO_NUMBER: selectedClient.poNumber || formData.PO_NUMBER,
+        PROJECT_NAME: selectedClient.projectName || formData.PROJECT_NAME,
+        TYPE: selectedClient.workType || formData.TYPE,
+        REQ_MANPOWER: selectedClient.quantity || formData.REQ_MANPOWER,
+      });
+    } else {
+      setFormData({ ...formData, CLIENT: clientName });
+    }
+  };
+
   return (
     <div style={s.modalOverlay}>
       <div style={{ ...s.modalContent, maxWidth: '620px' }}>
@@ -761,7 +782,18 @@ const ProjectFormModal = ({ formData, setFormData, currentStep, setCurrentStep, 
           {currentStep === 2 && (
             <div style={s.inputGrid}>
               <FormField label="CLIENT">
-                <input style={s.formInput} value={formData.CLIENT} onChange={(e) => setFormData({ ...formData, CLIENT: e.target.value })} />
+                <select
+                  style={s.formInput}
+                  value={formData.CLIENT}
+                  onChange={(e) => handleClientChange(e.target.value)}
+                >
+                  <option value="">— Select Client —</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.companyName}>
+                      {c.companyName}
+                    </option>
+                  ))}
+                </select>
               </FormField>
               <FormField label="PROJECT / LINE NAME">
                 <input style={s.formInput} value={formData.LINE_NAME} onChange={(e) => setFormData({ ...formData, LINE_NAME: e.target.value })} />
@@ -843,9 +875,25 @@ const ProjectFormModal = ({ formData, setFormData, currentStep, setCurrentStep, 
   );
 };
 
-const ProjectPropertiesModal = ({ project, onClose, onSave, navigate, vendors }) => {
+const ProjectPropertiesModal = ({ project, onClose, onSave, navigate, vendors, clients }) => {
   const [data, setData] = useState({ ...project });
   const [isEditing, setIsEditing] = useState(false);
+
+  const handleClientChange = (clientName) => {
+    const selectedClient = clients.find(c => c.companyName === clientName);
+    if (selectedClient) {
+      setData({
+        ...data,
+        CLIENT: clientName,
+        PO_NUMBER: selectedClient.poNumber || data.PO_NUMBER,
+        PROJECT_NAME: selectedClient.projectName || data.PROJECT_NAME,
+        TYPE: selectedClient.workType || data.TYPE,
+        REQ_MANPOWER: selectedClient.quantity || data.REQ_MANPOWER,
+      });
+    } else {
+      setData({ ...data, CLIENT: clientName });
+    }
+  };
 
   const handleDelete = async () => {
     if (window.confirm(`WARNING: Are you sure you want to PERMANENTLY DELETE "${project.PROJECT_NAME}"?`)) {
@@ -908,7 +956,18 @@ const ProjectPropertiesModal = ({ project, onClose, onSave, navigate, vendors })
                   </select>
                 </FormField>
                 <FormField label="CLIENT">
-                  <input style={s.formInput} value={data.CLIENT || ''} onChange={(e) => setData({ ...data, CLIENT: e.target.value })} />
+                  <select
+                    style={s.formInput}
+                    value={data.CLIENT || ''}
+                    onChange={(e) => handleClientChange(e.target.value)}
+                  >
+                    <option value="">— Select Client —</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.companyName}>
+                        {c.companyName}
+                      </option>
+                    ))}
+                  </select>
                 </FormField>
                 <FormField label="PO NUMBER">
                   <input style={s.formInput} value={data.PO_NUMBER || ''} onChange={(e) => setData({ ...data, PO_NUMBER: e.target.value })} />
